@@ -501,3 +501,139 @@ Target: Render (HTTPS).
 Backend: FastAPI implementing this contract.
 Frontend: PWA against these endpoints only (no production demo merchant lists).
 Dev may use sandbox OTP; production SMS provider (e.g. Africa’s Talking) behind the same OTP verify API.
+
+
+---
+
+## 25. Dictionary APIs
+
+Purpose: expand and normalize language for search/crawler so commercial intent matches real listings (synonyms, categories, commerce terms). Not demo data—curated vocabulary.
+
+### Endpoints
+
+| Method | Path | Notes |
+|--------|------|--------|
+| GET | `/api/v1/dictionary/synonyms?q=` | Returns canonical term + synonyms for query token(s) |
+| GET | `/api/v1/dictionary/categories?business_type=` | Categories for merchant / service / driver / emergency / etc. |
+| GET | `/api/v1/dictionary/commerce?q=` | Commerce vocabulary hits |
+| GET | `/api/v1/dictionary/language?lang=` | Language pack meta / labels (v1 may be minimal) |
+
+### Synonym response (example shape)
+
+```json
+{
+  "query": "phone",
+  "canonical": "phone",
+  "synonyms": ["mobile", "smartphone", "cell phone"]
+}
+
+Rules
+Search SHOULD expand tokens via synonyms before/within ranking; exact match still ranks strongest.
+Dictionary entries are versioned (dictionary_version) for backward compatibility.
+Empty synonym set is valid (return canonical only).
+
+26. OSM / Geo APIs
+Purpose: OpenStreetMap-backed underlayer for place search, reverse geocode, and cascade assist. Does not replace GSG, hierarchy ladder, or 220×64 start_row.
+Endpoints
+Method
+Path
+Notes
+GET
+/api/v1/geo/search?q=&countrycodes=
+Forward geocode (OSM/Nominatim or equivalent)
+GET
+/api/v1/geo/reverse?lat=&lng=
+Reverse geocode
+GET
+/api/v1/geo/autocomplete?level=&parent=&q=
+Assist country → state → city (OSM + server filters)
+Rules
+Primary location text remains user-entered when they set the business/home pin (e.g. 27, Dabu street, Eneka).
+lat/lng may come from device GPS and/or geo resolve.
+Server stores attribution/compliance as required by OSM policy.
+v1 may proxy upstream OSM; self-hosted tiles later.
+Response card (minimal)
+{
+  "display_name": "string",
+  "lat": 0.0,
+  "lng": 0.0,
+  "country": "string",
+  "state": "string",
+  "city": "string"
+}
+
+27. Deletes and reactions
+All deletes are auth required. Server enforces ownership or explicit admin policy. Prefer soft delete (deleted_at) for messages, posts, and catalogue objects so threads and audits stay backward compatible; hard delete only where legally required or for account purge.
+
+27.1 Delete message
+DELETE /api/v1/messages/{message_id}
+Only sender may delete their own message (v1), or both parties soft-hide for themselves if you add per-user hide later.
+Response: 204 or { "id": "...", "deleted": true }.
+
+27.2 Delete fairly used post
+DELETE /api/v1/fairly-used/{post_id}
+Only author (poster).
+Soft delete; comments/reactions on post become inaccessible on public feed.
+
+27.3 Delete product / catalogue object
+DELETE /api/v1/products/{id}
+Only owner.
+Removes from catalogue and search index (soft delete).
+
+27.4 Delete / clear availability status
+DELETE /api/v1/presence/availability
+or POST /api/v1/presence/availability with { "available": false }
+Driver/service availability card off.
+Does not delete the user account.
+POST /api/v1/presence/live with { "live": false } clears live pin (already in contract).
+
+27.5 Delete location pin (primary)
+PATCH /api/v1/users/me with cleared or replaced primary_location / lat / lng
+Or DELETE /api/v1/users/me/primary-location → clears pin fields and recomputes gsg/ladder as needed.
+Account remains.
+
+27.6 Delete account
+DELETE /api/v1/users/me
+Requires auth (+ optional password confirm body).
+Anonymize or purge user; release phone so it may register again after purge completes.
+Cascade: soft-delete or detach products, posts, messages per policy (document in implementation).
+Backward compatible: other users’ threads show “Deleted user” placeholder, not hard failure.
+
+27.7 Reactions
+Reactions may apply to fairly used posts (and later feed objects).
+Method
+Path
+Notes
+POST
+/api/v1/reactions
+body: { "target_type": "fairly_used_post", "target_id": "uuid", "kind": "like" }
+DELETE
+/api/v1/reactions/{reaction_id}
+Remove own reaction
+DELETE
+/api/v1/reactions
+Optional: body target + kind to idempotent remove own reaction
+Only the reactor deletes their reaction.
+Target owner deleting the post soft-deletes associated reactions from public view.
+
+28. Backward compatibility
+Rule
+Detail
+API prefix
+Stay on /api/v1/ for additive changes
+Additive fields
+New JSON fields optional; old clients ignore unknown keys
+Removed fields
+Do not remove in v1 without deprecation window
+Soft delete
+Default for content; list endpoints exclude deleted_at IS NOT NULL
+User version
+user.version / dictionary_version for client feature gates
+Phone reuse
+Only after account delete/purge completes
+Rank/placement formula changes
+Bump contract version; keep old clients working via stored snapshots on user/object where needed
+Placeholders
+Deleted sender/post shows stable placeholder strings, not 500s
+Breaking changes → /api/v2/ or coordinated app release.
+API Contract v1.0.0.1p 
