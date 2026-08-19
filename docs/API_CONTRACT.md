@@ -636,4 +636,125 @@ Bump contract version; keep old clients working via stored snapshots on user/obj
 Placeholders
 Deleted sender/post shows stable placeholder strings, not 500s
 Breaking changes → /api/v2/ or coordinated app release.
+
+
 API Contract v1.0.0.1p 
+
+
+---
+
+## 30. Premium, receipts, e-Invoice, priority (final)
+
+All premiums: **opt-out anytime**. Plan amounts use ISO `currency` (not USD-only). Default display currency may be NGN for NG pricing tables below.
+
+### 30.1 Receipts (free)
+
+- Not shareable; **download to phone memory only** (not cloud by default).
+- Free; **not** counted toward e-Invoice quota.
+- Limit: **3,000 receipts / month** per account.
+- Merchants, drivers, doctors, and other issuing roles per policy.
+- Cloud only if committed to **RECCORD** or **cloud_backup** (when enabled).
+
+### 30.2 e-Invoice (paid; cloud access included)
+
+Name in product: **e-Invoice** (not “invoice” only).  
+Share: download to phone, or via Hi-Mate / Shop Near Me messages (receiver downloads).
+
+| Capacity / month | Price (NGN) |
+|------------------|-------------|
+| 300 | 3,000 |
+| 500 | 5,000 |
+| 1,000 | 12,000 |
+| 1,500 | 15,000 |
+| 2,000 | 18,000 |
+| 2,500 | 20,500 |
+| 4,000 | 25,000 |
+
+### 30.3 e-Invoice++ (paid; branding + cloud)
+
+| Capacity / month | Price (NGN) |
+|------------------|-------------|
+| 400 | 4,000 |
+| 700 | 8,000 |
+| 1,000 | 15,000 |
+| 1,500 | 20,000 |
+| 2,500 | 25,000 |
+| 3,000 | 27,000 |
+| 5,000 | 30,000 |
+
+Branding: logo, colours, header/footer, layouts beyond base e-Invoice.
+
+### 30.4 Premium codes
+
+| Code | Name | Price (NGN) | Type | Status |
+|------|------|-------------|------|--------|
+| premium_calculator | Premium Calculator (VAT, FX, discount; not PoD calc) | 10,000 | yearly | **build** |
+| priority_support | Priority Support (local morning front-row) | 5,500 | monthly | **build** |
+| verified_badge | Verified Merchant Badge | 4,000 | one_time | **build** |
+| e_invoice | e-Invoice capacity plan | see §30.2 | monthly | **build** |
+| e_invoice_pp | e-Invoice++ capacity plan | see §30.3 | monthly | **build** |
+| ai_media | AI Image + Voice Upload | 30,000 | monthly | coming_soon |
+| pdf_export | PDF Export | 7,000 | one_time | coming_soon |
+| cloud_backup | Cloud Backup | 7,000 | monthly | coming_soon |
+| company_branding | Company Branding on e-invoice (dev team) | 5,000 | yearly | coming_soon |
+| multi_branch | Multi-Branch Support | 30,000 | yearly | coming_soon |
+| staff_accounts | Staff / Worker Accounts | 15,000 | yearly | coming_soon |
+| analytics | Analytics Dashboard | 7,000 | monthly | coming_soon |
+
+### 30.5 Priority Support (not global ads)
+
+- Scope: **community + city** only.
+- Morning job: push active subscribers to **front-row** in that environment.
+- **Priority grid:** **1 column × 2 rows** — **Earlier** | **Latest**.
+- Order: **FIFO by payment/activation time**.
+
+### 30.6 Local environment grid (primary / city)
+
+Representation of users/objects for local closeness (alongside hierarchy/GSG/220×64):
+
+| Item | Value |
+|------|--------|
+| Scale | **2 × 2** |
+| Columns | Fixed **col 1**, **col 2** (e.g. primary channel / city channel) |
+| UID | Fixed **26012002** (no UID differential between cols) |
+| S | digit_sum(26012002) = **13** |
+| L | **city** name length (normalized) |
+| start_row | `((L + 13 - 1) % 2) + 1` = `((L + 12) % 2) + 1` |
+
+Entity identity in cell: **user name**, **business type(s)**, **primary location**, **city**, plus `user_id`.
+
+### 30.7 Endpoints
+
+- `GET /api/v1/premium/plans`
+- `GET /api/v1/premium/me`
+- `POST /api/v1/premium/subscribe`
+- `POST /api/v1/premium/cancel`
+- `POST /api/v1/premium/calculator`
+- `/api/v1/e-invoices` — capacity enforced
+- `/api/v1/receipts` — free tier 3,000/month; no share URL
+
+---
+
+## 31. Banqueue
+
+- `GET /api/v1/banqueue/locations`
+- `GET /api/v1/banqueue/{id}`
+- `POST /api/v1/banqueue/{id}/checkin`
+
+---
+
+## 32. Emergency
+
+- `GET /api/v1/emergency/nearby?lat=&lng=`
+- Role `emergency`; not a merchant catalogue card.
+
+---
+
+## 33. Business category UX
+
+Required discriminators: `role`, `business_type`, `category`, `card_type`  
+(`shop_catalogue` | `listing` | `availability` | `service` | `emergency` | `search_object` | `dashboard`).
+
+---
+
+*Premium contract lock — API Contract v1.0.0.1p*
