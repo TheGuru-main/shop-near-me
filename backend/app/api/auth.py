@@ -36,6 +36,7 @@ def _user_public(user: User) -> dict:
         "ladder": user.ladder,
         "gsg": user.gsg,
         "live": user.live,
+        "start_row": user.start_row,
         "version": user.version,
     }
 
@@ -120,6 +121,9 @@ async def otp_verify(
     body: OTPVerify,
     db: Session = Depends(get_db),
 ):
+    from app.services.gsg import gsg_at
+    from app.services.placement import build_location_ladder, messaging_start_row
+
     rec = otp_service.verify_otp(body.pending_id, body.otp)
     if not rec:
         raise HTTPException(
@@ -140,9 +144,6 @@ async def otp_verify(
             detail="Phone already registered",
         )
 
-from app.services.gsg import gsg_at
-    from app.services.placement import build_location_ladder, messaging_start_row
-
     ladder = build_location_ladder(
         continent_name=data.get("continent_name") or "",
         continent_id=data.get("continent_id") or "",
@@ -156,6 +157,7 @@ from app.services.gsg import gsg_at
     gsg = None
     if data.get("lat") is not None and data.get("lng") is not None:
         gsg = gsg_at(float(data["lat"]), float(data["lng"]))
+
     m_row = messaging_start_row(data.get("name") or "", phone)
 
     user = User(
