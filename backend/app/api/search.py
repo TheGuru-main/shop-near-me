@@ -5,7 +5,8 @@ from app.core.limiter import limiter
 from app.db import get_db
 from app.models.product import Product
 from app.models.user import User
-from app.services.search import lex_score, rank_product_row
+from app.services.crawler import crawl_score_product
+from app.services.search import haversine_km, lex_score
 
 router = APIRouter(prefix="/search", tags=["search"])
 
@@ -14,7 +15,7 @@ router = APIRouter(prefix="/search", tags=["search"])
 @limiter.limit("60/minute")
 async def search_products(
     request: Request,
-    q: str = Query("", min_length=0),
+    q: str = Query(""),
     lat: float | None = None,
     lng: float | None = None,
     perishable: bool | None = None,
@@ -41,9 +42,18 @@ async def search_products(
     scored = []
     for product, owner in pairs:
         if query:
-            if lex_score(query, product.name) < 20 and lex_score(query, product.category or "") < 20:
+            if (
+                lex_score(query, product.name) < 20
+                and lex_score(query, product.category or "") < 20
+            ):
                 continue
-        rank = rank_product_row(query or product.name, product, owner, lat, lng)
+        rank = crawl_score_product(
+            query or product.name,
+            product,
+            owner,
+            lat,
+            lng,
+        )
         if query and rank["lex"] < 20:
             continue
         scored.append(
@@ -60,6 +70,7 @@ async def search_products(
                     "perishable": product.perishable,
                     "available": product.available,
                     "image_url": product.image_url,
+                    "start_row": product.start_row,
                 },
                 "seller": {
                     "id": str(owner.id),
@@ -78,10 +89,10 @@ async def search_products(
                     "hb": rank["hb"],
                     "rel": rank["rel"],
                 },
+                "start_row": rank.get("start_row"),
             }
         )
 
-    # exact-ish first, then nearer km, then score
     def sort_key(item):
         lex = item["score_breakdown"]["lex"]
         km = item["km"] if item["km"] is not None else 9999.0
@@ -118,9 +129,12 @@ async def search_merchants(
         if lex < 25:
             continue
         km = None
-        from app.services.search import haversine_km
-
-        if lat is not None and lng is not None and u.lat is not None and u.lng is not None:
+        if (
+            lat is not None
+            and lng is not None
+            and u.lat is not None
+            and u.lng is not None
+        ):
             km = round(haversine_km(lat, lng, float(u.lat), float(u.lng)), 2)
         out.append(
             {
@@ -135,8 +149,15 @@ async def search_merchants(
                 "live": u.live,
                 "km": km,
                 "score": lex,
+                "start_row": u.start_row,
             }
         )
 
-    out.sort(key=lambda x: (0 if x["score"] >= 95 else 1, x["km"] if x["km"] is not None else 9999, -x["score"]))
+    out.sort(
+        key=lambda x: (
+            0 if x["score"] >= 95 else 1,
+            x["km"] if x["km"] is not None else 9999,
+            -x["score"],
+        )
+    )
     return {"query": q, "count": len(out[:limit]), "results": out[:limit]}
