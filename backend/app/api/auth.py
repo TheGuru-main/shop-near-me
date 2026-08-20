@@ -11,7 +11,11 @@ from app.db import get_db
 from app.models.user import User
 from app.schemas.auth import LoginRequest, OTPRequest, OTPVerify, TokenResponse
 from app.services import otp as otp_service
-from app.services.phone import normalize_e164
+from app.services.gsg import gsg_at
+from app.services.local_grid import register_local
+from app.services.phone import normalize_e164, phone_digits
+from app.services.placement import build_location_ladder, messaging_start_row
+from app.services.relationship import register_entity
 from app.services.sms import send_otp_sms
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -121,9 +125,6 @@ async def otp_verify(
     body: OTPVerify,
     db: Session = Depends(get_db),
 ):
-    from app.services.gsg import gsg_at
-    from app.services.placement import build_location_ladder, messaging_start_row
-
     rec = otp_service.verify_otp(body.pending_id, body.otp)
     if not rec:
         raise HTTPException(
@@ -188,6 +189,27 @@ async def otp_verify(
     db.add(user)
     db.commit()
     db.refresh(user)
+
+    register_local(
+        user_id=str(user.id),
+        name=user.name,
+        business_types=[user.role],
+        primary_location=user.primary_location or "",
+        city=user.city or "",
+    )
+    register_entity(
+        entity_type="user",
+        entity_id=str(user.id),
+        name=user.name,
+        uid_for_s=phone_digits(user.phone),
+        country=user.country or "",
+        region=user.region or "",
+        city=user.city or "",
+        community=user.community or "",
+        primary_location=user.primary_location or "",
+        category=user.role,
+        extra={"role": user.role},
+    )
 
     token = create_access_token(str(user.id), extra={"role": user.role})
     return TokenResponse(access_token=token, user=_user_public(user))

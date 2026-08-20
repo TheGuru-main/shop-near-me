@@ -6,9 +6,10 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from app.api import auth as auth_routes
+from app.api import presence as presence_routes
+from app.api import products as products_routes
 from app.config import get_settings
 from app.core.limiter import limiter
-from app.api import presence as presence_routes
 
 settings = get_settings()
 
@@ -32,8 +33,6 @@ app = FastAPI(
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-app.include_router(auth_routes.router, prefix=settings.api_prefix)
-app.include_router(presence_routes.router, prefix=settings.api_prefix)
 
 origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
 app.add_middleware(
@@ -45,6 +44,8 @@ app.add_middleware(
 )
 
 app.include_router(auth_routes.router, prefix=settings.api_prefix)
+app.include_router(presence_routes.router, prefix=settings.api_prefix)
+app.include_router(products_routes.router, prefix=settings.api_prefix)
 
 
 @app.get("/health")
