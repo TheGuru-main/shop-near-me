@@ -7,6 +7,10 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
+jwt_secret: str = "change-me-in-production",
+    jwt_algorithm: str = "HS256",
+    jwt_expire_minutes: int = 60 * 24 * 7,
+
     )
 
     app_name: str = "Shop Near Me API"
