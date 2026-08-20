@@ -8,6 +8,7 @@ from slowapi.errors import RateLimitExceeded
 from app.api import auth as auth_routes
 from app.api import presence as presence_routes
 from app.api import products as products_routes
+from app.api import search as search_routes
 from app.config import get_settings
 from app.core.limiter import limiter
 
@@ -46,6 +47,7 @@ app.add_middleware(
 app.include_router(auth_routes.router, prefix=settings.api_prefix)
 app.include_router(presence_routes.router, prefix=settings.api_prefix)
 app.include_router(products_routes.router, prefix=settings.api_prefix)
+app.include_router(search_routes.router, prefix=settings.api_prefix)
 
 
 @app.get("/health")
