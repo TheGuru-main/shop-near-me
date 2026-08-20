@@ -6,8 +6,12 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from app.api import auth as auth_routes
+from app.api import einvoice as einvoice_routes
+from app.api import fairly_used as fairly_used_routes
+from app.api import feed as feed_routes
 from app.api import messages as messages_routes
 from app.api import presence as presence_routes
+from app.api import premium as premium_routes
 from app.api import products as products_routes
 from app.api import search as search_routes
 from app.config import get_settings
@@ -50,6 +54,10 @@ app.include_router(presence_routes.router, prefix=settings.api_prefix)
 app.include_router(products_routes.router, prefix=settings.api_prefix)
 app.include_router(search_routes.router, prefix=settings.api_prefix)
 app.include_router(messages_routes.router, prefix=settings.api_prefix)
+app.include_router(fairly_used_routes.router, prefix=settings.api_prefix)
+app.include_router(feed_routes.router, prefix=settings.api_prefix)
+app.include_router(premium_routes.router, prefix=settings.api_prefix)
+app.include_router(einvoice_routes.router, prefix=settings.api_prefix)
 
 
 @app.get("/health")
