@@ -140,6 +140,24 @@ async def otp_verify(
             detail="Phone already registered",
         )
 
+from app.services.gsg import gsg_at
+    from app.services.placement import build_location_ladder, messaging_start_row
+
+    ladder = build_location_ladder(
+        continent_name=data.get("continent_name") or "",
+        continent_id=data.get("continent_id") or "",
+        country=data.get("country") or "",
+        region=data.get("region") or "",
+        city=data.get("city") or "",
+        community=data.get("community") or "",
+        primary_location=data.get("primary_location") or "",
+    )
+
+    gsg = None
+    if data.get("lat") is not None and data.get("lng") is not None:
+        gsg = gsg_at(float(data["lat"]), float(data["lng"]))
+    m_row = messaging_start_row(data.get("name") or "", phone)
+
     user = User(
         id=uuid.uuid4(),
         role=data["role"],
@@ -156,6 +174,9 @@ async def otp_verify(
         lat=data.get("lat"),
         lng=data.get("lng"),
         prefs=data.get("prefs") or [],
+        ladder=ladder,
+        gsg=gsg,
+        start_row=m_row,
         live=False,
         hb_at=None
         if data.get("role") == "buyer"
