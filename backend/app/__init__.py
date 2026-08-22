@@ -1,1 +1,1 @@
-__app/init__
+"""Shop Near Me API package."""
