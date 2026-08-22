@@ -6,12 +6,13 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from app.api import auth as auth_routes
-from app.api import einvoice as einvoice_routes
-from app.api import fairly_used as fairly_used_routes
-from app.api import feed as feed_routes
-from app.api import messages as messages_routes
+from app.api import banqueue as banqueue_routes
+from app.api import dictionary as dictionary_routes
+from app.api import emergency as emergency_routes
+from app.api import geo as geo_routes
+from app.api import keyboard as keyboard_routes
+from app.api import news as news_routes
 from app.api import presence as presence_routes
-from app.api import premium as premium_routes
 from app.api import products as products_routes
 from app.api import search as search_routes
 from app.config import get_settings
@@ -49,15 +50,54 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth_routes.router, prefix=settings.api_prefix)
-app.include_router(presence_routes.router, prefix=settings.api_prefix)
-app.include_router(products_routes.router, prefix=settings.api_prefix)
-app.include_router(search_routes.router, prefix=settings.api_prefix)
-app.include_router(messages_routes.router, prefix=settings.api_prefix)
-app.include_router(fairly_used_routes.router, prefix=settings.api_prefix)
-app.include_router(feed_routes.router, prefix=settings.api_prefix)
-app.include_router(premium_routes.router, prefix=settings.api_prefix)
-app.include_router(einvoice_routes.router, prefix=settings.api_prefix)
+prefix = settings.api_prefix
+
+app.include_router(auth_routes.router, prefix=prefix)
+app.include_router(presence_routes.router, prefix=prefix)
+app.include_router(products_routes.router, prefix=prefix)
+app.include_router(search_routes.router, prefix=prefix)
+app.include_router(dictionary_routes.router, prefix=prefix)
+app.include_router(geo_routes.router, prefix=prefix)
+app.include_router(news_routes.router, prefix=prefix)
+app.include_router(keyboard_routes.router, prefix=prefix)
+app.include_router(banqueue_routes.router, prefix=prefix)
+app.include_router(emergency_routes.router, prefix=prefix)
+
+# Optional modules — import only if files exist on disk
+try:
+    from app.api import messages as messages_routes
+
+    app.include_router(messages_routes.router, prefix=prefix)
+except Exception as exc:
+    print("messages router skipped:", exc)
+
+try:
+    from app.api import fairly_used as fairly_used_routes
+
+    app.include_router(fairly_used_routes.router, prefix=prefix)
+except Exception as exc:
+    print("fairly_used router skipped:", exc)
+
+try:
+    from app.api import feed as feed_routes
+
+    app.include_router(feed_routes.router, prefix=prefix)
+except Exception as exc:
+    print("feed router skipped:", exc)
+
+try:
+    from app.api import premium as premium_routes
+
+    app.include_router(premium_routes.router, prefix=prefix)
+except Exception as exc:
+    print("premium router skipped:", exc)
+
+try:
+    from app.api import einvoice as einvoice_routes
+
+    app.include_router(einvoice_routes.router, prefix=prefix)
+except Exception as exc:
+    print("einvoice router skipped:", exc)
 
 
 @app.get("/health")
