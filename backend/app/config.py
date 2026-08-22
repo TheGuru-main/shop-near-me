@@ -14,21 +14,30 @@ class Settings(BaseSettings):
     app_version: str = "1.0.0.1p"
     api_prefix: str = "/api/v1"
 
-    # Neon: postgresql+psycopg://USER:PASSWORD@HOST/DB?sslmode=require
     database_url: str = "postgresql+psycopg://user:pass@localhost:5432/shopnearme"
-
     cors_origins: str = "*"
 
     jwt_secret: str = "change-me-in-production"
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60 * 24 * 7
 
-    # Africa's Talking
     at_username: str = ""
     at_api_key: str = ""
-
-    # Dev only: include OTP in API response when True
     otp_expose_dev: bool = False
+
+    # News
+    gnews_api_key: str = ""
+
+    # Dictionary / Datamuse
+    dictionary_api_base: str = "https://api.dictionaryapi.dev/api/v2/entries/en"
+    datamuse_base: str = "https://api.datamuse.com"
+    # If you use Apify proxy/actor for Datamuse:
+    apify_token: str = ""
+    apify_datamuse_url: str = ""  # optional full actor/run URL; leave empty to use datamuse_base
+
+    # OSM Nominatim
+    nominatim_base: str = "https://nominatim.openstreetmap.org"
+    osm_user_agent: str = "ShopNearMe/1.0 (contact@example.com)"
 
 
 @lru_cache
