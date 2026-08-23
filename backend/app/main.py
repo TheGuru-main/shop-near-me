@@ -7,10 +7,12 @@ from slowapi.errors import RateLimitExceeded
 
 from app.api import auth as auth_routes
 from app.api import banqueue as banqueue_routes
+from app.api import calls as calls_routes
 from app.api import dictionary as dictionary_routes
 from app.api import emergency as emergency_routes
 from app.api import geo as geo_routes
 from app.api import keyboard as keyboard_routes
+from app.api import live as live_routes
 from app.api import news as news_routes
 from app.api import presence as presence_routes
 from app.api import products as products_routes
@@ -62,8 +64,9 @@ app.include_router(news_routes.router, prefix=prefix)
 app.include_router(keyboard_routes.router, prefix=prefix)
 app.include_router(banqueue_routes.router, prefix=prefix)
 app.include_router(emergency_routes.router, prefix=prefix)
+app.include_router(calls_routes.router, prefix=prefix)
+app.include_router(live_routes.router, prefix=prefix)
 
-# Optional modules — import only if files exist on disk
 try:
     from app.api import messages as messages_routes
 
@@ -98,6 +101,13 @@ try:
     app.include_router(einvoice_routes.router, prefix=prefix)
 except Exception as exc:
     print("einvoice router skipped:", exc)
+
+try:
+    from app.api import checkout as checkout_routes
+
+    app.include_router(checkout_routes.router, prefix=prefix)
+except Exception as exc:
+    print("checkout router skipped:", exc)
 
 
 @app.get("/health")
