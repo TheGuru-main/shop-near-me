@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
+from app.api import admin_contact as admin_contact_routes
 from app.api import auth as auth_routes
 from app.api import banqueue as banqueue_routes
 from app.api import calls as calls_routes
@@ -14,9 +15,12 @@ from app.api import emergency as emergency_routes
 from app.api import geo as geo_routes
 from app.api import keyboard as keyboard_routes
 from app.api import live as live_routes
+from app.api import manifests as manifests_routes
 from app.api import news as news_routes
 from app.api import presence as presence_routes
 from app.api import products as products_routes
+from app.api import ratings as ratings_routes
+from app.api import reports as reports_routes
 from app.api import search as search_routes
 from app.config import get_settings
 from app.core.limiter import limiter
@@ -68,6 +72,10 @@ app.include_router(emergency_routes.router, prefix=prefix)
 app.include_router(calls_routes.router, prefix=prefix)
 app.include_router(live_routes.router, prefix=prefix)
 app.include_router(checkout_routes.router, prefix=prefix)
+app.include_router(reports_routes.router, prefix=prefix)
+app.include_router(ratings_routes.router, prefix=prefix)
+app.include_router(manifests_routes.router, prefix=prefix)
+app.include_router(admin_contact_routes.router, prefix=prefix)
 
 try:
     from app.api import messages as messages_routes

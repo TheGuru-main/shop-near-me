@@ -1,6 +1,8 @@
-# Import models here as they are added so init_db() registers them. 
 from app.models.user import User
 from app.models.product import Product
+from app.models.report import UserReport
+from app.models.rating import Rating
+from app.models.manifest import DeliveryManifest
 
 try:
     from app.models.message import Message, MessageThread
@@ -21,4 +23,10 @@ except Exception:
     EInvoice = None  # type: ignore
     Receipt = None  # type: ignore
 
-__all__ = ["User", "Product"]
+__all__ = [
+    "User",
+    "Product",
+    "UserReport",
+    "Rating",
+    "DeliveryManifest",
+]
