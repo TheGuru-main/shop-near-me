@@ -6,6 +6,7 @@ from app.db import get_db
 from app.models.product import Product
 from app.models.user import User
 from app.services.crawler import crawl_score_product
+from app.services.identity import identity_tag, public_identity
 from app.services.search import haversine_km, lex_score
 
 router = APIRouter(prefix="/search", tags=["search"])
@@ -18,6 +19,7 @@ async def search_products(
     q: str = Query(""),
     lat: float | None = None,
     lng: float | None = None,
+    max_km: float | None = Query(None, ge=0),
     perishable: bool | None = None,
     category: str | None = None,
     limit: int = Query(40, ge=1, le=100),
@@ -48,14 +50,16 @@ async def search_products(
             ):
                 continue
         rank = crawl_score_product(
-            query or product.name,
-            product,
-            owner,
-            lat,
-            lng,
+            query or product.name, product, owner, lat, lng
         )
         if query and rank["lex"] < 20:
             continue
+        km = rank.get("km")
+        if max_km is not None and km is not None and km > max_km:
+            continue
+        if max_km is not None and km is None and lat is not None:
+            continue
+        ident = public_identity(owner.name, owner.phone)
         scored.append(
             {
                 "card_type": "search_object",
@@ -73,15 +77,19 @@ async def search_products(
                     "start_row": product.start_row,
                 },
                 "seller": {
-                    "id": str(owner.id),
+                    "uid": ident["uid"],
+                    "identity_tag": ident["identity_tag"],
                     "name": owner.name,
                     "role": owner.role,
                     "primary_location": owner.primary_location,
                     "city": owner.city,
                     "community": owner.community,
                     "live": owner.live,
+                    "start_row": ident["start_row"],
+                    "L": ident["L"],
+                    "S": ident["S"],
                 },
-                "km": rank["km"],
+                "km": km,
                 "score": rank["score"],
                 "score_breakdown": {
                     "lex": rank["lex"],
@@ -89,7 +97,6 @@ async def search_products(
                     "hb": rank["hb"],
                     "rel": rank["rel"],
                 },
-                "start_row": rank.get("start_row"),
             }
         )
 
@@ -100,7 +107,12 @@ async def search_products(
         return (exact, km, -item["score"])
 
     scored.sort(key=sort_key)
-    return {"query": query, "count": len(scored[:limit]), "results": scored[:limit]}
+    return {
+        "query": query,
+        "max_km": max_km,
+        "count": len(scored[:limit]),
+        "results": scored[:limit],
+    }
 
 
 @router.get("/merchants")
@@ -110,6 +122,7 @@ async def search_merchants(
     q: str = Query("", min_length=1),
     lat: float | None = None,
     lng: float | None = None,
+    max_km: float | None = Query(None, ge=0),
     limit: int = Query(40, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
@@ -129,19 +142,20 @@ async def search_merchants(
         if lex < 25:
             continue
         km = None
-        if (
-            lat is not None
-            and lng is not None
-            and u.lat is not None
-            and u.lng is not None
-        ):
+        if lat is not None and lng is not None and u.lat is not None and u.lng is not None:
             km = round(haversine_km(lat, lng, float(u.lat), float(u.lng)), 2)
+        if max_km is not None and km is not None and km > max_km:
+            continue
+        if max_km is not None and km is None and lat is not None:
+            continue
+        ident = public_identity(u.name, u.phone)
         out.append(
             {
                 "card_type": "listing",
                 "role": u.role,
                 "business_type": u.role,
-                "id": str(u.id),
+                "uid": ident["uid"],
+                "identity_tag": ident["identity_tag"],
                 "name": u.name,
                 "primary_location": u.primary_location,
                 "city": u.city,
@@ -149,7 +163,9 @@ async def search_merchants(
                 "live": u.live,
                 "km": km,
                 "score": lex,
-                "start_row": u.start_row,
+                "start_row": ident["start_row"],
+                "L": ident["L"],
+                "S": ident["S"],
             }
         )
 
@@ -160,4 +176,4 @@ async def search_merchants(
             -x["score"],
         )
     )
-    return {"query": q, "count": len(out[:limit]), "results": out[:limit]}
+    return {"query": q, "max_km": max_km, "count": len(out[:limit]), "results": out[:limit]}
