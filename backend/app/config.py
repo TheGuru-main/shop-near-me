@@ -23,7 +23,7 @@ class Settings(BaseSettings):
 
     at_username: str = ""
     at_api_key: str = ""
-    otp_expose_dev: bool = False
+    otp_expose_dev: bool = True
 
     # News
     gnews_api_key: str = ""
