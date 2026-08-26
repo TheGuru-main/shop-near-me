@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
+from app.db import init_db
 from app.api import admin_contact as admin_contact_routes
 from app.api import auth as auth_routes
 from app.api import banqueue as banqueue_routes
@@ -24,7 +25,6 @@ from app.api import reports as reports_routes
 from app.api import search as search_routes
 from app.config import get_settings
 from app.core.limiter import limiter
-from app.api import admin_contact as admin_contact_routes
 
 settings = get_settings()
 
@@ -76,7 +76,6 @@ app.include_router(checkout_routes.router, prefix=prefix)
 app.include_router(reports_routes.router, prefix=prefix)
 app.include_router(ratings_routes.router, prefix=prefix)
 app.include_router(manifests_routes.router, prefix=prefix)
-app.include_router(admin_contact_routes.router, prefix=prefix)
 app.include_router(admin_contact_routes.router, prefix=prefix)
 
 try:
