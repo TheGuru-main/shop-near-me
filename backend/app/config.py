@@ -12,7 +12,7 @@ class Settings(BaseSettings):
 
     app_name: str = "Shop Near Me API"
     app_version: str = "1.0.0.1p"
-    prefix = getattr(settings, "api_prefix", "/api/v1")
+    api_prefix: str = "/api/v1"
 
     database_url: str = "postgresql+psycopg://user:pass@localhost:5432/shopnearme"
     cors_origins: str = "*"
@@ -25,15 +25,17 @@ class Settings(BaseSettings):
     at_api_key: str = ""
     otp_expose_dev: bool = True
 
+    # Premium beta: allow subscribe without bank webhook
+    premium_activate_stub: bool = False
+
     # News
     gnews_api_key: str = ""
 
     # Dictionary / Datamuse
     dictionary_api_base: str = "https://api.dictionaryapi.dev/api/v2/entries/en"
     datamuse_base: str = "https://api.datamuse.com"
-    # If you use Apify proxy/actor for Datamuse:
     apify_token: str = ""
-    apify_datamuse_url: str = ""  # optional full actor/run URL; leave empty to use datamuse_base
+    apify_datamuse_url: str = ""
 
     # OSM Nominatim
     nominatim_base: str = "https://nominatim.openstreetmap.org"
@@ -43,3 +45,4 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
