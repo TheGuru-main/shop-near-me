@@ -12,7 +12,7 @@ class Settings(BaseSettings):
 
     app_name: str = "Shop Near Me API"
     app_version: str = "1.0.0.1p"
-    api_prefix: str = "/api/v1"
+    prefix = getattr(settings, "api_prefix", "/api/v1")
 
     database_url: str = "postgresql+psycopg://user:pass@localhost:5432/shopnearme"
     cors_origins: str = "*"
