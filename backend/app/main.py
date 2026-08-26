@@ -44,6 +44,7 @@ app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
     lifespan=lifespan,
+    prefix = settings.api_prefix
 )
 
 app.state.limiter = limiter
