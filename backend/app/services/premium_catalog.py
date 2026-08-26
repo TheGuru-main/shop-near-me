@@ -1,58 +1,298 @@
-PLANS = [
-    {"code": "premium_calculator", "name": "Premium Calculator", "price": 10000, "currency": "NGN", "type": "yearly", "status": "build"},
-    {"code": "priority_support", "name": "Priority Support", "price": 5500, "currency": "NGN", "type": "monthly", "status": "build"},
-    {"code": "verified_badge", "name": "Verified Merchant Badge", "price": 4000, "currency": "NGN", "type": "one_time", "status": "build"},
-    {"code": "e_invoice", "name": "e-Invoice", "price": None, "currency": "NGN", "type": "monthly", "status": "build", "capacity_table": [
-        {"capacity": 300, "price": 3000},
-        {"capacity": 500, "price": 5000},
-        {"capacity": 1000, "price": 12000},
-        {"capacity": 1500, "price": 15000},
-        {"capacity": 2000, "price": 18000},
-        {"capacity": 2500, "price": 20500},
-        {"capacity": 4000, "price": 25000},
-    ]},
-    {"code": "e_invoice_pp", "name": "e-Invoice++", "price": None, "currency": "NGN", "type": "monthly", "status": "build", "capacity_table": [
-        {"capacity": 400, "price": 4000},
-        {"capacity": 700, "price": 8000},
-        {"capacity": 1000, "price": 15000},
-        {"capacity": 1500, "price": 20000},
-        {"capacity": 2500, "price": 25000},
-        {"capacity": 3000, "price": 27000},
-        {"capacity": 5000, "price": 30000},
-    ]},
-    {"code": "ai_media", "name": "AI Image + Voice", "price": 30000, "currency": "NGN", "type": "monthly", "status": "coming_soon"},
-    {"code": "pdf_export", "name": "PDF Export", "price": 7000, "currency": "NGN", "type": "one_time", "status": "coming_soon"},
-    {"code": "cloud_backup", "name": "Cloud Backup", "price": 7000, "currency": "NGN", "type": "monthly", "status": "coming_soon"},
-    {"code": "company_branding", "name": "Company Branding", "price": 5000, "currency": "NGN", "type": "yearly", "status": "coming_soon"},
-    {"code": "multi_branch", "name": "Multi-Branch", "price": 30000, "currency": "NGN", "type": "yearly", "status": "coming_soon"},
-    {"code": "staff_accounts", "name": "Staff Accounts", "price": 15000, "currency": "NGN", "type": "yearly", "status": "coming_soon"},
-    {"code": "analytics", "name": "Analytics", "price": 7000, "currency": "NGN", "type": "monthly", "status": "coming_soon"},
+"""Locked Shop Near Me premium catalog (₦). Coming-soon flags respected."""
+
+from __future__ import annotations
+
+from typing import Any
+
+# type: one_time | monthly | yearly
+# status: active | coming_soon
+PLANS: list[dict[str, Any]] = [
+    {
+        "code": "verified_badge",
+        "name": "Verified Merchant Badge",
+        "price": 4000,
+        "currency": "NGN",
+        "type": "one_time",
+        "status": "active",
+        "description": "Verified badge",
+    },
+    {
+        "code": "priority_support",
+        "name": "Priority Support",
+        "price": 5500,
+        "currency": "NGN",
+        "type": "monthly",
+        "status": "active",
+        "description": "Community/city morning front-row boost (1x2 FIFO grid)",
+    },
+    {
+        "code": "premium_calculator",
+        "name": "Premium Calculator",
+        "price": 10000,
+        "currency": "NGN",
+        "type": "yearly",
+        "status": "active",
+        "description": "VAT, exchange rate, discount before checkout",
+    },
+    {
+        "code": "einvoice_300",
+        "name": "E-Invoice 300/mo",
+        "price": 3000,
+        "currency": "NGN",
+        "type": "monthly",
+        "status": "active",
+        "capacity": 300,
+        "family": "einvoice",
+    },
+    {
+        "code": "einvoice_500",
+        "name": "E-Invoice 500/mo",
+        "price": 5000,
+        "currency": "NGN",
+        "type": "monthly",
+        "status": "active",
+        "capacity": 500,
+        "family": "einvoice",
+    },
+    {
+        "code": "einvoice_1000",
+        "name": "E-Invoice 1000/mo",
+        "price": 12000,
+        "currency": "NGN",
+        "type": "monthly",
+        "status": "active",
+        "capacity": 1000,
+        "family": "einvoice",
+    },
+    {
+        "code": "einvoice_1500",
+        "name": "E-Invoice 1500/mo",
+        "price": 15000,
+        "currency": "NGN",
+        "type": "monthly",
+        "status": "active",
+        "capacity": 1500,
+        "family": "einvoice",
+    },
+    {
+        "code": "einvoice_2000",
+        "name": "E-Invoice 2000/mo",
+        "price": 18000,
+        "currency": "NGN",
+        "type": "monthly",
+        "status": "active",
+        "capacity": 2000,
+        "family": "einvoice",
+    },
+    {
+        "code": "einvoice_2500",
+        "name": "E-Invoice 2500/mo",
+        "price": 20500,
+        "currency": "NGN",
+        "type": "monthly",
+        "status": "active",
+        "capacity": 2500,
+        "family": "einvoice",
+    },
+    {
+        "code": "einvoice_4000",
+        "name": "E-Invoice 4000/mo",
+        "price": 25000,
+        "currency": "NGN",
+        "type": "monthly",
+        "status": "active",
+        "capacity": 4000,
+        "family": "einvoice",
+    },
+    {
+        "code": "einvoice_pp_400",
+        "name": "E-Invoice++ 400/mo",
+        "price": 4000,
+        "currency": "NGN",
+        "type": "monthly",
+        "status": "active",
+        "capacity": 400,
+        "family": "einvoice_pp",
+    },
+    {
+        "code": "einvoice_pp_700",
+        "name": "E-Invoice++ 700/mo",
+        "price": 8000,
+        "currency": "NGN",
+        "type": "monthly",
+        "status": "active",
+        "capacity": 700,
+        "family": "einvoice_pp",
+    },
+    {
+        "code": "einvoice_pp_1000",
+        "name": "E-Invoice++ Business 1000/mo",
+        "price": 15000,
+        "currency": "NGN",
+        "type": "monthly",
+        "status": "active",
+        "capacity": 1000,
+        "family": "einvoice_pp",
+    },
+    {
+        "code": "einvoice_pp_1500",
+        "name": "E-Invoice++ 1500/mo",
+        "price": 20000,
+        "currency": "NGN",
+        "type": "monthly",
+        "status": "active",
+        "capacity": 1500,
+        "family": "einvoice_pp",
+    },
+    {
+        "code": "einvoice_pp_2500",
+        "name": "E-Invoice++ Enterprise 2500/mo",
+        "price": 25000,
+        "currency": "NGN",
+        "type": "monthly",
+        "status": "active",
+        "capacity": 2500,
+        "family": "einvoice_pp",
+    },
+    {
+        "code": "einvoice_pp_3000",
+        "name": "E-Invoice++ 3000/mo",
+        "price": 27000,
+        "currency": "NGN",
+        "type": "monthly",
+        "status": "active",
+        "capacity": 3000,
+        "family": "einvoice_pp",
+    },
+    {
+        "code": "einvoice_pp_5000",
+        "name": "E-Invoice++ 5000/mo",
+        "price": 30000,
+        "currency": "NGN",
+        "type": "monthly",
+        "status": "active",
+        "capacity": 5000,
+        "family": "einvoice_pp",
+    },
+    # Coming soon (listed, not activatable)
+    {
+        "code": "ai_media",
+        "name": "AI Image + Voice Upload",
+        "price": 30000,
+        "currency": "NGN",
+        "type": "monthly",
+        "status": "coming_soon",
+    },
+    {
+        "code": "pdf_export",
+        "name": "PDF Export",
+        "price": 7000,
+        "currency": "NGN",
+        "type": "one_time",
+        "status": "coming_soon",
+    },
+    {
+        "code": "cloud_backup",
+        "name": "Cloud Backup",
+        "price": 5000,
+        "currency": "NGN",
+        "type": "monthly",
+        "status": "coming_soon",
+    },
+    {
+        "code": "company_branding",
+        "name": "Company Branding",
+        "price": 5000,
+        "currency": "NGN",
+        "type": "yearly",
+        "status": "coming_soon",
+    },
+    {
+        "code": "multi_branch",
+        "name": "Multi-Branch Support",
+        "price": 30000,
+        "currency": "NGN",
+        "type": "yearly",
+        "status": "coming_soon",
+    },
+    {
+        "code": "staff_accounts",
+        "name": "Staff / Worker Accounts",
+        "price": 15000,
+        "currency": "NGN",
+        "type": "yearly",
+        "status": "coming_soon",
+    },
+    {
+        "code": "analytics",
+        "name": "Analytics Dashboard",
+        "price": 7000,
+        "currency": "NGN",
+        "type": "monthly",
+        "status": "coming_soon",
+    },
 ]
 
-RECEIPT_MONTHLY_LIMIT = 3000
+RECEIPT_MONTHLY_LIMIT = 3000  # free
+
+# Invoice studio tokens (aftereffect UI)
+PALETTE_RECEIPT = [
+    "classic_white",
+    "soft_gray",
+    "mint",
+    "dark_basic",
+]
+PALETTE_INVOICE = [
+    "linear-gradient(160deg, #ffffff32 40%, lightgreen 60%)",
+    "linear-gradient(337deg, #060926 2%, #ffffff33 7%, #111827 91%)",
+    "linear-gradient(352deg, lightgreen 3%, #ffffff33 23%, lightgreen 74%)",
+    "linear-gradient(260deg, #ffffff33 30%, #060926 70%)",
+    "linear-gradient(340deg, #ffffff33 20%, whitesmoke 80%)",
+    "linear-gradient(160deg, #ffffff33 0%, white 100%)",
+   "linear-gradient(347deg, #6b7280 15%, #16a34a 50%, #a5f3fc 80%)"'
+
+]
+SURFACES = ["Stacked", "Split", "Compact", "Wide"]
+LAYOUTS = ["Standard", "Modern", "Centered", "Minimal"]
 
 
-def run_calculator(lines: list, vat_rate: float = 0.0, fx_rate: float = 1.0, discount: float = 0.0) -> dict:
-    """Premium calculator: not PoD checkout."""
-    subtotal = 0.0
-    detail = []
-    for line in lines or []:
-        qty = float(line.get("qty") or line.get("quantity") or 1)
-        unit = float(line.get("unit_price") or line.get("price") or 0)
-        row = qty * unit
-        subtotal += row
-        detail.append({"name": line.get("name", ""), "qty": qty, "unit_price": unit, "line_total": round(row, 2)})
-    after_discount = max(0.0, subtotal - float(discount or 0))
-    vat = after_discount * float(vat_rate or 0)
-    total_local = after_discount + vat
-    total_fx = total_local * float(fx_rate or 1)
+def get_plan(code: str) -> dict[str, Any] | None:
+    for p in PLANS:
+        if p["code"] == code:
+            return p
+    return None
+
+
+def list_plans() -> list[dict[str, Any]]:
+    return list(PLANS)
+
+
+def aftereffect_for_codes(codes: list[str]) -> dict[str, Any]:
+    """What UI unlocks after activation."""
+    tools: list[str] = ["receipt"]  # receipts always available (free, capped)
+    family = set()
+    for c in codes:
+        p = get_plan(c)
+        if not p or p.get("status") != "active":
+            continue
+        if p["code"] == "premium_calculator":
+            tools.append("premium_calc")
+        if p["code"] == "priority_support":
+            tools.append("priority_boost")
+        if p["code"] == "verified_badge":
+            tools.append("verified_badge")
+        if p.get("family") == "einvoice":
+            family.add("einvoice")
+            tools.append("einvoice")
+        if p.get("family") == "einvoice_pp":
+            family.add("einvoice_pp")
+            tools.append("einvoice_pp")
     return {
-        "lines": detail,
-        "subtotal": round(subtotal, 2),
-        "discount": float(discount or 0),
-        "vat_rate": float(vat_rate or 0),
-        "vat": round(vat, 2),
-        "fx_rate": float(fx_rate or 1),
-        "total": round(total_local, 2),
-        "total_fx": round(total_fx, 2),
+        "tools": sorted(set(tools)),
+        "receipt_monthly_limit": RECEIPT_MONTHLY_LIMIT,
+        "palette_receipt": PALETTE_RECEIPT,
+        "palette_invoice": PALETTE_INVOICE if "einvoice" in family or "einvoice_pp" in family else [],
+        "surfaces": SURFACES if family else [],
+        "layouts": LAYOUTS if family else [],
+        "payment_note": "Activate only after payment confirmed (Zenith / bank ref). Beta may use PREMIUM_ACTIVATE_STUB.",
     }

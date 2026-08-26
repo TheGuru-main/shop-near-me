@@ -1,26 +1,31 @@
-from collections.abc import Generator
-
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
-from app.config import get_settings
 
-settings = get_settings()
+def _database_url() -> str:
+    url = os.getenv("DATABASE_URL")
+    if url:
+        return url
+    try:
+        from app.config import get_settings
 
-# Neon: postgresql+psycopg://USER:PASSWORD@HOST/DB?sslmode=require
-engine = create_engine(
-    settings.database_url,
-    pool_pre_ping=True,
-)
-
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+        return get_settings().database_url
+    except Exception as exc:
+        raise RuntimeError(
+            "DATABASE_URL not set and app.config unavailable"
+        ) from exc
 
 
 class Base(DeclarativeBase):
     pass
 
 
-def get_db() -> Generator:
+engine = create_engine(_database_url(), pool_pre_ping=True)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+def get_db():
     db = SessionLocal()
     try:
         yield db
@@ -29,7 +34,9 @@ def get_db() -> Generator:
 
 
 def init_db() -> None:
-    """Create tables from models. No Alembic."""
-    from app import models  # noqa: F401
-
+    # import models so metadata is registered
+    try:
+        import app.models  # noqa: F401
+    except Exception:
+        pass
     Base.metadata.create_all(bind=engine)
