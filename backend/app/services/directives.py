@@ -1,7 +1,6 @@
-"""
-Directive vocabulary: question words and what they retrieve.
-Used in query analysis to focus the grid crawler.
-"""
+"""Directive vocabulary: focus crawler / ranker on request type."""
+
+from __future__ import annotations
 
 DIRECTIVES = {
     "who": "entity_identity",
@@ -31,10 +30,28 @@ DIRECTIVES = {
     "not": "exclusion",
 }
 
+
 def detect_directive(query: str) -> str:
-    q = query.lower().strip()
-    # Check multi-word directives first
-    for phrase, intent in sorted(DIRECTIVES.items(), key=lambda x: len(x[0]), reverse=True):
-        if q.startswith(phrase + " ") or q.startswith(phrase):
+    q = (query or "").lower().strip()
+    for phrase, intent in sorted(
+        DIRECTIVES.items(), key=lambda x: len(x[0]), reverse=True
+    ):
+        if q == phrase or q.startswith(phrase + " "):
             return intent
     return "general"
+
+
+def location_intent(directive: str) -> bool:
+    """True when search should boost place / brotherhood."""
+    return directive in {"location", "distance"}
+
+
+def object_intent(directive: str) -> bool:
+    return directive in {
+        "definition_object",
+        "classification",
+        "value_price",
+        "quantity_count",
+        "general",
+        "selection_comparison",
+    }
