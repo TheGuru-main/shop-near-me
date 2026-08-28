@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from fastapi.openapi.utils import get_openapi
 
 from app.api import admin_contact as admin_contact_routes
 from app.api import auth as auth_routes
