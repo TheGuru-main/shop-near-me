@@ -43,14 +43,13 @@ async def lifespan(app: FastAPI):
         print("init_db skipped:", type(exc).__name__, exc)
     yield
 
-
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
     lifespan=lifespan,
-    docs_url=None,
-    redoc_url=None,
-    openapi_url=None,
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
 )
 
 app.state.limiter = limiter
@@ -111,10 +110,38 @@ def health():
     }
 
 
-@app.get(f"{settings.api_prefix}/health")
+@app.get("/api/v1/health")
 def api_health():
     return {
         "status": "ok",
         "api": settings.api_prefix,
         "version": settings.app_version,
     }
+
+
+def custom_openapi():
+    """Build schema; on failure return error text instead of HTTP 500."""
+    if app.openapi_schema:
+        return app.openapi_schema
+    try:
+        schema = get_openapi(
+            title=app.title,
+            version=app.version,
+            routes=app.routes,
+        )
+        app.openapi_schema = schema
+        return schema
+    except Exception as exc:
+        # Visible in browser / curl — tells us the broken route/model
+        return {
+            "openapi": "3.1.0",
+            "info": {
+                "title": app.title,
+                "version": app.version,
+                "description": f"OPENAPI_BUILD_ERROR: {type(exc).__name__}: {exc}",
+            },
+            "paths": {},
+        }
+
+
+app.openapi = custom_openapi
