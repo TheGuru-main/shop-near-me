@@ -3,8 +3,6 @@ GSP placement family + elastic cloud + progressive / cumulative jump.
 R default 64, C default 26 for classic letter grid; relationship uses 220 cols separately.
 """
 
-from __future__ import annotations
-
 
 def digit_sum(n: int | str) -> int:
     return sum(int(ch) for ch in str(n) if ch.isdigit())
