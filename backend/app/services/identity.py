@@ -1,6 +1,6 @@
 """Phone is the only Uid. Tag form: \( S \)<phoneUid>$"""
 
-from __future__ import annotations
+
 
 from app.services.phone import normalize_e164, phone_digits
 
