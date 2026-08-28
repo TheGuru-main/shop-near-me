@@ -3,8 +3,6 @@ Letter grid A×1 + word grid A×A.
 Stem prefixes/affixes. Alphabets aligned with GSP keyboard language packs (15).
 """
 
-from __future__ import annotations
-
 import re
 from typing import Any
 
