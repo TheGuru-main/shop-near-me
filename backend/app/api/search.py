@@ -5,8 +5,6 @@ Search API — full wire-up:
   → max_km 100 → word relevance first → location proxy → rank
 """
 
-from __future__ import annotations
-
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
