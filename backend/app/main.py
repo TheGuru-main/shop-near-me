@@ -25,6 +25,9 @@ from app.api import reports as reports_routes
 from app.api import search as search_routes
 from app.config import get_settings
 from app.core.limiter import limiter
+from app.api import premium as premium_routes
+from app.api import einvoice as einvoice_routes
+
 
 settings = get_settings()
 
@@ -77,6 +80,8 @@ app.include_router(reports_routes.router, prefix=prefix)
 app.include_router(ratings_routes.router, prefix=prefix)
 app.include_router(manifests_routes.router, prefix=prefix)
 app.include_router(admin_contact_routes.router, prefix=prefix)
+app.include_router(premium_routes.router, prefix=prefix)
+app.include_router(einvoice_routes.router, prefix=prefix)
 
 try:
     from app.api import messages as messages_routes
