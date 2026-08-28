@@ -1,7 +1,5 @@
 """Word relevance first, then location proxy, then highest rank."""
 
-from __future__ import annotations
-
 from typing import Any
 
 from app.services.directives import detect_directive, location_intent
