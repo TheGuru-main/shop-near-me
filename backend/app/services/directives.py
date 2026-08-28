@@ -1,6 +1,6 @@
 """Directive vocabulary: focus crawler / ranker on request type."""
 
-from __future__ import annotations
+
 
 DIRECTIVES = {
     "who": "entity_identity",
