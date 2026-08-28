@@ -21,8 +21,8 @@ from app.api import live as live_routes
 from app.api import manifests as manifests_routes
 from app.api import messages as messages_routes
 from app.api import news as news_routes
-from app.api import presence as presence_routes
 from app.api import premium as premium_routes
+from app.api import presence as presence_routes
 from app.api import products as products_routes
 from app.api import ratings as ratings_routes
 from app.api import reports as reports_routes
@@ -64,7 +64,7 @@ app.add_middleware(
 
 prefix = settings.api_prefix
 
-# --- core ---
+# Core
 app.include_router(auth_routes.router, prefix=prefix)
 app.include_router(presence_routes.router, prefix=prefix)
 app.include_router(products_routes.router, prefix=prefix)
@@ -74,24 +74,26 @@ app.include_router(geo_routes.router, prefix=prefix)
 app.include_router(news_routes.router, prefix=prefix)
 app.include_router(keyboard_routes.router, prefix=prefix)
 
-# --- commerce / presence extras ---
+# Local utility
 app.include_router(banqueue_routes.router, prefix=prefix)
 app.include_router(emergency_routes.router, prefix=prefix)
+
+# Commerce / realtime
 app.include_router(calls_routes.router, prefix=prefix)
 app.include_router(live_routes.router, prefix=prefix)
 app.include_router(checkout_routes.router, prefix=prefix)
 
-# --- trust / admin ---
+# Trust
 app.include_router(reports_routes.router, prefix=prefix)
 app.include_router(ratings_routes.router, prefix=prefix)
 app.include_router(manifests_routes.router, prefix=prefix)
 app.include_router(admin_contact_routes.router, prefix=prefix)
 
-# --- premium / documents ---
+# Premium + documents
 app.include_router(premium_routes.router, prefix=prefix)
 app.include_router(einvoice_routes.router, prefix=prefix)
 
-# --- social / feed (were try/except only) ---
+# Social / feed (were try/except — now always on)
 app.include_router(messages_routes.router, prefix=prefix)
 app.include_router(fairly_used_routes.router, prefix=prefix)
 app.include_router(feed_routes.router, prefix=prefix)
