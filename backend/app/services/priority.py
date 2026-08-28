@@ -3,8 +3,6 @@ Priority support grid: 1 column x 2 rows (earlier | latest).
 FIFO by payment_at. Scope = city + community (local morning front-row, not global ads).
 """
 
-from __future__ import annotations
-
 from datetime import datetime, timezone
 from typing import Any
 
