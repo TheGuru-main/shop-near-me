@@ -249,7 +249,7 @@ PALETTE_INVOICE = [
     "linear-gradient(260deg, #ffffff33 30%, #060926 70%)",
     "linear-gradient(340deg, #ffffff33 20%, whitesmoke 80%)",
     "linear-gradient(160deg, #ffffff33 0%, white 100%)",
-   "linear-gradient(347deg, #6b7280 15%, #16a34a 50%, #a5f3fc 80%)"'
+   "linear-gradient(347deg, #6b7280 15%, #16a34a 50%, #a5f3fc 80%)",
 
 ]
 SURFACES = ["Stacked", "Split", "Compact", "Wide"]
