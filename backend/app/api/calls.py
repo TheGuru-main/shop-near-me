@@ -3,7 +3,6 @@ Call / video signaling. Media = WebRTC client + TURN/SFU later.
 Uid = phone. start_row on every signal.
 """
 
-from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
