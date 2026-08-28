@@ -1,6 +1,5 @@
 """E-invoices (premium capacity) + receipts (free, monthly cap)."""
 
-from __future__ import annotations
 
 import json
 import uuid
