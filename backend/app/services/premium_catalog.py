@@ -1,6 +1,5 @@
 """Locked Shop Near Me premium catalog (₦). Coming-soon flags respected."""
 
-from __future__ import annotations
 
 from typing import Any
 
