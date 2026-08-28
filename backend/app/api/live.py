@@ -1,6 +1,5 @@
 """Merchant live sessions. SFU token placeholder; WebRTC in client."""
 
-from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
