@@ -1,13 +1,14 @@
 window.SNM = window.SNM || {};
 
 SNM.API_BASE = "https://shop-near-me-apiv1-0-0-1p.onrender.com/api/v1";
+SNM.APP_VERSION = "1.0.0.1p";
 
 SNM.ROLES = [
-  { id: "merchant", label: "Merchant", blurb: "Sell goods, catalogue, perishables" },
-  { id: "service", label: "Service provider", blurb: "Hotels, repairs, clinics…" },
-  { id: "driver", label: "Driver / logistics", blurb: "Okada, keke, courier, van" },
-  { id: "emergency", label: "Emergency unit", blurb: "Police, ambulance, clinic, watch" },
-  { id: "buyer", label: "Buyer", blurb: "Discover, order mind, fairly used" }
+  { id: "buyer", label: "Buyer", icon: "🛒" },
+  { id: "merchant", label: "Merchant", icon: "🏪" },
+  { id: "service_provider", label: "Service provider", icon: "🔧" },
+  { id: "driver", label: "Driver / logistics", icon: "🛵" },
+  { id: "emergency", label: "Emergency unit", icon: "🚨" }
 ];
 
 SNM.CONTINENTS = [
@@ -22,15 +23,20 @@ SNM.CONTINENTS = [
 
 SNM.tokenKey = "snm_token";
 SNM.userKey = "snm_user";
+SNM.pendingKey = "snm_pending";
 
 SNM.getToken = function () {
-  try { return localStorage.getItem(SNM.tokenKey); } catch (e) { return null; }
+  try {
+    return localStorage.getItem(SNM.tokenKey) || "";
+  } catch (e) {
+    return "";
+  }
 };
 
 SNM.setSession = function (token, user) {
   try {
-    localStorage.setItem(SNM.tokenKey, token || "");
-    localStorage.setItem(SNM.userKey, JSON.stringify(user || {}));
+    if (token) localStorage.setItem(SNM.tokenKey, token);
+    if (user) localStorage.setItem(SNM.userKey, JSON.stringify(user));
   } catch (e) {}
 };
 
@@ -38,6 +44,7 @@ SNM.clearSession = function () {
   try {
     localStorage.removeItem(SNM.tokenKey);
     localStorage.removeItem(SNM.userKey);
+    localStorage.removeItem(SNM.pendingKey);
   } catch (e) {}
 };
 
@@ -45,29 +52,64 @@ SNM.getUser = function () {
   try {
     var raw = localStorage.getItem(SNM.userKey);
     return raw ? JSON.parse(raw) : null;
-  } catch (e) { return null; }
+  } catch (e) {
+    return null;
+  }
 };
 
-SNM.api = async function (path, options) {
-  options = options || {};
-  var headers = Object.assign(
-    { "Content-Type": "application/json", Accept: "application/json" },
-    options.headers || {}
-  );
-  var token = SNM.getToken();
-  if (token) headers.Authorization = "Bearer " + token;
-  var res = await fetch(SNM.API_BASE + path, {
-    method: options.method || "GET",
-    headers: headers,
-    body: options.body ? JSON.stringify(options.body) : undefined
-  });
-  var data = null;
-  try { data = await res.json(); } catch (e) { data = null; }
-  if (!res.ok) {
-    var err = new Error((data && data.detail) || res.statusText || "Request failed");
-    err.status = res.status;
-    err.data = data;
-    throw err;
+SNM.setPending = function (id) {
+  try {
+    localStorage.setItem(SNM.pendingKey, id || "");
+  } catch (e) {}
+};
+
+SNM.getPending = function () {
+  try {
+    return localStorage.getItem(SNM.pendingKey) || "";
+  } catch (e) {
+    return "";
   }
-  return data;
+};
+
+SNM.escapeHtml = function (s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+};
+
+SNM.toast = function (msg) {
+  var el = document.getElementById("toast");
+  if (!el) {
+    alert(msg);
+    return;
+  }
+  el.textContent = msg;
+  el.classList.add("show");
+  setTimeout(function () {
+    el.classList.remove("show");
+  }, 2800);
+};
+
+SNM.showScreen = function (id) {
+  document.querySelectorAll(".screen").forEach(function (s) {
+    s.classList.toggle("active", s.id === id);
+  });
+  var authed = ["home", "search", "shop", "messages", "news", "profile"];
+  document.querySelectorAll(".bottom-nav").forEach(function (nav) {
+    nav.style.display = authed.indexOf(id) !== -1 ? "flex" : "none";
+    nav.querySelectorAll("button[data-nav]").forEach(function (b) {
+      b.classList.toggle("active", b.getAttribute("data-nav") === id);
+    });
+  });
+  window.scrollTo(0, 0);
+};
+
+SNM.requireAuth = function () {
+  if (!SNM.getToken()) {
+    SNM.showScreen("role-select");
+    return false;
+  }
+  return true;
 };
