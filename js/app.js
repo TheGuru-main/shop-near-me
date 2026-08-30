@@ -36,3 +36,4 @@
   }
 })();
 
+console.log("api", typeof SNM.api, "toast", typeof SNM.toast, "bindAuth", typeof SNM.bindAuth);
