@@ -10,7 +10,7 @@ SNM.api = async function (path, options) {
     },
     options.headers || {}
   );
-  var token = SNM.getToken();
+  var token = SNM.getToken ? SNM.getToken() : "";
   if (token) headers.Authorization = "Bearer " + token;
 
   var res = await fetch(url, {
@@ -30,11 +30,17 @@ SNM.api = async function (path, options) {
   if (!res.ok) {
     var detail = data && data.detail;
     if (Array.isArray(detail)) {
-      detail = detail.map(function (d) {
-        return d.msg || JSON.stringify(d);
-      }).join("; ");
+      detail = detail
+        .map(function (d) {
+          return d.msg || JSON.stringify(d);
+        })
+        .join("; ");
+    } else if (detail && typeof detail === "object") {
+      detail = JSON.stringify(detail);
     }
-    var err = new Error(detail || (data && data.message) || res.statusText || "Request failed");
+    var err = new Error(
+      detail || (data && data.message) || res.statusText || "Request failed"
+    );
     err.status = res.status;
     err.data = data;
     throw err;

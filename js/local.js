@@ -1,4 +1,4 @@
-window.SNM = window.SNM || {};
+wixndow.SNM = window.SNM || {};
 
 SNM.escapeHtml = function (s) {
   return String(s == null ? "" : s)
@@ -31,14 +31,6 @@ SNM.showScreen = function (id) {
   });
   var target = document.getElementById(id);
   if (target) target.classList.add("active");
-
-  var authed = ["home", "search", "shop", "messages", "news", "profile"];
-  document.querySelectorAll(".bottom-nav").forEach(function (nav) {
-    nav.style.display = authed.indexOf(id) !== -1 ? "flex" : "none";
-    nav.querySelectorAll("button[data-nav]").forEach(function (b) {
-      b.classList.toggle("active", b.getAttribute("data-nav") === id);
-    });
-  });
   window.scrollTo(0, 0);
 };
 
@@ -95,4 +87,54 @@ SNM.requireAuth = function () {
     return false;
   }
   return true;
+};
+
+SNM.isBuyer = function (user) {
+  var u = user || SNM.getUser();
+  return !u || u.role === "buyer";
+};
+
+SNM.navItemsForRole = function (role) {
+  if (role === "buyer") {
+    return [
+      { id: "home", label: "Home", icon: "fa-home" },
+      { id: "search", label: "Search", icon: "fa-search" },
+      { id: "saved", label: "Saved", icon: "fa-bookmark" },
+      { id: "messages", label: "Msg", icon: "fa-comments" },
+      { id: "news", label: "News", icon: "fa-newspaper" },
+      { id: "profile", label: "Me", icon: "fa-user" }
+    ];
+  }
+  return [
+    { id: "home", label: "Home", icon: "fa-home" },
+    { id: "search", label: "Search", icon: "fa-search" },
+    { id: "shop", label: "Shop", icon: "fa-store" },
+    { id: "messages", label: "Msg", icon: "fa-comments" },
+    { id: "news", label: "News", icon: "fa-newspaper" },
+    { id: "profile", label: "Me", icon: "fa-user" }
+  ];
+};
+
+SNM.renderBottomNav = function (activeId) {
+  var user = SNM.getUser() || {};
+  var items = SNM.navItemsForRole(user.role || "buyer");
+  var html = items
+    .map(function (it) {
+      var cls = it.id === activeId ? "active" : "";
+      return (
+        '<button type="button" class="' +
+        cls +
+        '" data-nav="' +
+        it.id +
+        '"><i class="fas ' +
+        it.icon +
+        '"></i>' +
+        it.label +
+        "</button>"
+      );
+    })
+    .join("");
+  document.querySelectorAll(".bottom-nav").forEach(function (nav) {
+    nav.innerHTML = html;
+  });
 };

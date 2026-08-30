@@ -4,533 +4,394 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#4B7351" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="description" content="Shop Near Me — local discovery, catalogue, drivers, emergency, accountable trade." />
   <title>Shop Near Me</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <link rel="stylesheet" href="css/style.css" />
-  <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="icon" href="icons/icon-192.png" sizes="192x192" />
 </head>
 <body>
   <canvas id="network-bg" aria-hidden="true"></canvas>
-
   <div id="app">
 
-    <section id="splash" class="screen active" data-screen="splash">
+    <!-- SPLASH -->
+    <section id="splash" class="screen active">
       <div class="splash-inner">
-        <div class="logo-box">
-          <div class="logo-icon">🏪</div>
-        </div>
-        <h1 class="brand">Shop Near Me</h1>
-        <p class="tagline">
-          Connecting customers and merchants through smarter discovery,
-          communication, and local business exposure.
-        </p>
-        <p class="sub-tagline">-- | Bridging Global and Local Commerce | --</p>
+        <div class="logo-mark"><i class="fas fa-store"></i></div>
+        <h1>Shop Near Me</h1>
+        <p class="tagline">Discover goods, services &amp; trusted locals — near you and beyond.</p>
       </div>
     </section>
 
-    <section id="role-select" class="screen" data-screen="role-select">
+    <!-- ROLE -->
+    <section id="role-select" class="screen">
       <div class="container">
-        <div class="top-actions">
-          <button type="button" class="icon-btn" id="btnAboutFromRole" title="About">?</button>
+        <div class="top-row">
+          <span></span>
+          <a href="#" class="icon-link" id="btnAboutFromRole" title="About"><i class="fas fa-question-circle"></i></a>
         </div>
-        <div class="logo-glass">
-          <span class="logo-icon-sm">🏪</span>
-          <span>Shop Near Me</span>
-        </div>
-        <p class="lead">Choose how you join the network</p>
+        <h1 class="page-title">How are you joining?</h1>
         <div class="role-grid" id="roleGrid"></div>
-        <button type="button" class="btn secondary" id="btnGoLogin">Already registered · Login</button>
+        <a href="#" class="text-link" id="btnGoLogin"><i class="fas fa-sign-in-alt"></i> Already registered · Login</a>
       </div>
-      <footer class="app-footer">Powered by: The Guru Innovations 🌀.</footer>
     </section>
 
-    <section id="about" class="screen" data-screen="about">
-      <header class="header">
-        <button type="button" class="btn small secondary" data-back="role-select">←</button>
+    <!-- ABOUT -->
+    <section id="about" class="screen">
+      <div class="container">
+        <a href="#" class="nav-back" data-back="role-select"><i class="fas fa-arrow-left"></i></a>
         <h1>About Shop Near Me</h1>
-        <span class="header-spacer"></span>
-      </header>
-      <div class="container">
-        <div class="card">
-          <p>Shop Near Me makes goods, services, drivers, and emergency units discoverable by proximity, category, and relationship ranking.</p>
-          <ul class="bullets">
-            <li>Multi-role: buyer, merchant, service provider, driver, emergency</li>
-            <li>Pay on delivery · walk-in · bulky carrier assist</li>
-            <li>In-app messages for protected deals</li>
-            <li>Heartbeat ranking · search · feed · fairly used market</li>
-            <li>Premium e-invoice / receipts · manifests · ratings · reports</li>
-          </ul>
-          <p class="muted">Version <span id="aboutVersion">1.0.0.1p</span></p>
-          <p class="muted">Powered by: The Guru Innovations 🌀.</p>
-        </div>
+        <p>Connect buyers, merchants, service providers, drivers and emergency units through local discovery, heartbeat presence, and in-app trust.</p>
+        <p class="muted">Version <span id="aboutVersion">1.0.0.1p</span></p>
+        <p class="footer-brand">Powered by: The Guru Innovations 🌀</p>
       </div>
     </section>
 
-    <section id="register" class="screen" data-screen="register">
-      <header class="header">
-        <button type="button" class="btn small secondary" data-back="role-select">←</button>
+    <!-- REGISTER -->
+    <section id="register" class="screen">
+      <div class="container">
+        <a href="#" class="nav-back" data-back="role-select"><i class="fas fa-arrow-left"></i></a>
         <h1>Register · <span id="regRoleLabel">—</span></h1>
-        <span class="header-spacer"></span>
-      </header>
-      <div class="container">
-        <div class="card form-card">
-          <label for="reg-name">Full name</label>
-          <input id="reg-name" name="name" autocomplete="name" required />
-
-          <label for="reg-continent">Continent</label>
-          <select id="reg-continent" name="continent" required></select>
-
-          <label for="reg-country">Country</label>
-          <input id="reg-country" name="country" placeholder="Nigeria" required />
-
-          <label for="reg-region">Region / State</label>
-          <input id="reg-region" name="region" placeholder="Rivers" />
-
-          <label for="reg-city">City</label>
-          <input id="reg-city" name="city" placeholder="Port Harcourt" />
-
-          <label for="reg-community">Community / LGA</label>
-          <input id="reg-community" name="community" placeholder="Eneka" />
-
-          <label for="reg-primary">Primary location / business location</label>
-          <input id="reg-primary" name="primary_location" placeholder="27, Dabu street, Eneka" required />
-
-          <label for="reg-phone">Phone (international, must start with +)</label>
-          <input id="reg-phone" name="phone" type="tel" inputmode="tel" placeholder="+2348012345678" required />
-
-          <label for="reg-password">Password (min 6)</label>
-          <input id="reg-password" name="password" type="password" minlength="6" required />
-
-          <div id="buyerPrefsBlock" class="optional-block">
-            <label for="reg-prefs">Item preferences (buyers · comma separated, multi-category)</label>
-            <input id="reg-prefs" name="prefs" placeholder="food, shoes, phone, rice" />
+        <div class="form-card">
+          <label>Full name<input id="reg-name" autocomplete="name" /></label>
+          <label>Continent
+            <select id="reg-continent"></select>
+          </label>
+          <label>Country
+            <select id="reg-country" disabled><option value="">Select continent first</option></select>
+          </label>
+          <label>State / Region
+            <select id="reg-region" disabled><option value="">Select country first</option></select>
+          </label>
+          <label>City / Town
+            <select id="reg-city" disabled><option value="">Select state first</option></select>
+          </label>
+          <label>Community
+            <select id="reg-community" disabled><option value="">Select city first</option></select>
+          </label>
+          <label>Primary location / business
+            <input id="reg-primary" placeholder="27, Dabu street, Eneka" />
+          </label>
+          <label>Phone (E.164)
+            <input id="reg-phone" type="tel" placeholder="+2348162994110" />
+          </label>
+          <label>Password
+            <input id="reg-password" type="password" minlength="6" />
+          </label>
+          <div id="buyerPrefsBlock" class="optional-block hidden">
+            <label>Item preferences (comma)
+              <input id="reg-prefs" placeholder="food, shoes, phone" />
+            </label>
           </div>
-
           <div id="merchantExtras" class="optional-block hidden">
-            <label for="reg-business-name">Business / shop name</label>
-            <input id="reg-business-name" placeholder="Optional display name" />
-            <label class="check-row"><input type="checkbox" id="reg-delivery" /> Home delivery (pay on delivery)</label>
-            <label class="check-row"><input type="checkbox" id="reg-walkin" checked /> Walk-in pickup</label>
+            <label>Business display name<input id="reg-business-name" /></label>
+            <label class="check"><input type="checkbox" id="reg-delivery" /> Home delivery (PoD)</label>
+            <label class="check"><input type="checkbox" id="reg-walkin" checked /> Walk-in</label>
           </div>
-
           <div id="driverExtras" class="optional-block hidden">
-            <label for="reg-vehicle">Vehicle / coverage note</label>
-            <input id="reg-vehicle" placeholder="Okada · Keke · Van · coverage area" />
+            <label>Vehicle / coverage<input id="reg-vehicle" placeholder="Okada · Keke · Van" /></label>
           </div>
-
           <div id="emergencyExtras" class="optional-block hidden">
-            <label for="reg-emergency-type">Unit type</label>
-            <input id="reg-emergency-type" placeholder="Police · Ambulance · Clinic · Watch" />
+            <label>Unit type<input id="reg-emergency-type" placeholder="Police · Ambulance · Clinic" /></label>
           </div>
-
-          <button type="button" class="btn" id="btnRegister">Continue · OTP</button>
+          <button type="button" class="btn" id="btnRegister"><i class="fas fa-sms"></i> Continue · OTP</button>
         </div>
       </div>
-      <footer class="app-footer">Powered by: The Guru Innovations 🌀.</footer>
     </section>
 
-    <section id="otp" class="screen" data-screen="otp">
-      <header class="header">
-        <button type="button" class="btn small secondary" id="btnBackFromOtp">←</button>
-        <h1>Verify OTP</h1>
-        <span class="header-spacer"></span>
-      </header>
+    <!-- OTP -->
+    <section id="otp" class="screen">
       <div class="container">
-        <div class="card form-card">
-          <p class="muted" id="otpHint">Enter the 6-digit code sent to your phone. Beta may expose otp_dev when OTP_EXPOSE_DEV is on.</p>
-          <label for="otp-code">OTP</label>
+        <a href="#" class="nav-back" id="btnBackFromOtp"><i class="fas fa-arrow-left"></i></a>
+        <h1>Verify phone</h1>
+        <div class="form-card">
+          <p class="muted" id="otpHint">Enter the 6-digit code.</p>
           <input id="otp-code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" />
-          <button type="button" class="btn" id="btnVerifyOtp">Verify &amp; enter</button>
-          <button type="button" class="btn secondary" id="btnResendOtp">Resend OTP</button>
+          <button type="button" class="btn" id="btnVerifyOtp"><i class="fas fa-check"></i> Verify &amp; enter</button>
+          <button type="button" class="btn secondary" id="btnResendOtp"><i class="fas fa-redo"></i> Resend OTP</button>
         </div>
       </div>
     </section>
 
-    <section id="login" class="screen" data-screen="login">
-      <header class="header">
-        <button type="button" class="btn small secondary" data-back="role-select">←</button>
-        <h1>Login</h1>
-        <span class="header-spacer"></span>
-      </header>
+    <!-- LOGIN -->
+    <section id="login" class="screen">
       <div class="container">
-        <div class="card form-card">
-          <label for="login-phone">Phone (+E.164)</label>
-          <input id="login-phone" type="tel" placeholder="+234..." autocomplete="tel" />
-          <label for="login-password">Password</label>
-          <input id="login-password" type="password" autocomplete="current-password" />
-          <button type="button" class="btn" id="btnLogin">Login</button>
+        <a href="#" class="nav-back" data-back="role-select"><i class="fas fa-arrow-left"></i></a>
+        <h1>Login</h1>
+        <div class="form-card">
+          <label>Phone<input id="login-phone" type="tel" placeholder="+234..." /></label>
+          <label>Password<input id="login-password" type="password" /></label>
+          <button type="button" class="btn" id="btnLogin"><i class="fas fa-sign-in-alt"></i> Login</button>
         </div>
       </div>
     </section>
 
-    <section id="home" class="screen" data-screen="home">
-      <header class="header home-header">
-        <button type="button" class="icon-btn" id="btnMenu" title="Menu">☰</button>
-        <div class="logo-row"><span>🏪</span> <span>Shop Near Me</span></div>
-        <button type="button" class="icon-btn" id="btnSearchTop" title="Search">🔍</button>
+    <!-- HOME -->
+    <section id="home" class="screen">
+      <header class="app-header">
+        <button type="button" class="icon-btn" id="btnMenu" aria-label="Menu"><i class="fas fa-bars"></i></button>
+        <span class="brand"><i class="fas fa-store"></i> Shop Near Me</span>
+        <button type="button" class="icon-btn" id="btnSearchTop" aria-label="Search"><i class="fas fa-search"></i></button>
       </header>
-      <div class="container home-body">
-        <div class="card identity-card">
-          <div>
-            <strong id="homeName">—</strong>
-            <div class="muted" id="homeRole">—</div>
-            <div class="muted" id="homePlace">—</div>
-            <div class="muted" id="homeHb">—</div>
-          </div>
-          <div class="identity-actions">
-            <button type="button" class="btn small secondary" id="btnFairlyUsed">Sell fairly used</button>
-            <button type="button" class="btn small secondary hidden" id="btnToggleLive">Go live</button>
-            <button type="button" class="btn small secondary hidden" id="btnHeartbeat">Heartbeat</button>
+      <div class="content">
+        <div class="identity-card">
+          <strong id="homeName">—</strong>
+          <div class="muted" id="homeRole">—</div>
+          <div class="muted" id="homePlace">—</div>
+          <div class="muted" id="homeHb">—</div>
+          <div class="chip-row">
+            <button type="button" class="chip-btn" id="btnFairlyUsed"><i class="fas fa-recycle"></i> Fairly used</button>
+            <button type="button" class="chip-btn" id="btnPerishables"><i class="fas fa-leaf"></i> Perishables</button>
+            <button type="button" class="chip-btn" id="btnBanqueue"><i class="fas fa-clock"></i> Banqueue</button>
+            <button type="button" class="chip-btn" id="btnEmergency"><i class="fas fa-ambulance"></i> Emergency</button>
+            <button type="button" class="chip-btn hidden" id="btnToggleLive"><i class="fas fa-broadcast-tower"></i> Go live</button>
+            <button type="button" class="chip-btn hidden" id="btnHeartbeat"><i class="fas fa-heartbeat"></i> Heartbeat</button>
           </div>
         </div>
-
-        <div class="quick-row">
-          <button type="button" class="chip-btn" id="btnPerishables">Perishables</button>
-          <button type="button" class="chip-btn" id="btnPremiumHub">Premium</button>
-          <button type="button" class="chip-btn" id="btnBanqueue">Banqueue</button>
-          <button type="button" class="chip-btn" id="btnEmergency">Emergency</button>
-          <button type="button" class="chip-btn" id="btnCheckoutAssist">Checkout assist</button>
-        </div>
-
-        <div class="section-title-row">
-          <h2>Near you / feed</h2>
-          <button type="button" class="btn small secondary" id="btnRefreshFeed">Refresh</button>
+        <div class="section-head">
+          <h2>Near you</h2>
+          <button type="button" class="btn small secondary" id="btnRefreshFeed"><i class="fas fa-sync"></i></button>
         </div>
         <div id="homeFeed" class="feed-list"></div>
-
-        <div class="mini-map-card card">
-          <div class="section-title-row">
-            <h2>Map</h2>
-            <button type="button" class="btn small secondary" id="btnExpandMap">Expand</button>
-          </div>
-          <div id="homeMapStub" class="map-stub">Primary pin · GSG · line-to-pin in map module</div>
-        </div>
       </div>
-      <nav class="bottom-nav" id="mainNav" aria-label="Main"></nav>
+      <nav class="bottom-nav" id="mainNav"></nav>
     </section>
 
-    <section id="search" class="screen" data-screen="search">
-      <header class="header">
-        <button type="button" class="btn small secondary" data-nav="home">←</button>
-        <h1>Search</h1>
-        <span class="header-spacer"></span>
-      </header>
-      <div class="container">
-        <div class="card form-card">
-          <label for="searchQ">Query</label>
+    <!-- SEARCH -->
+    <section id="search" class="screen">
+      <div class="container narrow-top">
+        <a href="#" class="nav-back" data-back="home"><i class="fas fa-arrow-left"></i></a>
+        <h1><i class="fas fa-search"></i> Search</h1>
+        <div class="form-card">
           <input id="searchQ" placeholder="Goods, services, shops…" />
-          <label for="searchCommunity">Community filter</label>
-          <input id="searchCommunity" placeholder="Eneka" />
-          <label for="searchMerchant">Merchant / business name</label>
-          <input id="searchMerchant" placeholder="Optional merchant name" />
-          <label for="searchMaxKm">Max km</label>
-          <input id="searchMaxKm" type="number" value="100" min="1" max="500" />
-          <button type="button" class="btn" id="btnDoSearch">Search products</button>
-          <button type="button" class="btn secondary" id="btnSearchMerchants">Search merchants</button>
+          <input id="searchCommunity" placeholder="Community (optional)" />
+          <input id="searchMerchant" placeholder="Business name (optional)" />
+          <label>Max km<input id="searchMaxKm" type="number" value="100" /></label>
+          <div class="btn-row">
+            <button type="button" class="btn" id="btnDoSearch"><i class="fas fa-box"></i> Products</button>
+            <button type="button" class="btn secondary" id="btnSearchMerchants"><i class="fas fa-store"></i> Merchants</button>
+          </div>
         </div>
         <div id="searchResults" class="feed-list"></div>
       </div>
-      <nav class="bottom-nav" id="searchNav" aria-label="Main"></nav>
+      <nav class="bottom-nav" id="searchNav"></nav>
     </section>
 
-    <section id="shop" class="screen" data-screen="shop">
-      <header class="header">
-        <button type="button" class="btn small secondary" data-nav="home">←</button>
-        <h1>Shop / catalogue</h1>
-        <span class="header-spacer"></span>
-      </header>
-      <div class="container">
-        <p class="muted" id="shopRoleHint">Catalogue tools for merchants &amp; service providers.</p>
-        <div class="card form-card" id="shopAddCard">
-          <label for="prod-name">Item / service name</label>
-          <input id="prod-name" />
-          <label for="prod-cat">Category</label>
-          <input id="prod-cat" placeholder="Food · Electronics · Service…" />
-          <label for="prod-price">Price (optional · strongly recommended)</label>
-          <input id="prod-price" type="number" min="0" step="0.01" />
-          <label for="prod-currency">Currency</label>
-          <input id="prod-currency" value="NGN" />
-          <label for="prod-qty">Quantity</label>
-          <input id="prod-qty" type="number" value="1" min="0" />
-          <label class="check-row"><input type="checkbox" id="prod-perishable" /> Perishable (quick visibility)</label>
-          <label class="check-row"><input type="checkbox" id="prod-available" checked /> Available</label>
-          <button type="button" class="btn" id="btnAddProduct">Save listing</button>
-          <button type="button" class="btn secondary" id="btnSaveAddAnother">Save &amp; add another</button>
+    <!-- SAVED (buyer) -->
+    <section id="saved" class="screen">
+      <div class="container narrow-top">
+        <a href="#" class="nav-back" data-back="home"><i class="fas fa-arrow-left"></i></a>
+        <h1><i class="fas fa-bookmark"></i> Saved</h1>
+        <div id="savedList" class="feed-list"><p class="muted">Bookmarks appear here.</p></div>
+      </div>
+      <nav class="bottom-nav" id="savedNav"></nav>
+    </section>
+
+    <!-- SHOP (non-buyer) -->
+    <section id="shop" class="screen">
+      <div class="container narrow-top">
+        <a href="#" class="nav-back" data-back="home"><i class="fas fa-arrow-left"></i></a>
+        <h1><i class="fas fa-store"></i> Shop</h1>
+        <p class="muted" id="shopRoleHint"></p>
+        <div class="form-card" id="shopForm">
+          <label>Item name<input id="prod-name" /></label>
+          <label>Category<input id="prod-cat" /></label>
+          <label>Price<input id="prod-price" type="number" step="0.01" /></label>
+          <label>Currency<input id="prod-currency" value="NGN" /></label>
+          <label>Quantity<input id="prod-qty" type="number" value="1" /></label>
+          <label class="check"><input type="checkbox" id="prod-perishable" /> Perishable</label>
+          <label class="check"><input type="checkbox" id="prod-available" checked /> Available</label>
+          <div class="btn-row">
+            <button type="button" class="btn" id="btnAddProduct"><i class="fas fa-plus"></i> Add</button>
+            <button type="button" class="btn secondary" id="btnSaveAddAnother"><i class="fas fa-plus-circle"></i> Save &amp; another</button>
+          </div>
         </div>
-        <div class="section-title-row">
-          <h2>My listings</h2>
-          <button type="button" class="btn small secondary" id="btnReloadProducts">Reload</button>
-        </div>
+        <button type="button" class="btn small secondary" id="btnReloadProducts"><i class="fas fa-sync"></i> Reload</button>
         <div id="myProducts" class="feed-list"></div>
       </div>
-      <nav class="bottom-nav" id="shopNav" aria-label="Main"></nav>
+      <nav class="bottom-nav" id="shopNav"></nav>
     </section>
 
-    <section id="messages" class="screen" data-screen="messages">
-      <header class="header">
-        <button type="button" class="btn small secondary" data-nav="home">←</button>
-        <h1>Messages</h1>
-        <span class="header-spacer"></span>
-      </header>
-      <div class="container">
-        <p class="muted">Keep chat in-app for protected deals. Start-row inbox per phone Uid.</p>
+    <!-- MESSAGES -->
+    <section id="messages" class="screen">
+      <div class="container narrow-top">
+        <a href="#" class="nav-back" data-back="home"><i class="fas fa-arrow-left"></i></a>
+        <h1><i class="fas fa-comments"></i> Messages</h1>
         <div id="inboxList" class="feed-list"></div>
-        <div id="threadView" class="card hidden">
-          <div class="section-title-row">
+        <div id="threadView" class="hidden">
+          <div class="section-head">
             <strong id="threadTitle">Thread</strong>
-            <button type="button" class="btn small secondary" id="btnCloseThread">Back</button>
+            <button type="button" class="btn small secondary" id="btnCloseThread">Close</button>
           </div>
-          <div id="threadMessages" class="thread-messages"></div>
+          <div id="threadMessages" class="thread-box"></div>
           <div class="compose-row">
             <input id="threadInput" placeholder="Message…" />
-            <button type="button" class="btn small" id="btnSendThread">Send</button>
+            <button type="button" class="btn small" id="btnSendThread"><i class="fas fa-paper-plane"></i></button>
           </div>
         </div>
       </div>
-      <nav class="bottom-nav" id="messagesNav" aria-label="Main"></nav>
+      <nav class="bottom-nav" id="messagesNav"></nav>
     </section>
 
-    <section id="news" class="screen" data-screen="news">
-      <header class="header">
-        <button type="button" class="btn small secondary" data-nav="home">←</button>
-        <h1>News</h1>
-        <span class="header-spacer"></span>
-      </header>
-      <div class="container">
-        <div class="quick-row">
+    <!-- NEWS -->
+    <section id="news" class="screen">
+      <div class="container narrow-top">
+        <a href="#" class="nav-back" data-back="home"><i class="fas fa-arrow-left"></i></a>
+        <h1><i class="fas fa-newspaper"></i> News</h1>
+        <div class="chip-row">
           <button type="button" class="chip-btn" data-news-cat="local">Local</button>
           <button type="button" class="chip-btn" data-news-cat="agriculture">Agriculture</button>
-          <button type="button" class="chip-btn" data-news-cat="fashion">Fashion</button>
-          <button type="button" class="chip-btn" data-news-cat="engineering">Engineering</button>
           <button type="button" class="chip-btn" data-news-cat="business">Business</button>
         </div>
-        <div id="newsList" class="feed-list"></div>
+        <div id="newsFeed" class="feed-list"></div>
       </div>
-      <nav class="bottom-nav" id="newsNav" aria-label="Main"></nav>
+      <nav class="bottom-nav" id="newsNav"></nav>
     </section>
 
-    <section id="premium" class="screen" data-screen="premium">
-      <header class="header">
-        <button type="button" class="btn small secondary" data-nav="home">←</button>
-        <h1>Premium</h1>
-        <span class="header-spacer"></span>
-      </header>
-      <div class="container">
-        <div class="card" id="premiumMe">Your active plans…</div>
-        <div class="section-title-row"><h2>Plans (₦)</h2></div>
+    <!-- PROFILE -->
+    <section id="profile" class="screen">
+      <div class="container narrow-top">
+        <a href="#" class="nav-back" data-back="home"><i class="fas fa-arrow-left"></i></a>
+        <h1><i class="fas fa-user"></i> Profile</h1>
+        <div id="profileBody" class="form-card"></div>
+        <button type="button" class="btn secondary" id="btnLogout"><i class="fas fa-sign-out-alt"></i> Logout</button>
+      </div>
+      <nav class="bottom-nav" id="profileNav"></nav>
+    </section>
+
+    <!-- FAIRLY USED -->
+    <section id="fairly-used" class="screen">
+      <div class="container narrow-top">
+        <a href="#" class="nav-back" data-back="home"><i class="fas fa-arrow-left"></i></a>
+        <h1><i class="fas fa-recycle"></i> Fairly used</h1>
+        <div class="form-card">
+          <input id="fu-title" placeholder="Title" />
+          <textarea id="fu-body" rows="3" placeholder="Note"></textarea>
+          <input id="fu-price" type="number" placeholder="Price (optional)" />
+          <button type="button" class="btn" id="btnFairlyPost"><i class="fas fa-paper-plane"></i> Post</button>
+        </div>
+        <div id="fairlyFeed" class="feed-list"></div>
+      </div>
+    </section>
+
+    <!-- PREMIUM -->
+    <section id="premium" class="screen">
+      <div class="container narrow-top">
+        <a href="#" class="nav-back" data-back="home"><i class="fas fa-arrow-left"></i></a>
+        <h1><i class="fas fa-crown"></i> Premium</h1>
+        <button type="button" class="btn small secondary" id="btnReloadPremium">Reload</button>
+        <button type="button" class="btn small" id="btnOpenDocuments"><i class="fas fa-file-invoice"></i> Documents</button>
         <div id="premiumPlans" class="feed-list"></div>
-        <div class="card form-card">
-          <h2>Calculator</h2>
-          <label for="calc-mode">Mode</label>
-          <select id="calc-mode">
-            <option value="checkout">Checkout (free)</option>
-            <option value="premium">Premium (VAT / FX / discount)</option>
-          </select>
-          <label for="calc-items">Items JSON array [{name,qty,unit_price}]</label>
-          <textarea id="calc-items" rows="3">[{"name":"Sample","qty":1,"unit_price":1000}]</textarea>
-          <label for="calc-vat">VAT %</label>
-          <input id="calc-vat" type="number" value="0" />
-          <label for="calc-discount">Discount amount</label>
-          <input id="calc-discount" type="number" value="0" />
-          <button type="button" class="btn" id="btnRunCalc">Calculate</button>
-          <pre id="calcOut" class="code-out"></pre>
-        </div>
+        <h2>Your plans</h2>
+        <div id="myPremium" class="feed-list"></div>
       </div>
     </section>
 
-    <section id="documents" class="screen" data-screen="documents">
-      <header class="header">
-        <button type="button" class="btn small secondary" data-nav="home">←</button>
-        <h1>Receipts &amp; E-Invoices</h1>
-        <span class="header-spacer"></span>
-      </header>
-      <div class="container">
-        <div class="quick-row">
-          <button type="button" class="chip-btn" id="btnTabReceipts">Receipts</button>
-          <button type="button" class="chip-btn" id="btnTabInvoices">E-Invoices</button>
-          <button type="button" class="chip-btn" id="btnTabStudio">Studio meta</button>
+    <!-- DOCUMENTS -->
+    <section id="documents" class="screen">
+      <div class="container narrow-top">
+        <a href="#" class="nav-back" data-back="premium"><i class="fas fa-arrow-left"></i></a>
+        <h1><i class="fas fa-file-invoice"></i> Documents</h1>
+        <div class="form-card">
+          <input id="doc-customer" placeholder="Customer name" />
+          <input id="doc-currency" value="NGN" />
+          <textarea id="doc-lines" rows="4" placeholder="name,qty,price per line"></textarea>
+          <div class="btn-row">
+            <button type="button" class="btn" id="btnCreateInvoice">E-invoice</button>
+            <button type="button" class="btn secondary" id="btnCreateInvoicePP">Invoice++</button>
+            <button type="button" class="btn secondary" id="btnCreateReceipt">Receipt</button>
+          </div>
         </div>
-        <div id="docCreateReceipt" class="card form-card">
-          <h2>New receipt (free · monthly cap)</h2>
-          <label for="rc-customer">Customer name</label>
-          <input id="rc-customer" />
-          <label for="rc-lines">Lines JSON [{name,qty,unit_price}]</label>
-          <textarea id="rc-lines" rows="3">[{"name":"Item","qty":1,"unit_price":500}]</textarea>
-          <button type="button" class="btn" id="btnCreateReceipt">Create receipt</button>
-        </div>
-        <div id="docCreateInvoice" class="card form-card hidden">
-          <h2>New e-invoice (plan required)</h2>
-          <label for="ei-customer">Customer name</label>
-          <input id="ei-customer" />
-          <label for="ei-phone">Customer phone</label>
-          <input id="ei-phone" />
-          <label for="ei-kind">Kind</label>
-          <select id="ei-kind">
-            <option value="e_invoice">E-Invoice</option>
-            <option value="e_invoice_pp">E-Invoice++</option>
-          </select>
-          <label for="ei-lines">Lines JSON</label>
-          <textarea id="ei-lines" rows="3">[{"name":"Item","qty":1,"unit_price":5000}]</textarea>
-          <button type="button" class="btn" id="btnCreateInvoice">Create e-invoice</button>
-        </div>
+        <button type="button" class="btn small secondary" id="btnReloadDocs">Reload</button>
         <div id="docList" class="feed-list"></div>
       </div>
     </section>
 
-    <section id="fairly-used" class="screen" data-screen="fairly-used">
-      <header class="header">
-        <button type="button" class="btn small secondary" data-nav="home">←</button>
-        <h1>Fairly used market</h1>
-        <span class="header-spacer"></span>
-      </header>
-      <div class="container">
-        <div class="card form-card">
-          <label for="fu-title">Title</label>
-          <input id="fu-title" />
-          <label for="fu-body">Note</label>
-          <textarea id="fu-body" rows="3"></textarea>
-          <label for="fu-price">Price (optional)</label>
-          <input id="fu-price" type="number" />
-          <button type="button" class="btn" id="btnFuPost">Post</button>
-        </div>
-        <div id="fuFeed" class="feed-list"></div>
-      </div>
-    </section>
-
-    <section id="banqueue" class="screen" data-screen="banqueue">
-      <header class="header">
-        <button type="button" class="btn small secondary" data-nav="home">←</button>
-        <h1>Banqueue</h1>
-        <span class="header-spacer"></span>
-      </header>
-      <div class="container">
-        <p class="muted">Live queues · banks, hospitals, offices</p>
+    <!-- BANQUEUE / EMERGENCY / CHECKOUT / TRUST / ADMIN -->
+    <section id="banqueue" class="screen">
+      <div class="container narrow-top">
+        <a href="#" class="nav-back" data-back="home"><i class="fas fa-arrow-left"></i></a>
+        <h1><i class="fas fa-clock"></i> Banqueue</h1>
         <div id="banqueueList" class="feed-list"></div>
       </div>
     </section>
 
-    <section id="emergency" class="screen" data-screen="emergency">
-      <header class="header">
-        <button type="button" class="btn small secondary" data-nav="home">←</button>
-        <h1>Emergency nearby</h1>
-        <span class="header-spacer"></span>
-      </header>
-      <div class="container">
-        <button type="button" class="btn" id="btnLoadEmergency">Refresh nearby</button>
+    <section id="emergency" class="screen">
+      <div class="container narrow-top">
+        <a href="#" class="nav-back" data-back="home"><i class="fas fa-arrow-left"></i></a>
+        <h1><i class="fas fa-ambulance"></i> Emergency</h1>
         <div id="emergencyList" class="feed-list"></div>
       </div>
     </section>
 
-    <section id="checkout" class="screen" data-screen="checkout">
-      <header class="header">
-        <button type="button" class="btn small secondary" data-nav="home">←</button>
-        <h1>Checkout assist</h1>
-        <span class="header-spacer"></span>
-      </header>
-      <div class="container">
-        <div class="card form-card">
-          <p class="muted">PoD · walk-in · bulky carrier suggestion</p>
-          <label for="co-payload">Assist payload JSON</label>
-          <textarea id="co-payload" rows="5">{"items":[{"name":"Refrigerator","qty":1,"unit_price":120000,"bulky":true}],"delivery":"pod"}</textarea>
-          <button type="button" class="btn" id="btnCheckoutAssistRun">Run assist</button>
-          <pre id="checkoutOut" class="code-out"></pre>
+    <section id="checkout" class="screen">
+      <div class="container narrow-top">
+        <a href="#" class="nav-back" data-back="home"><i class="fas fa-arrow-left"></i></a>
+        <h1><i class="fas fa-calculator"></i> Checkout assist</h1>
+        <div class="form-card">
+          <input id="co-item" placeholder="Item name" />
+          <input id="co-qty" type="number" value="1" />
+          <label class="check"><input type="checkbox" id="co-bulky" /> Bulky</label>
+          <label class="check"><input type="checkbox" id="co-pod" checked /> Pay on delivery</label>
+          <button type="button" class="btn" id="btnRunCheckout">Run assist</button>
+        </div>
+        <div id="checkoutResult"></div>
+      </div>
+    </section>
+
+    <section id="trust" class="screen">
+      <div class="container narrow-top">
+        <a href="#" class="nav-back" data-back="home"><i class="fas fa-arrow-left"></i></a>
+        <h1><i class="fas fa-shield-alt"></i> Trust</h1>
+        <div class="form-card">
+          <input id="rep-target" placeholder="Target phone +…" />
+          <input id="rep-reason" placeholder="Report reason" />
+          <button type="button" class="btn" id="btnSubmitReport">Report</button>
+          <hr />
+          <input id="rate-target" placeholder="Rate phone +…" />
+          <input id="rate-score" type="number" min="1" max="5" placeholder="Score 1-5" />
+          <input id="rate-note" placeholder="Note" />
+          <button type="button" class="btn secondary" id="btnSubmitRating">Rate</button>
         </div>
       </div>
     </section>
 
-    <section id="trust" class="screen" data-screen="trust">
-      <header class="header">
-        <button type="button" class="btn small secondary" data-nav="home">←</button>
-        <h1>Trust desk</h1>
-        <span class="header-spacer"></span>
-      </header>
-      <div class="container">
-        <div class="card form-card">
-          <h2>Report user / listing</h2>
-          <label for="rp-subject">Subject phone or id</label>
-          <input id="rp-subject" />
-          <label for="rp-reason">Reason</label>
-          <textarea id="rp-reason" rows="2"></textarea>
-          <button type="button" class="btn" id="btnSubmitReport">Submit report</button>
-        </div>
-        <div class="card form-card">
-          <h2>Rate</h2>
-          <label for="rt-subject">Subject Uid (phone)</label>
-          <input id="rt-subject" />
-          <label for="rt-score">Score 1–5</label>
-          <input id="rt-score" type="number" min="1" max="5" value="5" />
-          <button type="button" class="btn" id="btnSubmitRating">Submit rating</button>
-        </div>
-        <div class="card form-card">
-          <h2>Manifest (delivery accountability)</h2>
-          <label for="mf-note">Note</label>
-          <input id="mf-note" placeholder="Pickup / delivery note" />
-          <button type="button" class="btn" id="btnCreateManifest">Create manifest</button>
-          <button type="button" class="btn secondary" id="btnMyManifests">My manifests</button>
-        </div>
-        <div id="trustOut" class="feed-list"></div>
-      </div>
-    </section>
-
-    <section id="profile" class="screen" data-screen="profile">
-      <header class="header">
-        <button type="button" class="btn small secondary" data-nav="home">←</button>
-        <h1>Profile</h1>
-        <span class="header-spacer"></span>
-      </header>
-      <div class="container">
-        <div class="card" id="profileBody"></div>
-        <button type="button" class="btn secondary" data-nav="documents">Receipts &amp; e-invoices</button>
-        <button type="button" class="btn secondary" data-nav="trust">Trust desk</button>
-        <button type="button" class="btn secondary" data-nav="premium">Premium</button>
-        <button type="button" class="btn danger" id="btnLogout">Logout</button>
-      </div>
-      <nav class="bottom-nav" id="profileNav" aria-label="Main"></nav>
-    </section>
-
-    <section id="admin-contact" class="screen" data-screen="admin-contact">
-      <header class="header">
-        <button type="button" class="btn small secondary" data-nav="home">←</button>
-        <h1>Message Shop Near Me Admin</h1>
-        <span class="header-spacer"></span>
-      </header>
-      <div class="container">
-        <div class="card form-card">
-          <p class="muted">Admin box · Uid 550198550199</p>
-          <label for="admin-msg">Message</label>
-          <textarea id="admin-msg" rows="4"></textarea>
-          <button type="button" class="btn" id="btnAdminSend">Send to admin</button>
+    <section id="admin-contact" class="screen">
+      <div class="container narrow-top">
+        <a href="#" class="nav-back" data-back="home"><i class="fas fa-arrow-left"></i></a>
+        <h1><i class="fas fa-headset"></i> Contact admin</h1>
+        <div class="form-card">
+          <textarea id="admin-msg" rows="4" placeholder="Message to Shop Near Me admin"></textarea>
+          <button type="button" class="btn" id="btnAdminSend">Send</button>
         </div>
       </div>
     </section>
 
   </div>
 
-  <div class="menu-sheet" id="menuSheet" hidden>
-    <div class="menu-panel" role="dialog" aria-label="Menu">
-      <button type="button" data-act="notifications">Notifications</button>
-      <button type="button" data-act="premium">Premium</button>
-      <button type="button" data-act="documents">Receipts &amp; E-Invoices</button>
-      <button type="button" data-act="fairly">Fairly used</button>
-      <button type="button" data-act="banqueue">Banqueue</button>
-      <button type="button" data-act="emergency">Emergency</button>
-      <button type="button" data-act="checkout">Checkout assist</button>
-      <button type="button" data-act="trust">Trust desk</button>
-      <button type="button" data-act="admin">Message admin</button>
-      <button type="button" data-act="about">About</button>
-      <button type="button" data-act="logout">Logout</button>
+  <!-- MENU -->
+  <div id="menuSheet" class="sheet hidden">
+    <div class="sheet-panel">
+      <button type="button" data-act="notifications"><i class="fas fa-bell"></i> Notifications</button>
+      <button type="button" data-act="premium"><i class="fas fa-crown"></i> Premium</button>
+      <button type="button" data-act="documents"><i class="fas fa-file-invoice"></i> Documents</button>
+      <button type="button" data-act="fairly"><i class="fas fa-recycle"></i> Fairly used</button>
+      <button type="button" data-act="banqueue"><i class="fas fa-clock"></i> Banqueue</button>
+      <button type="button" data-act="emergency"><i class="fas fa-ambulance"></i> Emergency</button>
+      <button type="button" data-act="checkout"><i class="fas fa-calculator"></i> Checkout assist</button>
+      <button type="button" data-act="trust"><i class="fas fa-shield-alt"></i> Trust</button>
+      <button type="button" data-act="admin"><i class="fas fa-headset"></i> Contact admin</button>
+      <button type="button" data-act="about"><i class="fas fa-info-circle"></i> About</button>
+      <button type="button" data-act="logout" class="danger"><i class="fas fa-sign-out-alt"></i> Logout</button>
       <button type="button" data-act="close">Close</button>
     </div>
   </div>
 
-  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div id="toast" class="toast" hidden></div>
+  <footer class="app-footer">Powered by: The Guru Innovations 🌀</footer>
 
-<script src="js/config.js"></script>
+  <script src="js/config.js"></script>
   <script src="js/api.js"></script>
   <script src="js/local.js"></script>
+  <script src="js/cascade.js"></script>
   <script src="js/particles.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/home.js"></script>
@@ -541,6 +402,5 @@
   <script src="js/documents.js"></script>
   <script src="js/trust.js"></script>
   <script src="js/app.js"></script>
-  
 </body>
 </html>

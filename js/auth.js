@@ -4,16 +4,6 @@ SNM.selectedRole = "buyer";
 SNM._lastLat = 4.85;
 SNM._lastLng = 7.05;
 
-SNM.fillContinents = function () {
-  var sel = document.getElementById("reg-continent");
-  if (!sel) return;
-  sel.innerHTML = (SNM.CONTINENTS || [])
-    .map(function (c) {
-      return '<option value="' + c.id + '">' + c.name + "</option>";
-    })
-    .join("");
-};
-
 SNM.toggleRoleExtras = function (role) {
   var buyer = document.getElementById("buyerPrefsBlock");
   var merch = document.getElementById("merchantExtras");
@@ -38,11 +28,9 @@ SNM.buildRoleGrid = function () {
       return (
         '<div class="role-card" data-role="' +
         r.id +
-        '">' +
-        '<div class="icon">' +
-        (r.icon || "") +
-        "</div>" +
-        "<div>" +
+        '"><div class="icon"><i class="fas ' +
+        r.icon +
+        '"></i></div><div>' +
         r.label +
         "</div></div>"
       );
@@ -65,23 +53,17 @@ SNM.buildRoleGrid = function () {
 };
 
 SNM.collectRegisterBody = function () {
-  var contEl = document.getElementById("reg-continent");
-  var contId = contEl ? contEl.value : "003";
-  var cont = (SNM.CONTINENTS || []).find(function (c) {
-    return c.id === contId;
-  });
-  var phoneEl = document.getElementById("reg-phone");
-  var phone = phoneEl ? (phoneEl.value || "").trim() : "";
-  var prefsEl = document.getElementById("reg-prefs");
-  var prefsRaw = prefsEl ? prefsEl.value || "" : "";
-
-  var lat = typeof SNM._lastLat === "number" ? SNM._lastLat : 4.85;
-  var lng = typeof SNM._lastLng === "number" ? SNM._lastLng : 7.05;
-
   function val(id) {
     var el = document.getElementById(id);
     return el ? (el.value || "").trim() : "";
   }
+  var contId = val("reg-continent") || "003";
+  var cont = (SNM.CONTINENTS || []).find(function (c) {
+    return c.id === contId;
+  });
+  var prefsRaw = val("reg-prefs");
+  var lat = typeof SNM._lastLat === "number" ? SNM._lastLat : 4.85;
+  var lng = typeof SNM._lastLng === "number" ? SNM._lastLng : 7.05;
 
   return {
     role: SNM.selectedRole || "buyer",
@@ -95,7 +77,7 @@ SNM.collectRegisterBody = function () {
     primary_location: val("reg-primary"),
     lat: lat,
     lng: lng,
-    phone: phone,
+    phone: val("reg-phone"),
     password: val("reg-password"),
     prefs: prefsRaw
       .split(",")
@@ -107,8 +89,11 @@ SNM.collectRegisterBody = function () {
 };
 
 SNM.bindAuth = function () {
-  SNM.fillContinents();
+  if (typeof SNM.bindCascade === "function") SNM.bindCascade();
   SNM.buildRoleGrid();
+
+  var ver = document.getElementById("aboutVersion");
+  if (ver) ver.textContent = SNM.APP_VERSION || "1.0.0.1p";
 
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
@@ -123,28 +108,32 @@ SNM.bindAuth = function () {
 
   var aboutBtn = document.getElementById("btnAboutFromRole");
   if (aboutBtn) {
-    aboutBtn.onclick = function () {
+    aboutBtn.onclick = function (e) {
+      e.preventDefault();
       SNM.showScreen("about");
     };
   }
 
   var goLogin = document.getElementById("btnGoLogin");
   if (goLogin) {
-    goLogin.onclick = function () {
+    goLogin.onclick = function (e) {
+      e.preventDefault();
       SNM.showScreen("login");
     };
   }
 
-  document.querySelectorAll("[data-back]").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      var target = btn.getAttribute("data-back");
-      if (target) SNM.showScreen(target);
+  document.querySelectorAll("[data-back]").forEach(function (el) {
+    el.addEventListener("click", function (e) {
+      e.preventDefault();
+      var t = el.getAttribute("data-back");
+      if (t) SNM.showScreen(t);
     });
   });
 
   var backOtp = document.getElementById("btnBackFromOtp");
   if (backOtp) {
-    backOtp.onclick = function () {
+    backOtp.onclick = function (e) {
+      e.preventDefault();
       SNM.showScreen("register");
     };
   }
@@ -154,19 +143,14 @@ SNM.bindAuth = function () {
     regBtn.onclick = async function () {
       var body = SNM.collectRegisterBody();
       if (!body.name) return SNM.toast("Enter full name");
-      if (!body.country) return SNM.toast("Enter country");
+      if (!body.country) return SNM.toast("Select country");
       if (!body.primary_location) return SNM.toast("Primary location required");
       if (!body.phone || body.phone.charAt(0) !== "+") {
-        return SNM.toast("Phone must start with + (E.164)");
+        return SNM.toast("Phone must start with +");
       }
       if (!body.password || body.password.length < 6) {
         return SNM.toast("Password min 6 characters");
       }
-      if (typeof body.lat !== "number" || typeof body.lng !== "number") {
-        body.lat = 4.85;
-        body.lng = 7.05;
-      }
-
       try {
         regBtn.disabled = true;
         SNM.toast("Requesting OTP…");
@@ -181,12 +165,10 @@ SNM.bindAuth = function () {
           code.value = String(data.otp_dev);
           if (hint) {
             hint.textContent =
-              "Sandbox OTP filled. Verify to enter. Phone: " +
-              (data.phone || body.phone);
+              "Sandbox OTP filled · " + (data.phone || body.phone);
           }
         } else if (hint) {
-          hint.textContent =
-            "Enter the 6-digit code for " + (data.phone || body.phone);
+          hint.textContent = "Enter code for " + (data.phone || body.phone);
         }
         SNM.showScreen("otp");
         SNM.toast("OTP ready");
@@ -203,17 +185,12 @@ SNM.bindAuth = function () {
     verifyBtn.onclick = async function () {
       var otpEl = document.getElementById("otp-code");
       var otp = otpEl ? (otpEl.value || "").trim() : "";
-      if (!otp || otp.length < 4) {
-        return SNM.toast("Enter OTP");
-      }
+      if (!otp) return SNM.toast("Enter OTP");
       try {
         verifyBtn.disabled = true;
         var data = await SNM.api("/auth/otp/verify", {
           method: "POST",
-          body: {
-            pending_id: SNM.getPending(),
-            otp: otp
-          }
+          body: { pending_id: SNM.getPending(), otp: otp }
         });
         SNM.setSession(data.access_token, data.user);
         SNM.toast("Welcome");

@@ -1,316 +1,272 @@
 window.SNM = window.SNM || {};
 
-SNM.renderNav = function (navId) {
-  var nav = document.getElementById(navId);
-  if (!nav) return;
-  var items = [
-    { id: "home", ico: "🏠", label: "Home" },
-    { id: "search", ico: "🔍", label: "Search" },
-    { id: "shop", ico: "📦", label: "Shop" },
-    { id: "messages", ico: "💬", label: "Messages" },
-    { id: "news", ico: "📰", label: "News" },
-    { id: "profile", ico: "👤", label: "Profile" }
-  ];
-  nav.innerHTML = items.map(function (it) {
-    return (
-      "<button type=\"button\" data-nav=\"" + it.id + "\">" +
-      "<span class=\"ico\">" + it.ico + "</span>" + it.label +
-      "</button>"
-    );
-  }).join("");
+SNM.cardHtml = function (item) {
+  var title = SNM.escapeHtml(item.name || item.title || item.business_name || "Item");
+  var price =
+    item.price != null
+      ? SNM.escapeHtml(String(item.currency || "NGN") + " " + item.price)
+      : "";
+  var meta = [
+    item.owner_name || item.merchant_name || "",
+    item.community || item.city || item.primary_location || "",
+    item.km != null ? item.km + " km" : "",
+    item.perishable ? "Perishable" : ""
+  ]
+    .filter(Boolean)
+    .map(SNM.escapeHtml)
+    .join(" · ");
+  return (
+    '<div class="product-card">' +
+    '<div class="title">' +
+    title +
+    (price ? " · " + price : "") +
+    "</div>" +
+    (meta ? '<div class="meta">' + meta + "</div>" : "") +
+    "</div>"
+  );
 };
 
 SNM.fillHomeHeader = function () {
   var u = SNM.getUser() || {};
-  var name = document.getElementById("homeName");
-  var role = document.getElementById("homeRole");
-  var place = document.getElementById("homePlace");
-  var hb = document.getElementById("homeHb");
-  if (name) name.textContent = u.name || "—";
-  if (role) role.textContent = u.role || "";
-  if (place) {
-    place.textContent = [u.primary_location, u.community, u.city, u.country]
+  var n = document.getElementById("homeName");
+  var r = document.getElementById("homeRole");
+  var p = document.getElementById("homePlace");
+  var h = document.getElementById("homeHb");
+  if (n) n.textContent = u.name || "—";
+  if (r) r.textContent = u.role || "—";
+  if (p) {
+    p.textContent = [u.primary_location, u.community, u.city, u.country]
       .filter(Boolean)
       .join(" · ");
   }
-  if (hb) {
-    var live = u.live || {};
-    hb.textContent = live.active
-      ? "Heartbeat / live: active"
-      : "Heartbeat / live: idle";
-  }
+  if (h) h.textContent = u.live ? "Live / active" : "Standard presence";
 
-  var isBuyer = (u.role || "") === "buyer";
-  var liveBtn = document.getElementById("btnToggleLive");
-  var hbBtn = document.getElementById("btnHeartbeat");
-  if (liveBtn) liveBtn.classList.toggle("hidden", isBuyer);
-  if (hbBtn) hbBtn.classList.toggle("hidden", isBuyer);
-};
-
-SNM.cardHtml = function (item) {
-  var title = item.name || item.title || item.item || "Item";
-  var price =
-    item.price != null
-      ? item.price + " " + (item.currency || "")
-      : item.total != null
-        ? item.total + " " + (item.currency || "")
-        : "";
-  var who = item.merchant_name || item.owner_name || item.merchant || item.seller || "";
-  var km =
-    item.km != null
-      ? Number(item.km).toFixed(1) + " km"
-      : item.distance_km != null
-        ? Number(item.distance_km).toFixed(1) + " km"
-        : "";
-  var place = item.primary_location || item.community || item.city || "";
-  var tags = [];
-  if (item.perishable) tags.push("<span class=\"chip\">perishable</span>");
-  if (item.available === false) tags.push("<span class=\"chip\">unavailable</span>");
-
-  return (
-    "<div class=\"product-card\">" +
-    "<strong>" + SNM.escapeHtml(title) + "</strong>" +
-    (price ? "<div>" + SNM.escapeHtml(String(price)) + "</div>" : "") +
-    "<div class=\"muted\">" +
-    SNM.escapeHtml([who, place, km].filter(Boolean).join(" · ")) +
-    "</div>" +
-    (tags.length ? "<div>" + tags.join(" ") + "</div>" : "") +
-    "</div>"
-  );
+  var seller = u.role && u.role !== "buyer";
+  var btnLive = document.getElementById("btnToggleLive");
+  var btnHb = document.getElementById("btnHeartbeat");
+  if (btnLive) btnLive.classList.toggle("hidden", !seller);
+  if (btnHb) btnHb.classList.toggle("hidden", !seller);
 };
 
 SNM.loadFeed = async function () {
   var box = document.getElementById("homeFeed");
   if (!box) return;
-  box.innerHTML = "<p class=\"muted\">Loading feed…</p>";
+  box.innerHTML = "<p class='muted'>Loading…</p>";
   try {
-    var data = await SNM.api("/feed");
-    var items = data.items || data.results || data || [];
-    if (!Array.isArray(items)) items = [];
-    if (!items.length) {
+    var u = SNM.getUser() || {};
+    var q = (u.prefs && u.prefs[0]) || "";
+    var data = await SNM.api(
+      "/search/products" +
+        SNM.qs({
+          q: q,
+          community: u.community || "",
+          max_km: 100,
+          limit: 40
+        })
+    );
+    var rows = data.results || data.items || [];
+    if (!rows.length) {
       box.innerHTML =
-        "<p class=\"muted\">No feed yet. Search, add catalogue items, or set preferences.</p>";
+        "<p class='muted'>No listings near you yet. Try Search or Fairly used.</p>";
       return;
     }
-    box.innerHTML = items.map(SNM.cardHtml).join("");
+    box.innerHTML = rows.map(SNM.cardHtml).join("");
   } catch (e) {
     box.innerHTML =
-      "<p class=\"muted\">Feed unavailable (" +
-      SNM.escapeHtml(e.message || "error") +
-      "). Try Search.</p>";
+      "<p class='muted'>" + SNM.escapeHtml(e.message || "Feed unavailable") + "</p>";
   }
 };
 
-SNM.goHome = function () {
-  if (!SNM.requireAuth()) return;
-  SNM.fillHomeHeader();
+SNM.enterHome = function () {
   SNM.showScreen("home");
+  SNM.renderBottomNav("home");
+  SNM.fillHomeHeader();
   SNM.loadFeed();
 };
 
 SNM.onAuthed = function () {
-  SNM.goHome();
+  SNM.enterHome();
 };
 
 SNM.bindHome = function () {
-  ["mainNav", "searchNav", "shopNav", "messagesNav", "newsNav", "profileNav"].forEach(
-    SNM.renderNav
-  );
-
-  document.querySelectorAll(".bottom-nav").forEach(function (nav) {
-    nav.addEventListener("click", function (e) {
-      var btn = e.target.closest("button[data-nav]");
-      if (!btn) return;
-      var id = btn.getAttribute("data-nav");
-      if (!SNM.requireAuth()) return;
-      if (id === "home") return SNM.goHome();
-      if (id === "search") {
-        SNM.showScreen("search");
-        return;
-      }
-      if (id === "shop") {
-        SNM.showScreen("shop");
-        if (typeof SNM.loadMyProducts === "function") SNM.loadMyProducts();
-        return;
-      }
-      if (id === "messages") {
-        SNM.showScreen("messages");
-        if (typeof SNM.loadInbox === "function") SNM.loadInbox();
-        return;
-      }
-      if (id === "news") {
-        SNM.showScreen("news");
-        if (typeof SNM.loadNews === "function") SNM.loadNews("local");
-        return;
-      }
-      if (id === "profile") {
-        SNM.showScreen("profile");
-        SNM.renderProfile();
-      }
-    });
-  });
-
-  var refresh = document.getElementById("btnRefreshFeed");
-  if (refresh) refresh.onclick = function () { SNM.loadFeed(); };
-
-  var searchTop = document.getElementById("btnSearchTop");
-  if (searchTop) {
-    searchTop.onclick = function () {
-      if (SNM.requireAuth()) SNM.showScreen("search");
-    };
-  }
-
-  var fairly = document.getElementById("btnFairlyUsed");
-  if (fairly) {
-    fairly.onclick = function () {
-      if (!SNM.requireAuth()) return;
-      SNM.showScreen("fairly-used");
-      if (typeof SNM.loadFairlyUsed === "function") SNM.loadFairlyUsed();
-    };
-  }
-
-  var perish = document.getElementById("btnPerishables");
-  if (perish) {
-    perish.onclick = async function () {
-      if (!SNM.requireAuth()) return;
-      SNM.showScreen("search");
-      var box = document.getElementById("searchResults");
-      if (box) box.innerHTML = "<p class=\"muted\">Loading perishables…</p>";
-      try {
-        var rows = await SNM.api("/products/perishables");
-        if (!Array.isArray(rows)) rows = rows.items || rows.results || [];
-        if (box) {
-          box.innerHTML = rows.length
-            ? rows.map(SNM.cardHtml).join("")
-            : "<p class=\"muted\">No perishables listed</p>";
-        }
-      } catch (e) {
-        if (box) box.innerHTML = "<p class=\"muted\">" + SNM.escapeHtml(e.message) + "</p>";
-      }
-    };
-  }
-
-  var prem = document.getElementById("btnPremiumHub");
-  if (prem) {
-    prem.onclick = function () {
-      if (!SNM.requireAuth()) return;
-      SNM.showScreen("premium");
-      if (typeof SNM.loadPremium === "function") SNM.loadPremium();
-    };
-  }
-
-  var ban = document.getElementById("btnBanqueue");
-  if (ban) {
-    ban.onclick = function () {
-      if (!SNM.requireAuth()) return;
-      SNM.showScreen("banqueue");
-      if (typeof SNM.loadBanqueue === "function") SNM.loadBanqueue();
-    };
-  }
-
-  var em = document.getElementById("btnEmergency");
-  if (em) {
-    em.onclick = function () {
-      if (!SNM.requireAuth()) return;
-      SNM.showScreen("emergency");
-      if (typeof SNM.loadEmergency === "function") SNM.loadEmergency();
-    };
-  }
-
-  var co = document.getElementById("btnCheckoutAssist");
-  if (co) {
-    co.onclick = function () {
-      if (!SNM.requireAuth()) return;
-      SNM.showScreen("checkout");
-    };
-  }
-
-  var hbBtn = document.getElementById("btnHeartbeat");
-  if (hbBtn) {
-    hbBtn.onclick = async function () {
-      try {
-        await SNM.api("/presence/heartbeat", { method: "POST", body: {} });
-        SNM.toast("Heartbeat sent");
-        var me = await SNM.api("/auth/me");
-        SNM.setSession(SNM.getToken(), me);
-        SNM.fillHomeHeader();
-      } catch (e) {
-        SNM.toast(e.message || "Heartbeat failed");
-      }
-    };
-  }
-
-  var liveBtn = document.getElementById("btnToggleLive");
-  if (liveBtn) {
-    liveBtn.onclick = async function () {
-      try {
-        await SNM.api("/live/toggle", { method: "POST", body: { active: true } });
-        SNM.toast("Live on");
-        var me = await SNM.api("/auth/me");
-        SNM.setSession(SNM.getToken(), me);
-        SNM.fillHomeHeader();
-      } catch (e) {
-        SNM.toast(e.message || "Live toggle failed");
-      }
-    };
-  }
-
-  var menuBtn = document.getElementById("btnMenu");
+  var menu = document.getElementById("btnMenu");
   var sheet = document.getElementById("menuSheet");
-  if (menuBtn && sheet) {
-    menuBtn.onclick = function () {
-      sheet.hidden = false;
+  if (menu && sheet) {
+    menu.onclick = function () {
+      sheet.classList.remove("hidden");
     };
+  }
+  if (sheet) {
     sheet.onclick = function (e) {
-      if (e.target === sheet || e.target.getAttribute("data-act") === "close") {
-        sheet.hidden = true;
-        return;
-      }
-      var act = e.target.getAttribute("data-act");
-      if (!act) return;
-      sheet.hidden = true;
+      if (e.target === sheet) sheet.classList.add("hidden");
+      var btn = e.target.closest("button[data-act]");
+      if (!btn) return;
+      var act = btn.getAttribute("data-act");
+      sheet.classList.add("hidden");
+      if (act === "close") return;
       if (act === "logout") {
         SNM.clearSession();
         SNM.showScreen("role-select");
         return;
       }
+      if (act === "about") return SNM.showScreen("about");
       if (act === "premium") {
         SNM.showScreen("premium");
         if (typeof SNM.loadPremium === "function") SNM.loadPremium();
+        return;
       }
-      if (act === "documents") SNM.showScreen("documents");
+      if (act === "documents") {
+        SNM.showScreen("documents");
+        if (typeof SNM.loadDocuments === "function") SNM.loadDocuments();
+        return;
+      }
       if (act === "fairly") {
         SNM.showScreen("fairly-used");
         if (typeof SNM.loadFairlyUsed === "function") SNM.loadFairlyUsed();
+        return;
       }
       if (act === "banqueue") {
         SNM.showScreen("banqueue");
         if (typeof SNM.loadBanqueue === "function") SNM.loadBanqueue();
+        return;
       }
       if (act === "emergency") {
         SNM.showScreen("emergency");
         if (typeof SNM.loadEmergency === "function") SNM.loadEmergency();
+        return;
       }
-      if (act === "checkout") SNM.showScreen("checkout");
-      if (act === "trust") SNM.showScreen("trust");
-      if (act === "admin") SNM.showScreen("admin-contact");
-      if (act === "about") SNM.showScreen("about");
-      if (act === "notifications") SNM.toast("Notifications · coming next");
+      if (act === "checkout") return SNM.showScreen("checkout");
+      if (act === "trust") return SNM.showScreen("trust");
+      if (act === "admin") return SNM.showScreen("admin-contact");
+      if (act === "notifications") return SNM.toast("Notifications — inbox empty");
     };
   }
-};
 
-SNM.renderProfile = function () {
-  var box = document.getElementById("profileBody");
-  if (!box) return;
-  var u = SNM.getUser() || {};
-  box.innerHTML =
-    "<p><strong>" + SNM.escapeHtml(u.name || "") + "</strong></p>" +
-    "<p class=\"muted\">" + SNM.escapeHtml(u.phone || "") + "</p>" +
-    "<p class=\"muted\">" + SNM.escapeHtml(u.role || "") + "</p>" +
-    "<p class=\"muted\">" +
-    SNM.escapeHtml(
-      [u.primary_location, u.community, u.city, u.country].filter(Boolean).join(" · ")
-    ) +
-    "</p>";
+  var searchTop = document.getElementById("btnSearchTop");
+  if (searchTop) {
+    searchTop.onclick = function () {
+      SNM.showScreen("search");
+      SNM.renderBottomNav("search");
+    };
+  }
+
+  var refresh = document.getElementById("btnRefreshFeed");
+  if (refresh) refresh.onclick = function () {
+    SNM.loadFeed();
+  };
+
+  var fu = document.getElementById("btnFairlyUsed");
+  if (fu) {
+    fu.onclick = function () {
+      SNM.showScreen("fairly-used");
+      if (typeof SNM.loadFairlyUsed === "function") SNM.loadFairlyUsed();
+    };
+  }
+  var peri = document.getElementById("btnPerishables");
+  if (peri) {
+    peri.onclick = async function () {
+      SNM.showScreen("search");
+      SNM.renderBottomNav("search");
+      var box = document.getElementById("searchResults");
+      if (box) box.innerHTML = "<p class='muted'>Loading perishables…</p>";
+      try {
+        var data = await SNM.api(
+          "/search/products" + SNM.qs({ perishable: true, max_km: 100, limit: 40 })
+        );
+        var rows = data.results || data.items || [];
+        if (box) {
+          box.innerHTML = rows.length
+            ? rows.map(SNM.cardHtml).join("")
+            : "<p class='muted'>No perishables nearby.</p>";
+        }
+      } catch (e) {
+        if (box) box.innerHTML = "<p class='muted'>" + SNM.escapeHtml(e.message) + "</p>";
+      }
+    };
+  }
+  var bq = document.getElementById("btnBanqueue");
+  if (bq) {
+    bq.onclick = function () {
+      SNM.showScreen("banqueue");
+      if (typeof SNM.loadBanqueue === "function") SNM.loadBanqueue();
+    };
+  }
+  var em = document.getElementById("btnEmergency");
+  if (em) {
+    em.onclick = function () {
+      SNM.showScreen("emergency");
+      if (typeof SNM.loadEmergency === "function") SNM.loadEmergency();
+    };
+  }
+
+  document.body.addEventListener("click", function (e) {
+    var nav = e.target.closest("[data-nav]");
+    if (!nav) return;
+    var id = nav.getAttribute("data-nav");
+    if (id === "home") return SNM.enterHome();
+    if (id === "search") {
+      SNM.showScreen("search");
+      SNM.renderBottomNav("search");
+      return;
+    }
+    if (id === "saved") {
+      if (!SNM.isBuyer()) {
+        SNM.toast("Saved is for buyers");
+        return;
+      }
+      SNM.showScreen("saved");
+      SNM.renderBottomNav("saved");
+      return;
+    }
+    if (id === "shop") {
+      if (SNM.isBuyer()) {
+        SNM.toast("Shop is for sellers");
+        return;
+      }
+      SNM.showScreen("shop");
+      SNM.renderBottomNav("shop");
+      if (typeof SNM.loadMyProducts === "function") SNM.loadMyProducts();
+      var hint = document.getElementById("shopRoleHint");
+      var u = SNM.getUser() || {};
+      if (hint) {
+        hint.textContent =
+          u.role === "driver"
+            ? "Drivers: list coverage / capacity as items."
+            : u.role === "emergency"
+            ? "Emergency units: list unit availability."
+            : "Manage catalogue.";
+      }
+      return;
+    }
+    if (id === "messages") {
+      SNM.showScreen("messages");
+      SNM.renderBottomNav("messages");
+      if (typeof SNM.loadInbox === "function") SNM.loadInbox();
+      return;
+    }
+    if (id === "news") {
+      SNM.showScreen("news");
+      SNM.renderBottomNav("news");
+      if (typeof SNM.loadNews === "function") SNM.loadNews("local");
+      return;
+    }
+    if (id === "profile") {
+      SNM.showScreen("profile");
+      SNM.renderBottomNav("profile");
+      var body = document.getElementById("profileBody");
+      var u2 = SNM.getUser() || {};
+      if (body) {
+        body.innerHTML =
+          "<p><strong>" +
+          SNM.escapeHtml(u2.name || "") +
+          "</strong></p><p class='muted'>" +
+          SNM.escapeHtml(u2.role || "") +
+          "</p><p class='muted'>" +
+          SNM.escapeHtml(u2.phone || "") +
+          "</p><p class='muted'>" +
+          SNM.escapeHtml(u2.primary_location || "") +
+          "</p>";
+      }
+    }
+  });
 };
