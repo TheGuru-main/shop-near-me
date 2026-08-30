@@ -542,10 +542,5 @@
   <script src="js/trust.js"></script>
   <script src="js/app.js"></script>
   
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", function () {
-        navigator.serviceWorker.register("sw.js").catch(function () {});
-      });
-    }
 </body>
 </html>
