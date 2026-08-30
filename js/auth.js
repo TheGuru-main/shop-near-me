@@ -1,13 +1,17 @@
 window.SNM = window.SNM || {};
 
 SNM.selectedRole = "buyer";
+SNM._lastLat = 4.85;
+SNM._lastLng = 7.05;
 
 SNM.fillContinents = function () {
   var sel = document.getElementById("reg-continent");
   if (!sel) return;
-  sel.innerHTML = SNM.CONTINENTS.map(function (c) {
-    return "<option value=\"" + c.id + "\">" + c.name + "</option>";
-  }).join("");
+  sel.innerHTML = (SNM.CONTINENTS || [])
+    .map(function (c) {
+      return '<option value="' + c.id + '">' + c.name + "</option>";
+    })
+    .join("");
 };
 
 SNM.toggleRoleExtras = function (role) {
@@ -16,7 +20,12 @@ SNM.toggleRoleExtras = function (role) {
   var driver = document.getElementById("driverExtras");
   var emerg = document.getElementById("emergencyExtras");
   if (buyer) buyer.classList.toggle("hidden", role !== "buyer");
-  if (merch) merch.classList.toggle("hidden", role !== "merchant" && role !== "service_provider");
+  if (merch) {
+    merch.classList.toggle(
+      "hidden",
+      role !== "merchant" && role !== "service_provider"
+    );
+  }
   if (driver) driver.classList.toggle("hidden", role !== "driver");
   if (emerg) emerg.classList.toggle("hidden", role !== "emergency");
 };
@@ -24,13 +33,21 @@ SNM.toggleRoleExtras = function (role) {
 SNM.buildRoleGrid = function () {
   var grid = document.getElementById("roleGrid");
   if (!grid) return;
-  grid.innerHTML = SNM.ROLES.map(function (r) {
-    return (
-      "<div class=\"role-card\" data-role=\"" + r.id + "\">" +
-      "<div class=\"icon\">" + r.icon + "</div>" +
-      "<div>" + r.label + "</div></div>"
-    );
-  }).join("");
+  grid.innerHTML = (SNM.ROLES || [])
+    .map(function (r) {
+      return (
+        '<div class="role-card" data-role="' +
+        r.id +
+        '">' +
+        '<div class="icon">' +
+        (r.icon || "") +
+        "</div>" +
+        "<div>" +
+        r.label +
+        "</div></div>"
+      );
+    })
+    .join("");
 
   grid.querySelectorAll(".role-card").forEach(function (el) {
     el.addEventListener("click", function () {
@@ -48,26 +65,44 @@ SNM.buildRoleGrid = function () {
 };
 
 SNM.collectRegisterBody = function () {
-  var contId = document.getElementById("reg-continent").value;
-  var cont = SNM.CONTINENTS.find(function (c) { return c.id === contId; });
-  var phone = (document.getElementById("reg-phone").value || "").trim();
-  var prefsRaw = (document.getElementById("reg-prefs") && document.getElementById("reg-prefs").value) || "";
+  var contEl = document.getElementById("reg-continent");
+  var contId = contEl ? contEl.value : "003";
+  var cont = (SNM.CONTINENTS || []).find(function (c) {
+    return c.id === contId;
+  });
+  var phoneEl = document.getElementById("reg-phone");
+  var phone = phoneEl ? (phoneEl.value || "").trim() : "";
+  var prefsEl = document.getElementById("reg-prefs");
+  var prefsRaw = prefsEl ? prefsEl.value || "" : "";
+
+  var lat = typeof SNM._lastLat === "number" ? SNM._lastLat : 4.85;
+  var lng = typeof SNM._lastLng === "number" ? SNM._lastLng : 7.05;
+
+  function val(id) {
+    var el = document.getElementById(id);
+    return el ? (el.value || "").trim() : "";
+  }
 
   return {
-    role: SNM.selectedRole,
-    name: (document.getElementById("reg-name").value || "").trim(),
+    role: SNM.selectedRole || "buyer",
+    name: val("reg-name"),
     continent_id: cont ? cont.id : "003",
     continent_name: cont ? cont.name : "Africa",
-    country: (document.getElementById("reg-country").value || "").trim(),
-    region: (document.getElementById("reg-region").value || "").trim() || null,
-    city: (document.getElementById("reg-city").value || "").trim() || null,
-    community: (document.getElementById("reg-community").value || "").trim() || null,
-    primary_location: (document.getElementById("reg-primary").value || "").trim(),
-    lat: null,
-    lng: null,
+    country: val("reg-country"),
+    region: val("reg-region") || null,
+    city: val("reg-city") || null,
+    community: val("reg-community") || null,
+    primary_location: val("reg-primary"),
+    lat: lat,
+    lng: lng,
     phone: phone,
-    password: document.getElementById("reg-password").value || "",
-    prefs: prefsRaw.split(",").map(function (s) { return s.trim(); }).filter(Boolean)
+    password: val("reg-password"),
+    prefs: prefsRaw
+      .split(",")
+      .map(function (s) {
+        return s.trim();
+      })
+      .filter(Boolean)
   };
 };
 
@@ -75,15 +110,35 @@ SNM.bindAuth = function () {
   SNM.fillContinents();
   SNM.buildRoleGrid();
 
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      function (pos) {
+        SNM._lastLat = pos.coords.latitude;
+        SNM._lastLng = pos.coords.longitude;
+      },
+      function () {},
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+    );
+  }
+
   var aboutBtn = document.getElementById("btnAboutFromRole");
-  if (aboutBtn) aboutBtn.onclick = function () { SNM.showScreen("about"); };
+  if (aboutBtn) {
+    aboutBtn.onclick = function () {
+      SNM.showScreen("about");
+    };
+  }
 
   var goLogin = document.getElementById("btnGoLogin");
-  if (goLogin) goLogin.onclick = function () { SNM.showScreen("login"); };
+  if (goLogin) {
+    goLogin.onclick = function () {
+      SNM.showScreen("login");
+    };
+  }
 
   document.querySelectorAll("[data-back]").forEach(function (btn) {
     btn.addEventListener("click", function () {
-      SNM.showScreen(btn.getAttribute("data-back"));
+      var target = btn.getAttribute("data-back");
+      if (target) SNM.showScreen(target);
     });
   });
 
@@ -99,23 +154,42 @@ SNM.bindAuth = function () {
     regBtn.onclick = async function () {
       var body = SNM.collectRegisterBody();
       if (!body.name) return SNM.toast("Enter full name");
-      if (!body.phone.startsWith("+")) return SNM.toast("Phone must start with +");
-      if (!body.password || body.password.length < 6) return SNM.toast("Password min 6 chars");
+      if (!body.country) return SNM.toast("Enter country");
       if (!body.primary_location) return SNM.toast("Primary location required");
+      if (!body.phone || body.phone.charAt(0) !== "+") {
+        return SNM.toast("Phone must start with + (E.164)");
+      }
+      if (!body.password || body.password.length < 6) {
+        return SNM.toast("Password min 6 characters");
+      }
+      if (typeof body.lat !== "number" || typeof body.lng !== "number") {
+        body.lat = 4.85;
+        body.lng = 7.05;
+      }
+
       try {
         regBtn.disabled = true;
-        var data = await SNM.api("/auth/otp/request", { method: "POST", body: body });
+        SNM.toast("Requesting OTP…");
+        var data = await SNM.api("/auth/otp/request", {
+          method: "POST",
+          body: body
+        });
         SNM.setPending(data.pending_id || "");
         var hint = document.getElementById("otpHint");
         var code = document.getElementById("otp-code");
         if (data.otp_dev && code) {
-          code.value = data.otp_dev;
-          if (hint) hint.textContent = "Sandbox OTP filled (otp_dev). Verify to enter.";
+          code.value = String(data.otp_dev);
+          if (hint) {
+            hint.textContent =
+              "Sandbox OTP filled. Verify to enter. Phone: " +
+              (data.phone || body.phone);
+          }
         } else if (hint) {
-          hint.textContent = "Enter the 6-digit OTP sent to your phone.";
+          hint.textContent =
+            "Enter the 6-digit code for " + (data.phone || body.phone);
         }
         SNM.showScreen("otp");
-        SNM.toast("OTP requested");
+        SNM.toast("OTP ready");
       } catch (e) {
         SNM.toast(e.message || "OTP request failed");
       } finally {
@@ -127,13 +201,18 @@ SNM.bindAuth = function () {
   var verifyBtn = document.getElementById("btnVerifyOtp");
   if (verifyBtn) {
     verifyBtn.onclick = async function () {
+      var otpEl = document.getElementById("otp-code");
+      var otp = otpEl ? (otpEl.value || "").trim() : "";
+      if (!otp || otp.length < 4) {
+        return SNM.toast("Enter OTP");
+      }
       try {
         verifyBtn.disabled = true;
         var data = await SNM.api("/auth/otp/verify", {
           method: "POST",
           body: {
             pending_id: SNM.getPending(),
-            otp: (document.getElementById("otp-code").value || "").trim()
+            otp: otp
           }
         });
         SNM.setSession(data.access_token, data.user);
@@ -151,15 +230,21 @@ SNM.bindAuth = function () {
   var resendBtn = document.getElementById("btnResendOtp");
   if (resendBtn) {
     resendBtn.onclick = async function () {
+      var pid = SNM.getPending();
+      if (!pid) return SNM.toast("No pending OTP");
       try {
-        var pid = SNM.getPending();
-        await SNM.api("/auth/otp/resend?pending_id=" + encodeURIComponent(pid), {
-          method: "POST",
-          body: {}
-        });
+        resendBtn.disabled = true;
+        var data = await SNM.api(
+          "/auth/otp/resend?pending_id=" + encodeURIComponent(pid),
+          { method: "POST", body: {} }
+        );
+        var code = document.getElementById("otp-code");
+        if (data && data.otp_dev && code) code.value = String(data.otp_dev);
         SNM.toast("OTP resent");
       } catch (e) {
         SNM.toast(e.message || "Resend failed");
+      } finally {
+        resendBtn.disabled = false;
       }
     };
   }
@@ -167,14 +252,15 @@ SNM.bindAuth = function () {
   var loginBtn = document.getElementById("btnLogin");
   if (loginBtn) {
     loginBtn.onclick = async function () {
+      var phone = (document.getElementById("login-phone").value || "").trim();
+      var password = document.getElementById("login-password").value || "";
+      if (!phone) return SNM.toast("Enter phone");
+      if (!password) return SNM.toast("Enter password");
       try {
         loginBtn.disabled = true;
         var data = await SNM.api("/auth/login", {
           method: "POST",
-          body: {
-            phone: (document.getElementById("login-phone").value || "").trim(),
-            password: document.getElementById("login-password").value || ""
-          }
+          body: { phone: phone, password: password }
         });
         SNM.setSession(data.access_token, data.user);
         SNM.toast("Logged in");

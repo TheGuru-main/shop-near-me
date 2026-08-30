@@ -15,12 +15,14 @@ SNM.toast = function (msg) {
     alert(msg);
     return;
   }
-  el.textContent = msg;
+  el.textContent = String(msg == null ? "" : msg);
   el.hidden = false;
+  el.classList.add("show");
   clearTimeout(SNM._toastTimer);
   SNM._toastTimer = setTimeout(function () {
+    el.classList.remove("show");
     el.hidden = true;
-  }, 2800);
+  }, 3200);
 };
 
 SNM.showScreen = function (id) {
@@ -29,6 +31,14 @@ SNM.showScreen = function (id) {
   });
   var target = document.getElementById(id);
   if (target) target.classList.add("active");
+
+  var authed = ["home", "search", "shop", "messages", "news", "profile"];
+  document.querySelectorAll(".bottom-nav").forEach(function (nav) {
+    nav.style.display = authed.indexOf(id) !== -1 ? "flex" : "none";
+    nav.querySelectorAll("button[data-nav]").forEach(function (b) {
+      b.classList.toggle("active", b.getAttribute("data-nav") === id);
+    });
+  });
   window.scrollTo(0, 0);
 };
 
