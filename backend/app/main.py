@@ -21,6 +21,7 @@ from app.api import live as live_routes
 from app.api import manifests as manifests_routes
 from app.api import news as news_routes
 from app.api import presence as presence_routes
+from app.api import admin_board as admin_board_routes
 from app.api import products as products_routes
 from app.api import tokenizer as tokenizer_routes
 from app.api import ratings as ratings_routes
@@ -75,6 +76,7 @@ app.include_router(live_routes.router, prefix=prefix)
 app.include_router(checkout_routes.router, prefix=prefix)
 app.include_router(reports_routes.router, prefix=prefix)
 app.include_router(ratings_routes.router, prefix=prefix)
+app.include_router(admin_board_routes.router, prefix=prefix)
 app.include_router(tokenizer_routes.router, prefix=prefix)
 app.include_router(manifests_routes.router, prefix=prefix)
 app.include_router(admin_contact_routes.router, prefix=prefix)

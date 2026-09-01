@@ -41,6 +41,11 @@ class Settings(BaseSettings):
     nominatim_base: str = "https://nominatim.openstreetmap.org"
     osm_user_agent: str = "ShopNearMe/1.0 (contact@example.com)"
 
+    gemini_api_key: str = ""
+    huggingface_api_token: str = ""
+    huggingface_model: str = "mistralai/Mistral-7B-Instruct-v0.2"
+    search_cache_ttl_sec: int = 
+    admin_phone_uid: str = "550198550199"  
 
 @lru_cache
 def get_settings() -> Settings:
