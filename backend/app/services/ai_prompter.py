@@ -197,4 +197,12 @@ async def promote_news(ctx: dict[str, Any]) -> dict[str, Any]:
     if not text:
         text = _template_news(ctx)
         source = "template"
-    return {"message": text, "source": source}
+    return {"message": text, "source": source, "mode": "analyze_suggest_followup",
+        "context_used": {
+            "category": ctx.get("category"),
+            "result_count": ctx.get("result_count"),
+            "headlines": ctx.get("headlines"),
+            "place_hint": ctx.get("place_hint"),
+            "related_query": ctx.get("related_query"),
+        },
+    }
