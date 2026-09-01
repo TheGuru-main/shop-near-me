@@ -1,23 +1,28 @@
 """
-220 x 64 relationship grid.
+220+ relationship grid (Shop Near Me).
 start_row = ((L + S - 1) % 64) + 1
 
-Columns: stacked a-z bands of 26 (not one shared col for all entities).
-  0-25    country
-  26-51   region
-  52-77   city
-  78-103  community
-  104-129 primary
-  130-155 category
-  156-181 cluster
-  182-207 language
+Place layers (country → language): width 26
+Name + object layers: width 46 (local-letter mapping)
+
+  country     0–25
+  region     26–51
+  city       52–77
+  community  78–103
+  primary   104–129
+  category  130–155
+  cluster   156–181   (26, optional)
+  language  182–207   (26)
+  name      156–201   (46) — username / full name
+  object    202–247   (46) — product / listing spine
 """
 
 from typing import Any
 
 REL_ROWS = 64
-REL_COLS = 220
+REL_COLS = 248
 BAND = 26
+NAME_OBJECT_BAND = 46
 
 LAYER_BASE = {
     "country": 0,
@@ -27,11 +32,23 @@ LAYER_BASE = {
     "primary": 104,
     "category": 130,
     "cluster": 156,
-    "language": 168,  # within 182-207 preferred; 168 locked earlier — clamp to band
+    "language": 182,
+    "name": 156,
+    "object": 202,
 }
 
-# Normalize language into band starting 182 if you prefer strict 8th band:
-# "language": 182,
+LAYER_WIDTH = {
+    "country": 26,
+    "region": 26,
+    "city": 26,
+    "community": 26,
+    "primary": 26,
+    "category": 26,
+    "cluster": 26,
+    "language": 26,
+    "name": 46,
+    "object": 46,
+}
 
 _INDEX: dict[str, list[dict[str, Any]]] = {}
 
@@ -50,9 +67,11 @@ def name_len(s: str) -> int:
 
 def first_letter_index(s: str) -> int:
     n = norm_name(s)
-    if not n or not ("a" <= n[0] <= "z"):
+    if not n:
         return 0
-    return ord(n[0]) - ord("a")
+    if "a" <= n[0] <= "z":
+        return ord(n[0]) - ord("a")
+    return ord(n[0]) % NAME_OBJECT_BAND
 
 
 def start_row(L: int, S: int, R: int = REL_ROWS) -> int:
@@ -60,10 +79,16 @@ def start_row(L: int, S: int, R: int = REL_ROWS) -> int:
 
 
 def band_col(layer: str, label: str) -> int:
-    """Map label into its layer band: base + (0..25)."""
+    """Map label into its layer band: base + (0 .. width-1)."""
     base = LAYER_BASE.get(layer, 0)
-    # language base 168 sits inside 156-181 in old lock; keep letter in 0-25 of its base
-    idx = first_letter_index(label)
+    width = LAYER_WIDTH.get(layer, BAND)
+    n = norm_name(label)
+    if n and "a" <= n[0] <= "z":
+        idx = (ord(n[0]) - ord("a")) % width
+    elif n:
+        idx = ord(n[0]) % width
+    else:
+        idx = 0
     col = base + idx
     if col >= REL_COLS:
         col = REL_COLS - 1
@@ -83,6 +108,7 @@ def register_entity(
     category: str = "",
     cluster: str = "",
     language: str = "",
+    object_name: str | None = None,
     extra: dict | None = None,
 ) -> dict:
     L = name_len(name)
@@ -106,8 +132,17 @@ def register_entity(
         layers.append(("cluster", cluster))
     if language:
         layers.append(("language", language))
-    # name also lands in category-adjacent letter via name's own letter on country band optional:
-    layers.append(("country", name))  # name letter on 0-25 band for name affinity
+
+    # Username / full name — 46
+    if name:
+        layers.append(("name", name))
+
+    # Object spine — 46 (explicit object_name, or product/object entity name)
+    title = object_name or (
+        name if entity_type in {"product", "object"} else ""
+    )
+    if title:
+        layers.append(("object", title))
 
     cells = []
     seen: set[str] = set()

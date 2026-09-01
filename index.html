@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <meta name="theme-color" content="#4B7351" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#166534" />
   <title>Shop Near Me</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <link rel="stylesheet" href="css/style.css" />
@@ -12,48 +12,82 @@
   <canvas id="network-bg" aria-hidden="true"></canvas>
   <div id="app">
 
-    <!-- SPLASH -->
+    <!-- SPLASH only auto-advances -->
     <section id="splash" class="screen active">
-      <div class="splash-inner">
-        <div class="logo-mark"><i class="fas fa-store"></i></div>
+      <div class="splash-card">
+        <div class="splash-icon"><i class="fas fa-store"></i></div>
         <h1>Shop Near Me</h1>
-        <p class="tagline">Discover goods, services &amp; trusted locals — near you and beyond.</p>
+        <p>Discover goods, services and trusted locals — near you and beyond.</p>
       </div>
     </section>
 
-    <!-- ROLE -->
+    <!-- ROLE LANDING — stacked href cards -->
     <section id="role-select" class="screen">
-      <div class="container">
-        <div class="top-row">
-          <span></span>
-          <a href="#" class="icon-link" id="btnAboutFromRole" title="About"><i class="fas fa-question-circle"></i></a>
+      <div class="page">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Welcome</p>
+            <h1>How are you joining?</h1>
+          </div>
+          <a href="#about" class="icon-pill" title="About"><i class="fas fa-question"></i></a>
+        </header>
+        <div class="stack" id="roleStack">
+          <!-- filled by auth.js from SNM.ROLES, or static fallback below -->
+          <a href="#register" class="choice-card" data-role="buyer">
+            <span class="choice-icon"><i class="fas fa-shopping-cart"></i></span>
+            <span class="choice-copy"><strong>Buyer</strong><small>Discover, save, message sellers</small></span>
+            <i class="fas fa-chevron-right choice-go"></i>
+          </a>
+          <a href="#register" class="choice-card" data-role="merchant">
+            <span class="choice-icon"><i class="fas fa-store"></i></span>
+            <span class="choice-copy"><strong>Merchant</strong><small>List goods, receive nearby demand</small></span>
+            <i class="fas fa-chevron-right choice-go"></i>
+          </a>
+          <a href="#register" class="choice-card" data-role="service_provider">
+            <span class="choice-icon"><i class="fas fa-tools"></i></span>
+            <span class="choice-copy"><strong>Service provider</strong><small>Hotels, artisans, clinics &amp; more</small></span>
+            <i class="fas fa-chevron-right choice-go"></i>
+          </a>
+          <a href="#register" class="choice-card" data-role="driver">
+            <span class="choice-icon"><i class="fas fa-motorcycle"></i></span>
+            <span class="choice-copy"><strong>Driver / logistics</strong><small>Deliveries, okada, vans, coverage</small></span>
+            <i class="fas fa-chevron-right choice-go"></i>
+          </a>
+          <a href="#register" class="choice-card" data-role="emergency">
+            <span class="choice-icon"><i class="fas fa-ambulance"></i></span>
+            <span class="choice-copy"><strong>Emergency unit</strong><small>Police, ambulance, community response</small></span>
+            <i class="fas fa-chevron-right choice-go"></i>
+          </a>
         </div>
-        <h1 class="page-title">How are you joining?</h1>
-        <div class="role-grid" id="roleGrid"></div>
-        <a href="#" class="text-link" id="btnGoLogin"><i class="fas fa-sign-in-alt"></i> Already registered · Login</a>
+        <a href="#login" class="footer-link"><i class="fas fa-sign-in-alt"></i> Already registered · Login</a>
       </div>
     </section>
 
-    <!-- ABOUT -->
     <section id="about" class="screen">
-      <div class="container">
-        <a href="#" class="nav-back" data-back="role-select"><i class="fas fa-arrow-left"></i></a>
+      <div class="page">
+        <a href="#role-select" class="back-link"><i class="fas fa-arrow-left"></i> Back</a>
         <h1>About Shop Near Me</h1>
-        <p>Connect buyers, merchants, service providers, drivers and emergency units through local discovery, heartbeat presence, and in-app trust.</p>
-        <p class="muted">Version <span id="aboutVersion">1.0.0.1p</span></p>
-        <p class="footer-brand">Powered by: The Guru Innovations 🌀</p>
+        <div class="panel">
+          <p>Connect buyers, merchants, service providers, drivers and emergency units through local discovery, presence, and in-app trust.</p>
+          <p class="soft" style="margin-top:0.75rem">Version <span id="aboutVersion">1.0.0.1p</span></p>
+          <p class="soft">Powered by: The Guru Innovations 🌀</p>
+        </div>
       </div>
     </section>
 
-    <!-- REGISTER -->
+    <!-- REGISTER — hierarchy selects -->
     <section id="register" class="screen">
-      <div class="container">
-        <a href="#" class="nav-back" data-back="role-select"><i class="fas fa-arrow-left"></i></a>
-        <h1>Register · <span id="regRoleLabel">—</span></h1>
-        <div class="form-card">
-          <label>Full name<input id="reg-name" autocomplete="name" /></label>
+      <div class="page">
+        <a href="#role-select" class="back-link"><i class="fas fa-arrow-left"></i> Back</a>
+        <p class="eyebrow">Create account</p>
+        <h1>Register · <span id="regRoleLabel">buyer</span></h1>
+        <div class="panel form">
+          <label>Full name
+            <input id="reg-name" autocomplete="name" placeholder="Your full name" />
+          </label>
+
           <label>Continent
-            <select id="reg-continent"></select>
+            <select id="reg-continent" required></select>
           </label>
           <label>Country
             <select id="reg-country" disabled><option value="">Select continent first</option></select>
@@ -61,137 +95,154 @@
           <label>State / Region
             <select id="reg-region" disabled><option value="">Select country first</option></select>
           </label>
-          <label>City / Town
+          <label>Town / City
             <select id="reg-city" disabled><option value="">Select state first</option></select>
           </label>
           <label>Community
-            <select id="reg-community" disabled><option value="">Select city first</option></select>
+            <select id="reg-community" disabled><option value="">Select town first</option></select>
           </label>
-          <label>Primary location / business
+
+          <label>Primary location / business location
             <input id="reg-primary" placeholder="27, Dabu street, Eneka" />
           </label>
-          <label>Phone (E.164)
-            <input id="reg-phone" type="tel" placeholder="+2348162994110" />
+          <label>Phone (must start with +)
+            <input id="reg-phone" type="tel" inputmode="tel" placeholder="+2348162994110" />
           </label>
           <label>Password
-            <input id="reg-password" type="password" minlength="6" />
+            <input id="reg-password" type="password" minlength="6" placeholder="Min 6 characters" />
           </label>
-          <div id="buyerPrefsBlock" class="optional-block hidden">
-            <label>Item preferences (comma)
+
+          <div id="buyerPrefsBlock" class="extra hidden">
+            <label>Preferences (comma separated)
               <input id="reg-prefs" placeholder="food, shoes, phone" />
             </label>
           </div>
-          <div id="merchantExtras" class="optional-block hidden">
-            <label>Business display name<input id="reg-business-name" /></label>
-            <label class="check"><input type="checkbox" id="reg-delivery" /> Home delivery (PoD)</label>
+          <div id="merchantExtras" class="extra hidden">
+            <label>Business name
+              <input id="reg-business-name" placeholder="Shop or brand name" />
+            </label>
             <label class="check"><input type="checkbox" id="reg-walkin" checked /> Walk-in</label>
+            <label class="check"><input type="checkbox" id="reg-delivery" /> Home delivery (PoD)</label>
           </div>
-          <div id="driverExtras" class="optional-block hidden">
-            <label>Vehicle / coverage<input id="reg-vehicle" placeholder="Okada · Keke · Van" /></label>
+          <div id="driverExtras" class="extra hidden">
+            <label>Vehicle / coverage
+              <input id="reg-vehicle" placeholder="Okada · Keke · Van" />
+            </label>
           </div>
-          <div id="emergencyExtras" class="optional-block hidden">
-            <label>Unit type<input id="reg-emergency-type" placeholder="Police · Ambulance · Clinic" /></label>
+          <div id="emergencyExtras" class="extra hidden">
+            <label>Unit type
+              <input id="reg-emergency-type" placeholder="Police · Ambulance · Clinic" />
+            </label>
           </div>
-          <button type="button" class="btn" id="btnRegister"><i class="fas fa-sms"></i> Continue · OTP</button>
+
+          <button type="button" class="btn primary" id="btnRegister">
+            <i class="fas fa-sms"></i> Continue to OTP
+          </button>
         </div>
       </div>
     </section>
 
-    <!-- OTP -->
     <section id="otp" class="screen">
-      <div class="container">
-        <a href="#" class="nav-back" id="btnBackFromOtp"><i class="fas fa-arrow-left"></i></a>
-        <h1>Verify phone</h1>
-        <div class="form-card">
-          <p class="muted" id="otpHint">Enter the 6-digit code.</p>
-          <input id="otp-code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" />
-          <button type="button" class="btn" id="btnVerifyOtp"><i class="fas fa-check"></i> Verify &amp; enter</button>
-          <button type="button" class="btn secondary" id="btnResendOtp"><i class="fas fa-redo"></i> Resend OTP</button>
+      <div class="page">
+        <a href="#register" class="back-link"><i class="fas fa-arrow-left"></i> Back</a>
+        <p class="eyebrow">Verify</p>
+        <h1>Enter OTP</h1>
+        <div class="panel form">
+          <p class="soft" id="otpHint">We sent a 6-digit code to your phone.</p>
+          <label>Code
+            <input id="otp-code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="••••••" />
+          </label>
+          <button type="button" class="btn primary" id="btnVerifyOtp">
+            <i class="fas fa-check"></i> Verify &amp; enter
+          </button>
+          <button type="button" class="btn ghost" id="btnResendOtp">
+            <i class="fas fa-redo"></i> Resend code
+          </button>
         </div>
       </div>
     </section>
 
-    <!-- LOGIN -->
     <section id="login" class="screen">
-      <div class="container">
-        <a href="#" class="nav-back" data-back="role-select"><i class="fas fa-arrow-left"></i></a>
+      <div class="page">
+        <a href="#role-select" class="back-link"><i class="fas fa-arrow-left"></i> Back</a>
+        <p class="eyebrow">Welcome back</p>
         <h1>Login</h1>
-        <div class="form-card">
-          <label>Phone<input id="login-phone" type="tel" placeholder="+234..." /></label>
-          <label>Password<input id="login-password" type="password" /></label>
-          <button type="button" class="btn" id="btnLogin"><i class="fas fa-sign-in-alt"></i> Login</button>
+        <div class="panel form">
+          <label>Phone
+            <input id="login-phone" type="tel" placeholder="+234…" />
+          </label>
+          <label>Password
+            <input id="login-password" type="password" />
+          </label>
+          <button type="button" class="btn primary" id="btnLogin">
+            <i class="fas fa-sign-in-alt"></i> Login
+          </button>
+          <a href="#role-select" class="footer-link">Create an account</a>
         </div>
       </div>
     </section>
 
-    <!-- HOME -->
     <section id="home" class="screen">
-      <header class="app-header">
-        <button type="button" class="icon-btn" id="btnMenu" aria-label="Menu"><i class="fas fa-bars"></i></button>
+      <header class="topbar">
+        <a href="#menu" class="icon-pill"><i class="fas fa-bars"></i></a>
         <span class="brand"><i class="fas fa-store"></i> Shop Near Me</span>
-        <button type="button" class="icon-btn" id="btnSearchTop" aria-label="Search"><i class="fas fa-search"></i></button>
+        <a href="#search" class="icon-pill"><i class="fas fa-search"></i></a>
       </header>
-      <div class="content">
-        <div class="identity-card">
+      <div class="page padded">
+        <div class="panel identity">
           <strong id="homeName">—</strong>
-          <div class="muted" id="homeRole">—</div>
-          <div class="muted" id="homePlace">—</div>
-          <div class="muted" id="homeHb">—</div>
-          <div class="chip-row">
-            <button type="button" class="chip-btn" id="btnFairlyUsed"><i class="fas fa-recycle"></i> Fairly used</button>
-            <button type="button" class="chip-btn" id="btnPerishables"><i class="fas fa-leaf"></i> Perishables</button>
-            <button type="button" class="chip-btn" id="btnBanqueue"><i class="fas fa-clock"></i> Banqueue</button>
-            <button type="button" class="chip-btn" id="btnEmergency"><i class="fas fa-ambulance"></i> Emergency</button>
-            <button type="button" class="chip-btn hidden" id="btnToggleLive"><i class="fas fa-broadcast-tower"></i> Go live</button>
-            <button type="button" class="chip-btn hidden" id="btnHeartbeat"><i class="fas fa-heartbeat"></i> Heartbeat</button>
-          </div>
+          <span class="soft" id="homeRole">—</span>
+          <span class="soft" id="homePlace">—</span>
         </div>
-        <div class="section-head">
+        <div class="link-row">
+          <a href="#fairly-used" class="soft-chip"><i class="fas fa-recycle"></i> Fairly used</a>
+          <a href="#search" class="soft-chip" id="linkPerishables"><i class="fas fa-leaf"></i> Perishables</a>
+          <a href="#banqueue" class="soft-chip"><i class="fas fa-clock"></i> Banqueue</a>
+          <a href="#emergency" class="soft-chip"><i class="fas fa-ambulance"></i> Emergency</a>
+        </div>
+        <div class="section-title">
           <h2>Near you</h2>
-          <button type="button" class="btn small secondary" id="btnRefreshFeed"><i class="fas fa-sync"></i></button>
+          <button type="button" class="text-btn" id="btnRefreshFeed"><i class="fas fa-sync"></i></button>
         </div>
-        <div id="homeFeed" class="feed-list"></div>
+        <div id="homeFeed" class="feed"></div>
       </div>
-      <nav class="bottom-nav" id="mainNav"></nav>
+      <nav class="tabbar"></nav>
     </section>
 
-    <!-- SEARCH -->
     <section id="search" class="screen">
-      <div class="container narrow-top">
-        <a href="#" class="nav-back" data-back="home"><i class="fas fa-arrow-left"></i></a>
-        <h1><i class="fas fa-search"></i> Search</h1>
-        <div class="form-card">
-          <input id="searchQ" placeholder="Goods, services, shops…" />
-          <input id="searchCommunity" placeholder="Community (optional)" />
-          <input id="searchMerchant" placeholder="Business name (optional)" />
+      <div class="page padded">
+        <a href="#home" class="back-link"><i class="fas fa-arrow-left"></i> Home</a>
+        <h1>Search</h1>
+        <div class="panel form">
+          <label>Query<input id="searchQ" placeholder="Goods, services, shops…" /></label>
+          <label>Community<input id="searchCommunity" placeholder="Optional" /></label>
+          <label>Business name<input id="searchMerchant" placeholder="Optional" /></label>
           <label>Max km<input id="searchMaxKm" type="number" value="100" /></label>
-          <div class="btn-row">
-            <button type="button" class="btn" id="btnDoSearch"><i class="fas fa-box"></i> Products</button>
-            <button type="button" class="btn secondary" id="btnSearchMerchants"><i class="fas fa-store"></i> Merchants</button>
+          <div class="btn-pair">
+            <button type="button" class="btn primary" id="btnDoSearch"><i class="fas fa-box"></i> Products</button>
+            <button type="button" class="btn ghost" id="btnSearchMerchants"><i class="fas fa-store"></i> Merchants</button>
           </div>
         </div>
-        <div id="searchResults" class="feed-list"></div>
+        <div id="searchResults" class="feed"></div>
       </div>
-      <nav class="bottom-nav" id="searchNav"></nav>
+      <nav class="tabbar"></nav>
     </section>
 
-    <!-- SAVED (buyer) -->
     <section id="saved" class="screen">
-      <div class="container narrow-top">
-        <a href="#" class="nav-back" data-back="home"><i class="fas fa-arrow-left"></i></a>
-        <h1><i class="fas fa-bookmark"></i> Saved</h1>
-        <div id="savedList" class="feed-list"><p class="muted">Bookmarks appear here.</p></div>
+      <div class="page padded">
+        <a href="#home" class="back-link"><i class="fas fa-arrow-left"></i> Home</a>
+        <h1>Saved</h1>
+        <div id="savedList" class="feed"><p class="soft">Bookmarks appear here.</p></div>
       </div>
-      <nav class="bottom-nav" id="savedNav"></nav>
+      <nav class="tabbar"></nav>
     </section>
 
-    <!-- SHOP (non-buyer) -->
     <section id="shop" class="screen">
-      <div class="container narrow-top">
-        <a href="#" class="nav-back" data-back="home"><i class="fas fa-arrow-left"></i></a>
-        <h1><i class="fas fa-store"></i> Shop</h1>
-        <p class="muted" id="shopRoleHint"></p>
-        <div class="form-card" id="shopForm">
+      <div class="page padded">
+        <a href="#home" class="back-link"><i class="fas fa-arrow-left"></i> Home</a>
+        <h1>Shop</h1>
+        <p class="soft" id="shopRoleHint"></p>
+        <div class="panel form">
           <label>Item name<input id="prod-name" /></label>
           <label>Category<input id="prod-cat" /></label>
           <label>Price<input id="prod-price" type="number" step="0.01" /></label>
@@ -199,200 +250,197 @@
           <label>Quantity<input id="prod-qty" type="number" value="1" /></label>
           <label class="check"><input type="checkbox" id="prod-perishable" /> Perishable</label>
           <label class="check"><input type="checkbox" id="prod-available" checked /> Available</label>
-          <div class="btn-row">
-            <button type="button" class="btn" id="btnAddProduct"><i class="fas fa-plus"></i> Add</button>
-            <button type="button" class="btn secondary" id="btnSaveAddAnother"><i class="fas fa-plus-circle"></i> Save &amp; another</button>
+          <div class="btn-pair">
+            <button type="button" class="btn primary" id="btnAddProduct"><i class="fas fa-plus"></i> Add</button>
+            <button type="button" class="btn ghost" id="btnSaveAddAnother">Save &amp; another</button>
           </div>
         </div>
-        <button type="button" class="btn small secondary" id="btnReloadProducts"><i class="fas fa-sync"></i> Reload</button>
-        <div id="myProducts" class="feed-list"></div>
+        <button type="button" class="text-btn" id="btnReloadProducts">Reload listings</button>
+        <div id="myProducts" class="feed"></div>
       </div>
-      <nav class="bottom-nav" id="shopNav"></nav>
+      <nav class="tabbar"></nav>
     </section>
 
-    <!-- MESSAGES -->
     <section id="messages" class="screen">
-      <div class="container narrow-top">
-        <a href="#" class="nav-back" data-back="home"><i class="fas fa-arrow-left"></i></a>
-        <h1><i class="fas fa-comments"></i> Messages</h1>
-        <div id="inboxList" class="feed-list"></div>
+      <div class="page padded">
+        <a href="#home" class="back-link"><i class="fas fa-arrow-left"></i> Home</a>
+        <h1>Messages</h1>
+        <div id="inboxList" class="feed"></div>
         <div id="threadView" class="hidden">
-          <div class="section-head">
-            <strong id="threadTitle">Thread</strong>
-            <button type="button" class="btn small secondary" id="btnCloseThread">Close</button>
+          <div class="section-title">
+            <strong id="threadTitle" style="color:#fff">Thread</strong>
+            <button type="button" class="text-btn" id="btnCloseThread">Close</button>
           </div>
-          <div id="threadMessages" class="thread-box"></div>
-          <div class="compose-row">
-            <input id="threadInput" placeholder="Message…" />
-            <button type="button" class="btn small" id="btnSendThread"><i class="fas fa-paper-plane"></i></button>
+          <div id="threadMessages" class="thread"></div>
+          <div class="compose">
+            <input id="threadInput" placeholder="Write a message…" />
+            <button type="button" class="btn primary compact" id="btnSendThread"><i class="fas fa-paper-plane"></i></button>
           </div>
         </div>
       </div>
-      <nav class="bottom-nav" id="messagesNav"></nav>
+      <nav class="tabbar"></nav>
     </section>
 
-    <!-- NEWS -->
     <section id="news" class="screen">
-      <div class="container narrow-top">
-        <a href="#" class="nav-back" data-back="home"><i class="fas fa-arrow-left"></i></a>
-        <h1><i class="fas fa-newspaper"></i> News</h1>
-        <div class="chip-row">
-          <button type="button" class="chip-btn" data-news-cat="local">Local</button>
-          <button type="button" class="chip-btn" data-news-cat="agriculture">Agriculture</button>
-          <button type="button" class="chip-btn" data-news-cat="business">Business</button>
+      <div class="page padded">
+        <a href="#home" class="back-link"><i class="fas fa-arrow-left"></i> Home</a>
+        <h1>News</h1>
+        <div class="link-row">
+          <a href="#news" class="soft-chip" data-news-cat="local">Local</a>
+          <a href="#news" class="soft-chip" data-news-cat="agriculture">Agriculture</a>
+          <a href="#news" class="soft-chip" data-news-cat="business">Business</a>
         </div>
-        <div id="newsFeed" class="feed-list"></div>
+        <div id="newsFeed" class="feed"></div>
       </div>
-      <nav class="bottom-nav" id="newsNav"></nav>
+      <nav class="tabbar"></nav>
     </section>
 
-    <!-- PROFILE -->
     <section id="profile" class="screen">
-      <div class="container narrow-top">
-        <a href="#" class="nav-back" data-back="home"><i class="fas fa-arrow-left"></i></a>
-        <h1><i class="fas fa-user"></i> Profile</h1>
-        <div id="profileBody" class="form-card"></div>
-        <button type="button" class="btn secondary" id="btnLogout"><i class="fas fa-sign-out-alt"></i> Logout</button>
+      <div class="page padded">
+        <a href="#home" class="back-link"><i class="fas fa-arrow-left"></i> Home</a>
+        <h1>Profile</h1>
+        <div id="profileBody" class="panel"></div>
+        <button type="button" class="btn ghost" id="btnLogout"><i class="fas fa-sign-out-alt"></i> Logout</button>
       </div>
-      <nav class="bottom-nav" id="profileNav"></nav>
+      <nav class="tabbar"></nav>
     </section>
 
-    <!-- FAIRLY USED -->
     <section id="fairly-used" class="screen">
-      <div class="container narrow-top">
-        <a href="#" class="nav-back" data-back="home"><i class="fas fa-arrow-left"></i></a>
-        <h1><i class="fas fa-recycle"></i> Fairly used</h1>
-        <div class="form-card">
-          <input id="fu-title" placeholder="Title" />
-          <textarea id="fu-body" rows="3" placeholder="Note"></textarea>
-          <input id="fu-price" type="number" placeholder="Price (optional)" />
-          <button type="button" class="btn" id="btnFairlyPost"><i class="fas fa-paper-plane"></i> Post</button>
+      <div class="page">
+        <a href="#home" class="back-link"><i class="fas fa-arrow-left"></i> Home</a>
+        <h1>Fairly used</h1>
+        <div class="panel form">
+          <label>Title<input id="fu-title" /></label>
+          <label>Note<textarea id="fu-body" rows="3"></textarea></label>
+          <label>Price<input id="fu-price" type="number" placeholder="Optional" /></label>
+          <button type="button" class="btn primary" id="btnFairlyPost"><i class="fas fa-paper-plane"></i> Post</button>
         </div>
-        <div id="fairlyFeed" class="feed-list"></div>
+        <div id="fairlyFeed" class="feed"></div>
       </div>
     </section>
 
-    <!-- PREMIUM -->
     <section id="premium" class="screen">
-      <div class="container narrow-top">
-        <a href="#" class="nav-back" data-back="home"><i class="fas fa-arrow-left"></i></a>
-        <h1><i class="fas fa-crown"></i> Premium</h1>
-        <button type="button" class="btn small secondary" id="btnReloadPremium">Reload</button>
-        <button type="button" class="btn small" id="btnOpenDocuments"><i class="fas fa-file-invoice"></i> Documents</button>
-        <div id="premiumPlans" class="feed-list"></div>
-        <h2>Your plans</h2>
-        <div id="myPremium" class="feed-list"></div>
+      <div class="page">
+        <a href="#home" class="back-link"><i class="fas fa-arrow-left"></i> Home</a>
+        <h1>Premium</h1>
+        <a href="#documents" class="footer-link"><i class="fas fa-file-invoice"></i> Open documents</a>
+        <div id="premiumPlans" class="feed"></div>
+        <h2 class="subhead">Your plans</h2>
+        <div id="myPremium" class="feed"></div>
       </div>
     </section>
 
-    <!-- DOCUMENTS -->
     <section id="documents" class="screen">
-      <div class="container narrow-top">
-        <a href="#" class="nav-back" data-back="premium"><i class="fas fa-arrow-left"></i></a>
-        <h1><i class="fas fa-file-invoice"></i> Documents</h1>
-        <div class="form-card">
-          <input id="doc-customer" placeholder="Customer name" />
-          <input id="doc-currency" value="NGN" />
-          <textarea id="doc-lines" rows="4" placeholder="name,qty,price per line"></textarea>
-          <div class="btn-row">
-            <button type="button" class="btn" id="btnCreateInvoice">E-invoice</button>
-            <button type="button" class="btn secondary" id="btnCreateInvoicePP">Invoice++</button>
-            <button type="button" class="btn secondary" id="btnCreateReceipt">Receipt</button>
+      <div class="page">
+        <a href="#premium" class="back-link"><i class="fas fa-arrow-left"></i> Premium</a>
+        <h1>Documents</h1>
+        <div class="panel form">
+          <label>Customer<input id="doc-customer" /></label>
+          <label>Currency<input id="doc-currency" value="NGN" /></label>
+          <label>Lines (name,qty,price)<textarea id="doc-lines" rows="4" placeholder="Rice,2,500"></textarea></label>
+          <div class="btn-pair">
+            <button type="button" class="btn primary" id="btnCreateInvoice">E-invoice</button>
+            <button type="button" class="btn ghost" id="btnCreateInvoicePP">Invoice++</button>
           </div>
+          <button type="button" class="btn ghost" id="btnCreateReceipt">Receipt</button>
         </div>
-        <button type="button" class="btn small secondary" id="btnReloadDocs">Reload</button>
-        <div id="docList" class="feed-list"></div>
+        <div id="docList" class="feed"></div>
       </div>
     </section>
 
-    <!-- BANQUEUE / EMERGENCY / CHECKOUT / TRUST / ADMIN -->
     <section id="banqueue" class="screen">
-      <div class="container narrow-top">
-        <a href="#" class="nav-back" data-back="home"><i class="fas fa-arrow-left"></i></a>
-        <h1><i class="fas fa-clock"></i> Banqueue</h1>
-        <div id="banqueueList" class="feed-list"></div>
+      <div class="page">
+        <a href="#home" class="back-link"><i class="fas fa-arrow-left"></i> Home</a>
+        <h1>Banqueue</h1>
+        <div id="banqueueList" class="feed"></div>
       </div>
     </section>
 
     <section id="emergency" class="screen">
-      <div class="container narrow-top">
-        <a href="#" class="nav-back" data-back="home"><i class="fas fa-arrow-left"></i></a>
-        <h1><i class="fas fa-ambulance"></i> Emergency</h1>
-        <div id="emergencyList" class="feed-list"></div>
+      <div class="page">
+        <a href="#home" class="back-link"><i class="fas fa-arrow-left"></i> Home</a>
+        <h1>Emergency</h1>
+        <div id="emergencyList" class="feed"></div>
       </div>
     </section>
 
     <section id="checkout" class="screen">
-      <div class="container narrow-top">
-        <a href="#" class="nav-back" data-back="home"><i class="fas fa-arrow-left"></i></a>
-        <h1><i class="fas fa-calculator"></i> Checkout assist</h1>
-        <div class="form-card">
-          <input id="co-item" placeholder="Item name" />
-          <input id="co-qty" type="number" value="1" />
+      <div class="page">
+        <a href="#home" class="back-link"><i class="fas fa-arrow-left"></i> Home</a>
+        <h1>Checkout assist</h1>
+        <div class="panel form">
+          <label>Item<input id="co-item" /></label>
+          <label>Qty<input id="co-qty" type="number" value="1" /></label>
           <label class="check"><input type="checkbox" id="co-bulky" /> Bulky</label>
           <label class="check"><input type="checkbox" id="co-pod" checked /> Pay on delivery</label>
-          <button type="button" class="btn" id="btnRunCheckout">Run assist</button>
+          <button type="button" class="btn primary" id="btnRunCheckout">Run assist</button>
         </div>
         <div id="checkoutResult"></div>
       </div>
     </section>
 
     <section id="trust" class="screen">
-      <div class="container narrow-top">
-        <a href="#" class="nav-back" data-back="home"><i class="fas fa-arrow-left"></i></a>
-        <h1><i class="fas fa-shield-alt"></i> Trust</h1>
-        <div class="form-card">
-          <input id="rep-target" placeholder="Target phone +…" />
-          <input id="rep-reason" placeholder="Report reason" />
-          <button type="button" class="btn" id="btnSubmitReport">Report</button>
-          <hr />
-          <input id="rate-target" placeholder="Rate phone +…" />
-          <input id="rate-score" type="number" min="1" max="5" placeholder="Score 1-5" />
-          <input id="rate-note" placeholder="Note" />
-          <button type="button" class="btn secondary" id="btnSubmitRating">Rate</button>
+      <div class="page">
+        <a href="#home" class="back-link"><i class="fas fa-arrow-left"></i> Home</a>
+        <h1>Trust</h1>
+        <div class="panel form">
+          <label>Report phone<input id="rep-target" placeholder="+234…" /></label>
+          <label>Reason<input id="rep-reason" /></label>
+          <button type="button" class="btn primary" id="btnSubmitReport">Report</button>
+          <hr class="divider" />
+          <label>Rate phone<input id="rate-target" /></label>
+          <label>Score (1–5)<input id="rate-score" type="number" min="1" max="5" /></label>
+          <label>Note<input id="rate-note" /></label>
+          <button type="button" class="btn ghost" id="btnSubmitRating">Rate</button>
         </div>
       </div>
     </section>
 
     <section id="admin-contact" class="screen">
-      <div class="container narrow-top">
-        <a href="#" class="nav-back" data-back="home"><i class="fas fa-arrow-left"></i></a>
-        <h1><i class="fas fa-headset"></i> Contact admin</h1>
-        <div class="form-card">
-          <textarea id="admin-msg" rows="4" placeholder="Message to Shop Near Me admin"></textarea>
-          <button type="button" class="btn" id="btnAdminSend">Send</button>
+      <div class="page">
+        <a href="#home" class="back-link"><i class="fas fa-arrow-left"></i> Home</a>
+        <h1>Contact admin</h1>
+        <div class="panel form">
+          <label>Message<textarea id="admin-msg" rows="4"></textarea></label>
+          <button type="button" class="btn primary" id="btnAdminSend">Send</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="menu" class="screen">
+      <div class="page">
+        <a href="#home" class="back-link"><i class="fas fa-arrow-left"></i> Close menu</a>
+        <h1>Menu</h1>
+        <div class="stack">
+          <a href="#premium" class="choice-card slim"><span class="choice-icon"><i class="fas fa-crown"></i></span><span class="choice-copy"><strong>Premium</strong></span><i class="fas fa-chevron-right choice-go"></i></a>
+          <a href="#documents" class="choice-card slim"><span class="choice-icon"><i class="fas fa-file-invoice"></i></span><span class="choice-copy"><strong>Documents</strong></span><i class="fas fa-chevron-right choice-go"></i></a>
+          <a href="#fairly-used" class="choice-card slim"><span class="choice-icon"><i class="fas fa-recycle"></i></span><span class="choice-copy"><strong>Fairly used</strong></span><i class="fas fa-chevron-right choice-go"></i></a>
+          <a href="#banqueue" class="choice-card slim"><span class="choice-icon"><i class="fas fa-clock"></i></span><span class="choice-copy"><strong>Banqueue</strong></span><i class="fas fa-chevron-right choice-go"></i></a>
+          <a href="#emergency" class="choice-card slim"><span class="choice-icon"><i class="fas fa-ambulance"></i></span><span class="choice-copy"><strong>Emergency</strong></span><i class="fas fa-chevron-right choice-go"></i></a>
+          <a href="#checkout" class="choice-card slim"><span class="choice-icon"><i class="fas fa-calculator"></i></span><span class="choice-copy"><strong>Checkout assist</strong></span><i class="fas fa-chevron-right choice-go"></i></a>
+          <a href="#trust" class="choice-card slim"><span class="choice-icon"><i class="fas fa-shield-alt"></i></span><span class="choice-copy"><strong>Trust</strong></span><i class="fas fa-chevron-right choice-go"></i></a>
+          <a href="#admin-contact" class="choice-card slim"><span class="choice-icon"><i class="fas fa-headset"></i></span><span class="choice-copy"><strong>Contact admin</strong></span><i class="fas fa-chevron-right choice-go"></i></a>
+          <a href="#about" class="choice-card slim"><span class="choice-icon"><i class="fas fa-info-circle"></i></span><span class="choice-copy"><strong>About</strong></span><i class="fas fa-chevron-right choice-go"></i></a>
+          <button type="button" class="choice-card slim danger-card" id="btnLogoutMenu">
+            <span class="choice-icon"><i class="fas fa-sign-out-alt"></i></span>
+            <span class="choice-copy"><strong>Logout</strong></span>
+          </button>
         </div>
       </div>
     </section>
 
   </div>
 
-  <!-- MENU -->
-  <div id="menuSheet" class="sheet hidden">
-    <div class="sheet-panel">
-      <button type="button" data-act="notifications"><i class="fas fa-bell"></i> Notifications</button>
-      <button type="button" data-act="premium"><i class="fas fa-crown"></i> Premium</button>
-      <button type="button" data-act="documents"><i class="fas fa-file-invoice"></i> Documents</button>
-      <button type="button" data-act="fairly"><i class="fas fa-recycle"></i> Fairly used</button>
-      <button type="button" data-act="banqueue"><i class="fas fa-clock"></i> Banqueue</button>
-      <button type="button" data-act="emergency"><i class="fas fa-ambulance"></i> Emergency</button>
-      <button type="button" data-act="checkout"><i class="fas fa-calculator"></i> Checkout assist</button>
-      <button type="button" data-act="trust"><i class="fas fa-shield-alt"></i> Trust</button>
-      <button type="button" data-act="admin"><i class="fas fa-headset"></i> Contact admin</button>
-      <button type="button" data-act="about"><i class="fas fa-info-circle"></i> About</button>
-      <button type="button" data-act="logout" class="danger"><i class="fas fa-sign-out-alt"></i> Logout</button>
-      <button type="button" data-act="close">Close</button>
-    </div>
-  </div>
-
   <div id="toast" class="toast" hidden></div>
-  <footer class="app-footer">Powered by: The Guru Innovations 🌀</footer>
+  <p class="site-credit">Powered by: The Guru Innovations 🌀</p>
 
   <script src="js/config.js"></script>
+  <script src="js/countries.js"></script>
+  <script src="js/cascade.js"></script>
   <script src="js/api.js"></script>
   <script src="js/local.js"></script>
-  <script src="js/cascade.js"></script>
   <script src="js/particles.js"></script>
+  <script src="js/router.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/home.js"></script>
   <script src="js/search.js"></script>

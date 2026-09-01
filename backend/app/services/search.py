@@ -69,6 +69,11 @@ def rank_product_row(
     seeker_lat: float | None = None,
     seeker_lng: float | None = None,
 ) -> dict[str, Any]:
+    """
+    Original search-module rank path (lex + geo + HB + relationship row).
+    API search prefers app.services.crawler.crawl_score_product; this remains
+    for any caller that still imports rank_product_row.
+    """
     lex = lex_score(query, product.name)
     if product.category:
         lex = max(lex, lex_score(query, product.category) * 0.85)

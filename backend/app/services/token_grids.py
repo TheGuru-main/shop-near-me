@@ -1,73 +1,46 @@
 """
-Letter grid A×1 + word grid A×A.
-Stem prefixes/affixes. Alphabets aligned with GSP keyboard language packs (15).
+Shop Near Me – Tokenizer (port)
+================================
+
+Letter grid A×1 · Word grid row %26 · c = first letter (unreduced).
+Does not own ranking, DB, or crawler walk.
 """
+
+from __future__ import annotations
 
 import re
 from typing import Any
 
-# ---------------------------------------------------------------------------
-# 15 production language alphabets (ordered index → letter grid column)
-# Keyboard maps define layout; these strings define search token indices.
-# ---------------------------------------------------------------------------
+try:
+    from app.services import keyboard as kb
+except ImportError:
+    kb = None
+
 ALPHABETS: dict[str, str] = {
-    # 1 English — QWERTY base
     "en": "abcdefghijklmnopqrstuvwxyz",
-    # 2 French — AZERTY + accents
-    "fr": "abcdefghijklmnopqrstuvwxyzàâäæçéèêëïîôœùûüÿ",
-    # 3 German — QWERTZ + umlauts
+    "fr": "abcdefghijklmnopqrstuvwxyzàâäéèêëïîôùûüç",
     "de": "abcdefghijklmnopqrstuvwxyzäöüß",
-    # 4 Spanish
-    "es": "abcdefghijklmnopqrstuvwxyzáéíóúüñ",
-    # 5 Portuguese
-    "pt": "abcdefghijklmnopqrstuvwxyzáàâãéêíóôõúç",
-    # 6 Arabic (standard letter set for token index)
+    "es": "abcdefghijklmnopqrstuvwxyzñáéíóúü",
+    "pt": "abcdefghijklmnopqrstuvwxyzáàãâçéêíóôõúü",
     "ar": "ابتثجحخدذرزسشصضطظعغفقكلمنهويءآأؤإئىة",
-    # 7 Chinese — Pinyin Latin used by virtual keyboard map
     "zh": "abcdefghijklmnopqrstuvwxyz",
-    # 8 Hindi — Devanagari core + inherent vowels subset
-    "hi": "अआइईउऊऋएऐओऔकखगघचछजझटठडढणतथदधनपफबभमयरलवशषसहक्षज्ञ",
-    # 9 Yoruba (Nigeria core) — Latin + common tone vowels
     "yo": "abcdefghijklmnopqrstuvwxyzáàéèẹíìóòọúùṣń",
-    # 10 Hausa (Nigeria core)
     "ha": "abcdefghijklmnopqrstuvwxyzɓɗƙƴ",
-    # 11 Igbo (Nigeria core)
     "ig": "abcdefghijklmnopqrstuvwxyzịñọụ",
-    # 12 Swahili
     "sw": "abcdefghijklmnopqrstuvwxyz",
-    # 13 Turkish
-    "tr": "abcçdefgğhıijklmnoöprsştuüvyz",
-    # 14 Indonesian / Malay
+    "tr": "abcdefghijklmnopqrstuvwxyzçğıöşü",
     "id": "abcdefghijklmnopqrstuvwxyz",
-    # 15 Italian
     "it": "abcdefghijklmnopqrstuvwxyzàèéìíîòóùú",
-    # fallback
+    "hi": "अआइईउऊऋएऐओऔकखगघचछजझटठडढणतथदधनपफबभमयरलवशषसह",
     "default": "abcdefghijklmnopqrstuvwxyz",
 }
 
-# ISO-ish aliases → primary code
 LANG_ALIASES = {
-    "eng": "en",
-    "fra": "fr",
-    "fre": "fr",
-    "deu": "de",
-    "ger": "de",
-    "spa": "es",
-    "por": "pt",
-    "ara": "ar",
-    "zho": "zh",
-    "cmn": "zh",
-    "hin": "hi",
-    "yor": "yo",
-    "hau": "ha",
-    "ibo": "ig",
-    "swa": "sw",
-    "tur": "tr",
-    "ind": "id",
-    "msa": "id",
-    "ms": "id",
-    "ita": "it",
-    "pcm": "en",  # Nigerian Pidgin → English letter grid + commerce dict
+    "eng": "en", "fra": "fr", "fre": "fr", "deu": "de", "ger": "de",
+    "spa": "es", "por": "pt", "ara": "ar", "zho": "zh", "cmn": "zh",
+    "yor": "yo", "ibo": "ig", "hau": "ha", "swa": "sw", "tur": "tr",
+    "ind": "id", "msa": "id", "ms": "id", "ita": "it", "hin": "hi",
+    "pcm": "en",
 }
 
 PREFIXES = ("un", "re", "pre", "mis", "dis", "over", "under", "out")
@@ -76,24 +49,26 @@ SUFFIXES = (
     "ly", "ness", "ment", "able", "ible", "ers", "er", "ors", "or",
 )
 
-# Accent fold → English base for cross-lang weak match
+LETTER_GRID_R = 1
+WORD_GRID_R = 26
+NAME_OBJECT_COLS = 46  # local-letter room on relationship name/object bands
+PLACE_COLS = 26
+
 _FOLD = str.maketrans({
-    "à": "a", "á": "a", "â": "a", "ä": "a", "ã": "a", "æ": "ae",
-    "ç": "c",
-    "è": "e", "é": "e", "ê": "e", "ë": "e",
-    "ì": "i", "í": "i", "î": "i", "ï": "i", "ı": "i",
-    "ò": "o", "ó": "o", "ô": "o", "ö": "o", "õ": "o", "œ": "oe",
-    "ù": "u", "ú": "u", "û": "u", "ü": "u",
-    "ÿ": "y", "ñ": "n", "ş": "s", "ṣ": "s", "ğ": "g", "ß": "ss",
-    "ẹ": "e", "ọ": "o", "ị": "i", "ụ": "u", "ń": "n",
-    "ɓ": "b", "ɗ": "d", "ƙ": "k", "ƴ": "y",
+    "á": "a", "à": "a", "â": "a", "ä": "a", "ã": "a",
+    "é": "e", "è": "e", "ê": "e", "ë": "e",
+    "í": "i", "ì": "i", "î": "i", "ï": "i",
+    "ó": "o", "ò": "o", "ô": "o", "ö": "o", "õ": "o",
+    "ú": "u", "ù": "u", "û": "u", "ü": "u",
+    "ç": "c", "ñ": "n", "ş": "s", "ș": "s", "ț": "t",
+    "ğ": "g", "ı": "i", "ß": "ss",
 })
 
 
 def normalize_lang(lang: str | None) -> str:
     if not lang:
         return "en"
-    code = lang.strip().lower().replace("_", "-").split("-")[0]
+    code = str(lang).strip().lower().replace("_", "-").split("-")[0]
     code = LANG_ALIASES.get(code, code)
     if code in ALPHABETS and code != "default":
         return code
@@ -104,20 +79,14 @@ def alphabet_for(lang: str | None) -> str:
     return ALPHABETS.get(normalize_lang(lang), ALPHABETS["default"])
 
 
-def grid_dims(lang: str | None) -> dict[str, int]:
-    """Letter grid A×1, word grid A×A."""
-    A = len(alphabet_for(lang))
-    return {"A": A, "letter": f"{A}x1", "word": f"{A}x{A}"}
+def fold_ascii(s: str) -> str:
+    return (s or "").lower().translate(_FOLD)
 
 
 def stem_token(token: str, lang: str = "en") -> str:
     lang = normalize_lang(lang)
-    # Keep letters/marks that appear in this language alphabet + ascii alnum
-    w = (token or "").lower()
     alpha = alphabet_for(lang)
-    w = "".join(ch for ch in w if ch.isalnum() or ch in alpha)
-    if lang in {"ar", "hi"}:
-        return w  # no English affix stem on Arabic/Devanagari
+    w = "".join(ch for ch in (token or "").lower() if ch.isalnum() or ch in alpha)
     if len(w) < 4:
         return w
     for pref in sorted(PREFIXES, key=len, reverse=True):
@@ -131,69 +100,120 @@ def stem_token(token: str, lang: str = "en") -> str:
     return w or (token or "").lower()
 
 
-def letter_index(ch: str, lang: str = "en") -> int | None:
-    lang = normalize_lang(lang)
+def alphabet_index(ch: str, lang: str = "en") -> int | None:
     alpha = alphabet_for(lang)
     ch = (ch or "").lower()
     if ch in alpha:
         return alpha.index(ch)
-    # fold then try English grid (code-mix bridge)
-    folded = ch.translate(_FOLD)
     en = ALPHABETS["en"]
-    if folded in en:
-        return en.index(folded)
-    if len(folded) > 1 and folded[0] in en:
+    folded = fold_ascii(ch)
+    if folded and folded[0] in en:
         return en.index(folded[0])
     return None
 
 
+def letter_index(ch: str, lang: str = "en") -> int | None:
+    """A×1 column; row is always 0 (LETTER_GRID_R = 1)."""
+    return alphabet_index(ch, lang)
+
+
+def first_letter_index(token: str, lang: str = "en") -> int:
+    """c — constant first-letter index (not word-row reduced)."""
+    for ch in (token or "").lower():
+        idx = alphabet_index(ch, lang)
+        if idx is not None:
+            return idx
+    return 0
+
+
 def letter_cells(token: str, lang: str = "en") -> list[int]:
-    return [i for ch in token if (i := letter_index(ch, lang)) is not None]
+    out = []
+    for ch in (token or "").lower():
+        i = letter_index(ch, lang)
+        if i is not None:
+            out.append(i)
+    return out
 
 
-def word_cell(token: str, lang: str = "en") -> dict[str, int]:
-    """Word grid A×A: L=len, uID=L, word_S=L."""
+def _local_lsum(stem: str) -> int:
+    return sum(ord(ch) for ch in stem) if stem else 0
+
+
+def _local_ssum(stem: str) -> int:
+    return sum(ord(ch) for ch in stem) % 997 if stem else 0
+
+
+def word_cell(token: str, lang: str = "en") -> dict[str, Any]:
     lang = normalize_lang(lang)
     stem = stem_token(token, lang)
-    L = max(len(stem), 1)
     A = len(alphabet_for(lang))
-    first = letter_index(stem[0], lang) if stem else 0
-    if first is None:
-        first = 0
+    L = max(len(stem), 1)
+    c = first_letter_index(stem or token, lang)
+
+    if kb is not None:
+        try:
+            Lsum = kb.calculate_lsum(stem or token, lang)
+            Ssum = kb.calculate_ssum(stem or token, lang)
+        except Exception:
+            Lsum, Ssum = _local_lsum(stem), _local_ssum(stem)
+    else:
+        Lsum, Ssum = _local_lsum(stem), _local_ssum(stem)
+
+    # Operational word row always %26; metadata keeps linguistic A
+    row = (L + L) % WORD_GRID_R
+    # Name/object relationship column room: map into 0..45
+    col46 = c % NAME_OBJECT_COLS
+
     return {
+        "stem": stem,
         "L": L,
         "uID": L,
         "word_S": L,
-        "col": first % A,
-        "row": (L + L) % A,
-        "A": A,
-        "lang": lang,
+        "Lsum": Lsum,
+        "Ssum": Ssum,
+        "c": c,
+        "col": col46,
+        "row": row,
         "grid": f"{A}x{A}",
+        "word_grid_r": WORD_GRID_R,
+        "name_object_cols": NAME_OBJECT_COLS,
     }
+
+
+def gsp_inputs(token: str, lang: str = "en") -> dict[str, int]:
+    cell = word_cell(token, lang)
+    return {"Lsum": cell["Lsum"], "Ssum": cell["Ssum"], "c": cell["c"]}
+
+
+def gsp_start_row(token: str, lang: str = "en", R: int = 64) -> int:
+    g = gsp_inputs(token, lang)
+    if kb is not None and hasattr(kb, "start_row"):
+        return kb.start_row(g["Lsum"], g["Ssum"], R)
+    return ((g["Lsum"] + g["Ssum"] - 1) % R) + 1
 
 
 def tokenize(text: str, lang: str = "en") -> list[dict[str, Any]]:
     lang = normalize_lang(lang)
-    raw = re.sub(r"\s+", " ", (text or "").strip().lower())
-    if not raw:
-        return []
-    out: list[dict[str, Any]] = []
-    for part in raw.split(" "):
-        if not part:
-            continue
+    parts = re.findall(r"\w+", (text or "").lower(), flags=re.UNICODE)
+    tokens = []
+    for part in parts:
         stem = stem_token(part, lang)
-        out.append({
+        letters = letter_cells(stem or part, lang)
+        w = word_cell(stem or part, lang)
+        tokens.append({
             "original": part,
             "stem": stem,
             "lang": lang,
-            "letter": letter_cells(stem, lang),
-            "word": word_cell(stem, lang),
+            "letter": letters,
+            "letter_grid": [{"col": i, "row": 0} for i in letters],
+            "word": w,
+            "c": w["c"],
+            "gsp_start_row": gsp_start_row(stem or part, lang),
         })
-    return out
+    return tokens
 
 
 def letter_score(query_tokens: list[dict], doc_text: str, lang: str = "en") -> float:
-    lang = normalize_lang(lang)
     doc_toks = tokenize(doc_text, lang)
     if not query_tokens or not doc_toks:
         return 0.0
@@ -215,7 +235,6 @@ def letter_score(query_tokens: list[dict], doc_text: str, lang: str = "en") -> f
 
 
 def word_score(query_tokens: list[dict], doc_text: str, lang: str = "en") -> float:
-    lang = normalize_lang(lang)
     doc_toks = tokenize(doc_text, lang)
     if not query_tokens or not doc_toks:
         return 0.0
@@ -233,6 +252,10 @@ def word_score(query_tokens: list[dict], doc_text: str, lang: str = "en") -> flo
     return score
 
 
+def full_text_placement_config() -> dict[str, int]:
+    return {"forward_d": 5, "backward_d": 1, "K": 5, "R": 64, "C_name_object": 46, "C_place": 26}
+
+
 def supported_languages() -> list[dict[str, Any]]:
     out = []
     for code, alpha in ALPHABETS.items():
@@ -244,5 +267,7 @@ def supported_languages() -> list[dict[str, Any]]:
             "A": A,
             "letter_grid": f"{A}x1",
             "word_grid": f"{A}x{A}",
+            "word_row_mod": WORD_GRID_R,
+            "name_object_cols": NAME_OBJECT_COLS,
         })
     return out
