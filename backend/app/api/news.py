@@ -1,6 +1,11 @@
+"""
+News API — GNews provider + ai_prompter (analyze / suggest / follow-up).
+"""
+
 from fastapi import APIRouter, Query, Request
 
 from app.core.limiter import limiter
+from app.services.ai_prompter import build_news_context, promote_news
 from app.services.news_provider import fetch_gnews
 
 router = APIRouter(prefix="/news", tags=["news"])
@@ -31,10 +36,25 @@ async def news_list(
     request: Request,
     category: str | None = None,
     q: str = Query(""),
+    community: str | None = None,
+    city: str | None = None,
+    region: str | None = None,
     limit: int = Query(20, ge=1, le=50),
 ):
     data = await fetch_gnews(category=category, q=q, limit=limit)
     articles = data.get("articles") or []
+
+    place_hint = ", ".join(
+        p for p in [community, city, region] if p
+    )
+    ctx = build_news_context(
+        category or "business",
+        articles,
+        place_hint=place_hint,
+        related_query=q or "",
+    )
+    assistant = await promote_news(ctx)
+
     return {
         "category": category,
         "query": q,
@@ -42,4 +62,5 @@ async def news_list(
         "articles": articles,
         "provider": data.get("provider"),
         "note": data.get("note"),
+        "assistant": assistant,
     }
