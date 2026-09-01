@@ -4,3 +4,5 @@ backend/.env
 __pycache__/
 *.pyc
 .pytest_cache/
+backend/data/search_cache.json
+backend/data/companion_train.jsonl
