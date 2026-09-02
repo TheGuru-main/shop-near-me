@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <meta name="theme-color" content="#166534" />
+  <meta name="theme-color" content="#16a34a" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="description" content="Shop Near Me — local discovery, live shops, Pay on Delivery" />
   <title>Shop Near Me</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -14,470 +14,468 @@
 
   <div id="app">
 
-    <!-- SPLASH — only auto advance -->
-    <section id="splash" class="screen active">
-      <div class="splash-card">
-        <div class="splash-icon"><i class="fas fa-store"></i></div>
+    <!-- SPLASH -->
+    <section id="splash" class="screen active" data-screen="splash">
+      <div class="splash-inner">
+        <div class="logo-box"><span class="logo-emoji">🏪</span></div>
+        <h1 class="brand">Shop Near Me</h1>
+        <p class="tagline">Connecting customers and merchants through smarter discovery, communication, and local business exposure.</p>
+        <p class="sub-tagline">— Bridging global and local commerce —</p>
+      </div>
+    </section>
+
+    <!-- ROLE SELECT -->
+    <section id="role-select" class="screen" data-screen="role-select">
+      <header class="screen-header">
+        <span class="header-spacer"></span>
         <h1>Shop Near Me</h1>
-        <p>Discover goods, services and trusted locals — near you and beyond.</p>
+        <button type="button" class="icon-btn btn-open-rules" title="Community rules">?</button>
+      </header>
+      <div class="content">
+        <p class="lead">Choose how you join</p>
+        <div class="role-grid" id="roleGrid"></div>
+        <a href="#login" class="btn secondary block" id="btnGoLogin">Already registered · Login</a>
+        <a href="#about" class="text-link" id="btnAboutFromRole">About Shop Near Me</a>
       </div>
     </section>
 
-    <!-- ROLE LANDING — stacked cards -->
-    <section id="role-select" class="screen">
-      <div class="page">
-        <header class="page-head">
-          <div>
-            <p class="eyebrow">Welcome</p>
-            <h1>How are you joining?</h1>
-          </div>
-          <a href="#about" class="icon-pill" title="About"><i class="fas fa-question"></i></a>
-        </header>
-        <div class="stack" id="roleStack">
-          <a href="#register" class="choice-card" data-role="buyer">
-            <span class="choice-icon"><i class="fas fa-shopping-cart"></i></span>
-            <span class="choice-copy"><strong>Buyer</strong><small>Discover, save, message sellers</small></span>
-            <i class="fas fa-chevron-right choice-go"></i>
-          </a>
-          <a href="#register" class="choice-card" data-role="merchant">
-            <span class="choice-icon"><i class="fas fa-store"></i></span>
-            <span class="choice-copy"><strong>Merchant</strong><small>List goods, receive nearby demand</small></span>
-            <i class="fas fa-chevron-right choice-go"></i>
-          </a>
-          <a href="#register" class="choice-card" data-role="service_provider">
-            <span class="choice-icon"><i class="fas fa-tools"></i></span>
-            <span class="choice-copy"><strong>Service provider</strong><small>Hotels, artisans, clinics &amp; more</small></span>
-            <i class="fas fa-chevron-right choice-go"></i>
-          </a>
-          <a href="#register" class="choice-card" data-role="driver">
-            <span class="choice-icon"><i class="fas fa-motorcycle"></i></span>
-            <span class="choice-copy"><strong>Driver / logistics</strong><small>Deliveries, okada, vans, coverage</small></span>
-            <i class="fas fa-chevron-right choice-go"></i>
-          </a>
-          <a href="#register" class="choice-card" data-role="emergency">
-            <span class="choice-icon"><i class="fas fa-ambulance"></i></span>
-            <span class="choice-copy"><strong>Emergency unit</strong><small>Police, ambulance, community response</small></span>
-            <i class="fas fa-chevron-right choice-go"></i>
-          </a>
-        </div>
-        <a href="#login" class="footer-link"><i class="fas fa-sign-in-alt"></i> Already registered · Login</a>
-      </div>
-    </section>
-
-    <section id="about" class="screen">
-      <div class="page">
-        <a href="#role-select" class="back-link"><i class="fas fa-arrow-left"></i> Back</a>
-        <h1>About Shop Near Me</h1>
-        <div class="panel">
-          <p>Connect buyers, merchants, service providers, drivers and emergency units through local discovery, presence, and in-app trust.</p>
-          <p class="soft" style="margin-top:0.75rem">Version <span id="aboutVersion">1.0.0.1p</span></p>
-          <p class="soft">Powered by: The Guru Innovations 🌀</p>
-        </div>
+    <!-- ABOUT -->
+    <section id="about" class="screen" data-screen="about">
+      <header class="screen-header">
+        <a href="#role-select" class="back-link">←</a>
+        <h1>About</h1>
+        <button type="button" class="icon-btn btn-open-rules">?</button>
+      </header>
+      <div class="content">
+        <p>Make goods, services, drivers, and emergency units discoverable near you — with live heartbeat, place-aware search, and in-app messaging.</p>
+        <p class="muted">Beta focus: local density, Pay on Delivery, honest listings.</p>
+        <p class="muted">Version <span id="aboutVersion">1.0.0.1p</span></p>
+        <p class="footer-note">Powered by: The Guru Innovations 🌀</p>
       </div>
     </section>
 
     <!-- REGISTER -->
-    <section id="register" class="screen">
-      <div class="page">
-        <a href="#role-select" class="back-link"><i class="fas fa-arrow-left"></i> Back</a>
-        <p class="eyebrow">Create account</p>
-        <h1>Register · <span id="regRoleLabel">buyer</span></h1>
-        <div class="panel form">
-          <label>Full name
-            <input id="reg-name" autocomplete="name" placeholder="Your full name" />
-          </label>
-          <label>Continent
-            <select id="reg-continent" required></select>
-          </label>
-          <label>Country
-            <select id="reg-country" disabled><option value="">Select continent first</option></select>
-          </label>
-          <label>State / Region
-            <select id="reg-region" disabled><option value="">Select country first</option></select>
-          </label>
-          <label>Town / City
-            <select id="reg-city" disabled><option value="">Select state first</option></select>
-          </label>
-          <label>Community
-            <select id="reg-community" disabled><option value="">Select town first</option></select>
-          </label>
-          <label>Primary location / business location
-            <input id="reg-primary" placeholder="27, Dabu street, Eneka" />
-          </label>
-          <label>Phone (must start with +)
-            <input id="reg-phone" type="tel" inputmode="tel" placeholder="+2348162994110" />
-          </label>
-          <label>Password
-            <input id="reg-password" type="password" minlength="6" placeholder="Min 6 characters" />
-          </label>
-
-          <div id="buyerPrefsBlock" class="extra hidden">
-            <label>Preferences (comma separated)
-              <input id="reg-prefs" placeholder="food, shoes, phone" />
-            </label>
-          </div>
-          <div id="merchantExtras" class="extra hidden">
-            <label>Business name
-              <input id="reg-business-name" placeholder="Shop or brand name" />
-            </label>
-            <label class="check"><input type="checkbox" id="reg-walkin" checked /> Walk-in</label>
-            <label class="check"><input type="checkbox" id="reg-delivery" /> Home delivery (PoD)</label>
-          </div>
-          <div id="driverExtras" class="extra hidden">
-            <label>Vehicle / coverage
-              <input id="reg-vehicle" placeholder="Okada · Keke · Van" />
-            </label>
-          </div>
-          <div id="emergencyExtras" class="extra hidden">
-            <label>Unit type
-              <input id="reg-emergency-type" placeholder="Police · Ambulance · Clinic" />
-            </label>
-          </div>
-
-          <p class="form-error" id="regError" hidden></p>
-          <button type="button" class="btn primary" id="btnRegister">
-            <i class="fas fa-sms"></i> Continue to OTP
-          </button>
+    <section id="register" class="screen" data-screen="register">
+      <header class="screen-header">
+        <a href="#role-select" class="back-link">←</a>
+        <h1>Register · <span id="regRoleLabel">—</span></h1>
+        <button type="button" class="icon-btn btn-open-rules">?</button>
+      </header>
+      <div class="content">
+        <label class="field"><span>Full name</span><input id="reg-name" name="name" autocomplete="name" required /></label>
+        <label class="field"><span>Continent</span><select id="reg-continent" name="continent" required></select></label>
+        <label class="field"><span>Country</span><input id="reg-country" name="country" placeholder="Nigeria" required /></label>
+        <label class="field"><span>State / region</span><input id="reg-region" name="region" placeholder="Rivers" /></label>
+        <label class="field"><span>City / town</span><input id="reg-city" name="city" placeholder="Port Harcourt" /></label>
+        <label class="field"><span>Community / LGA</span><input id="reg-community" name="community" placeholder="Eneka" /></label>
+        <label class="field"><span>Primary location / business location</span>
+          <input id="reg-primary" name="primary_location" placeholder="27, Dabu street, Eneka" required />
+        </label>
+        <label class="field"><span>Phone (E.164)</span>
+          <input id="reg-phone" name="phone" type="tel" inputmode="tel" placeholder="+2348012345678" required />
+        </label>
+        <label class="field"><span>Password</span>
+          <input id="reg-password" name="password" type="password" autocomplete="new-password" required />
+        </label>
+        <div id="reg-prefs-wrap" class="field-block hidden">
+          <span class="label">Buyer item preferences (feed)</span>
+          <div id="regPrefs" class="chip-wrap"></div>
         </div>
+        <div id="regError" class="err"></div>
+        <button type="button" class="btn primary block" id="btnRegister">Get OTP</button>
       </div>
     </section>
 
-    <section id="otp" class="screen">
-      <div class="page">
-        <a href="#register" class="back-link"><i class="fas fa-arrow-left"></i> Back</a>
-        <p class="eyebrow">Verify</p>
-        <h1>Enter OTP</h1>
-        <div class="panel form">
-          <p class="soft" id="otpHint">We sent a 6-digit code to your phone.</p>
-          <label>Code
-            <input id="otp-code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="••••••" />
-          </label>
-          <p class="form-error" id="otpError" hidden></p>
-          <button type="button" class="btn primary" id="btnVerifyOtp">
-            <i class="fas fa-check"></i> Verify &amp; enter
-          </button>
-          <button type="button" class="btn ghost" id="btnResendOtp">
-            <i class="fas fa-redo"></i> Resend code
-          </button>
-        </div>
+    <!-- OTP -->
+    <section id="otp" class="screen" data-screen="otp">
+      <header class="screen-header">
+        <a href="#register" class="back-link" id="btnBackFromOtp">←</a>
+        <h1>Verify OTP</h1>
+        <button type="button" class="icon-btn btn-open-rules">?</button>
+      </header>
+      <div class="content">
+        <p class="muted">Enter the 6-digit code. Beta may show on-screen code when SMS is sandbox.</p>
+        <label class="field"><span>OTP</span>
+          <input id="otp-code" inputmode="numeric" maxlength="6" placeholder="6 digits" />
+        </label>
+        <div id="otpError" class="err"></div>
+        <button type="button" class="btn primary block" id="btnVerifyOtp">Verify &amp; continue</button>
+        <button type="button" class="btn secondary block" id="btnResendOtp">Resend OTP</button>
       </div>
     </section>
 
-    <section id="login" class="screen">
-      <div class="page">
-        <a href="#role-select" class="back-link"><i class="fas fa-arrow-left"></i> Back</a>
-        <p class="eyebrow">Welcome back</p>
+    <!-- LOGIN -->
+    <section id="login" class="screen" data-screen="login">
+      <header class="screen-header">
+        <a href="#role-select" class="back-link">←</a>
         <h1>Login</h1>
-        <div class="panel form">
-          <label>Phone
-            <input id="login-phone" type="tel" placeholder="+234…" />
-          </label>
-          <label>Password
-            <input id="login-password" type="password" />
-          </label>
-          <p class="form-error" id="loginError" hidden></p>
-          <button type="button" class="btn primary" id="btnLogin">
-            <i class="fas fa-sign-in-alt"></i> Login
-          </button>
-          <a href="#role-select" class="footer-link">Create an account</a>
-        </div>
+        <button type="button" class="icon-btn btn-open-rules">?</button>
+      </header>
+      <div class="content">
+        <label class="field"><span>Phone</span>
+          <input id="login-phone" type="tel" inputmode="tel" placeholder="+234…" autocomplete="tel" />
+        </label>
+        <label class="field"><span>Password</span>
+          <input id="login-password" type="password" autocomplete="current-password" />
+        </label>
+        <div id="loginError" class="err"></div>
+        <button type="button" class="btn primary block" id="btnLogin">Login</button>
       </div>
     </section>
 
     <!-- HOME -->
-    <section id="home" class="screen">
-      <header class="topbar">
-        <a href="#menu" class="icon-pill"><i class="fas fa-bars"></i></a>
-        <span class="brand"><i class="fas fa-store"></i> Shop Near Me</span>
-        <a href="#search" class="icon-pill"><i class="fas fa-search"></i></a>
+    <section id="home" class="screen" data-screen="home">
+      <header class="home-header">
+        <button type="button" class="icon-btn btn-open-rules" title="Rules">?</button>
+        <div class="brand-inline"><span>🏪</span> <span>Shop Near Me</span></div>
+        <button type="button" class="icon-btn" id="btnSearchTop" title="Search">🔍</button>
+        <button type="button" class="icon-btn" id="btnMenu" title="Menu">☰</button>
       </header>
-      <div class="page padded">
-        <div class="panel identity">
-          <strong id="homeName">—</strong>
-          <span class="soft" id="homeRole">—</span>
-          <span class="soft" id="homePlace">—</span>
+      <div class="content">
+        <div class="chip-row">
+          <button type="button" class="chip-btn" id="btnFairlyUsed">Fairly used</button>
+          <button type="button" class="chip-btn" id="btnBanqueue">Banqueue</button>
+          <button type="button" class="chip-btn" id="btnEmergency">Emergency</button>
+          <button type="button" class="chip-btn" id="btnCheckoutAssist">Checkout assist</button>
         </div>
-        <div class="link-row">
-          <a href="#fairly-used" class="soft-chip"><i class="fas fa-recycle"></i> Fairly used</a>
-          <a href="#search" class="soft-chip" id="linkPerishables"><i class="fas fa-leaf"></i> Perishables</a>
-          <a href="#banqueue" class="soft-chip"><i class="fas fa-clock"></i> Banqueue</a>
-          <a href="#emergency" class="soft-chip"><i class="fas fa-ambulance"></i> Emergency</a>
+        <div class="map-collapse">
+          <div class="map-head">
+            <span>GSG map</span>
+            <button type="button" class="btn small secondary" id="btnExpandMap">Expand</button>
+          </div>
+          <div id="homeMapStub" class="map-stub">Primary pin · line-to-pin · compass later</div>
         </div>
-        <div class="section-title">
+        <div class="row-between">
           <h2>Near you</h2>
-          <button type="button" class="text-btn" id="btnRefreshFeed"><i class="fas fa-sync"></i></button>
+          <button type="button" class="btn small secondary" id="btnRefreshFeed">Refresh</button>
         </div>
-        <div id="homeFeed" class="feed"></div>
+        <div id="homeAiCard" class="ai-card hidden"></div>
+        <div id="homeFeed" class="feed-list"></div>
       </div>
-      <nav class="tabbar" id="tabbar-home"></nav>
+      <nav class="bottom-nav" id="homeNav"></nav>
     </section>
 
-    <!-- SEARCH + AI CARD -->
-    <section id="search" class="screen">
-      <div class="page padded">
-        <a href="#home" class="back-link"><i class="fas fa-arrow-left"></i> Home</a>
+    <!-- SEARCH -->
+    <section id="search" class="screen" data-screen="search">
+      <header class="screen-header">
+        <a href="#home" class="back-link">←</a>
         <h1>Search</h1>
-        <div class="panel form">
-          <label>Query<input id="searchQ" placeholder="Goods, services, shops…" /></label>
-          <label>Community<input id="searchCommunity" placeholder="Optional" /></label>
-          <label>Business name<input id="searchMerchant" placeholder="Optional" /></label>
-          <label>Max km<input id="searchMaxKm" type="number" value="100" /></label>
-          <div class="btn-pair">
-            <button type="button" class="btn primary" id="btnDoSearch"><i class="fas fa-box"></i> Products</button>
-            <button type="button" class="btn ghost" id="btnSearchMerchants"><i class="fas fa-store"></i> Merchants</button>
-          </div>
+        <button type="button" class="icon-btn btn-open-rules">?</button>
+      </header>
+      <div class="content">
+        <label class="field"><span>Query</span>
+          <input id="searchQ" type="search" placeholder="Goods, services, shops…" />
+        </label>
+        <label class="field"><span>Max km</span>
+          <input id="searchMaxKm" type="number" value="100" min="1" max="100" />
+        </label>
+        <div class="row gap wrap">
+          <button type="button" class="btn primary" id="btnDoSearch">Search items</button>
+          <button type="button" class="btn secondary" id="btnSearchMerchants">People &amp; services</button>
         </div>
-
-        <div id="searchAiCard" class="ai-card" hidden>
-          <div class="ai-card-head">
-            <span class="ai-card-title"><i class="fas fa-sparkles"></i> Shop Near Me AI</span>
-            <span class="ai-card-source" id="searchAiSource">—</span>
-          </div>
-          <div class="ai-card-body" id="searchAiBody"></div>
-          <div class="ai-card-meta" id="searchAiMeta"></div>
-        </div>
-
-        <div id="searchResults" class="feed"></div>
+        <div id="searchAiCard" class="ai-card hidden"></div>
+        <div id="providerRoleFilters" class="chip-wrap"></div>
+        <div id="searchResults" class="feed-list"></div>
       </div>
-      <nav class="tabbar" id="tabbar-search"></nav>
+      <nav class="bottom-nav" id="searchNav"></nav>
     </section>
 
-    <section id="saved" class="screen">
-      <div class="page padded">
-        <a href="#home" class="back-link"><i class="fas fa-arrow-left"></i> Home</a>
-        <h1>Saved</h1>
-        <div id="savedList" class="feed"><p class="soft">Bookmarks appear here.</p></div>
-      </div>
-      <nav class="tabbar" id="tabbar-saved"></nav>
-    </section>
-
-    <section id="shop" class="screen">
-      <div class="page padded">
-        <a href="#home" class="back-link"><i class="fas fa-arrow-left"></i> Home</a>
-        <h1>Shop</h1>
-        <p class="soft" id="shopRoleHint"></p>
-        <div class="panel form">
-          <label>Item name<input id="prod-name" /></label>
-          <label>Category<input id="prod-cat" /></label>
-          <label>Price<input id="prod-price" type="number" step="0.01" /></label>
-          <label>Currency<input id="prod-currency" value="NGN" /></label>
-          <label>Quantity<input id="prod-qty" type="number" value="1" /></label>
-          <label class="check"><input type="checkbox" id="prod-perishable" /> Perishable</label>
-          <label class="check"><input type="checkbox" id="prod-available" checked /> Available</label>
-          <div class="btn-pair">
-            <button type="button" class="btn primary" id="btnAddProduct"><i class="fas fa-plus"></i> Add</button>
-            <button type="button" class="btn ghost" id="btnSaveAddAnother">Save &amp; another</button>
+    <!-- SHOP (non-buyer catalogue) -->
+    <section id="shop" class="screen" data-screen="shop">
+      <header class="screen-header">
+        <a href="#home" class="back-link">←</a>
+        <h1>Shop · Catalogue</h1>
+        <button type="button" class="icon-btn btn-open-rules">?</button>
+      </header>
+      <div class="content">
+        <div class="card panel">
+          <label class="field"><span>Name</span><input id="shop-name" placeholder="Item or service" /></label>
+          <label class="field"><span>Category</span><input id="shop-category" placeholder="e.g. Food" /></label>
+          <div class="row gap">
+            <label class="field grow"><span>Price</span><input id="shop-price" type="number" inputmode="decimal" /></label>
+            <label class="field grow"><span>Qty</span><input id="shop-qty" type="number" inputmode="decimal" value="1" /></label>
           </div>
+          <button type="button" class="btn primary block" id="btnShopAdd">Save &amp; add another</button>
         </div>
-        <button type="button" class="text-btn" id="btnReloadProducts">Reload listings</button>
-        <div id="myProducts" class="feed"></div>
+        <div id="shopList" class="feed-list"></div>
       </div>
-      <nav class="tabbar" id="tabbar-shop"></nav>
+      <nav class="bottom-nav" id="shopNav"></nav>
     </section>
 
-    <section id="messages" class="screen">
-      <div class="page padded">
-        <a href="#home" class="back-link"><i class="fas fa-arrow-left"></i> Home</a>
+    <!-- MESSAGES -->
+    <section id="messages" class="screen" data-screen="messages">
+      <header class="screen-header">
+        <a href="#home" class="back-link">←</a>
         <h1>Messages</h1>
-        <div id="inboxList" class="feed"></div>
-        <div id="threadView" class="hidden">
-          <div class="section-title">
-            <strong id="threadTitle">Thread</strong>
-            <button type="button" class="text-btn" id="btnCloseThread">Close</button>
-          </div>
-          <div id="threadMessages" class="thread"></div>
-          <div class="compose">
-            <input id="threadInput" placeholder="Write a message…" />
-            <button type="button" class="btn primary compact" id="btnSendThread"><i class="fas fa-paper-plane"></i></button>
-          </div>
+        <button type="button" class="icon-btn btn-open-rules">?</button>
+      </header>
+      <div class="content split-msg">
+        <div id="threadList" class="feed-list"></div>
+        <div id="messagePane" class="message-pane"></div>
+        <div id="msgComposer" class="composer hidden">
+          <input id="msgInput" type="text" placeholder="Message…" />
+          <button type="button" class="btn small primary" id="btnSendMsg">Send</button>
         </div>
       </div>
-      <nav class="tabbar" id="tabbar-messages"></nav>
+      <nav class="bottom-nav" id="messagesNav"></nav>
     </section>
 
-    <!-- NEWS + AI CARD -->
-    <section id="news" class="screen">
-      <div class="page padded">
-        <a href="#home" class="back-link"><i class="fas fa-arrow-left"></i> Home</a>
+    <!-- NEWS -->
+    <section id="news" class="screen" data-screen="news">
+      <header class="screen-header">
+        <a href="#home" class="back-link">←</a>
         <h1>News</h1>
-        <div class="link-row">
-          <a href="#news" class="soft-chip" data-news-cat="local">Local</a>
-          <a href="#news" class="soft-chip" data-news-cat="agriculture">Agriculture</a>
-          <a href="#news" class="soft-chip" data-news-cat="business">Business</a>
-          <a href="#news" class="soft-chip" data-news-cat="retail">Retail</a>
-          <a href="#news" class="soft-chip" data-news-cat="health">Health</a>
-        </div>
-
-        <div id="newsAiCard" class="ai-card" hidden>
-          <div class="ai-card-head">
-            <span class="ai-card-title"><i class="fas fa-newspaper"></i> Sector brief</span>
-            <span class="ai-card-source" id="newsAiSource">—</span>
-          </div>
-          <div class="ai-card-body" id="newsAiBody"></div>
-          <div class="ai-card-meta" id="newsAiMeta"></div>
-        </div>
-
-        <div id="newsFeed" class="feed"></div>
+        <button type="button" class="icon-btn btn-open-rules">?</button>
+      </header>
+      <div class="content">
+        <div id="newsAiCard" class="ai-card hidden"></div>
+        <div id="newsFeed" class="feed-list"></div>
       </div>
-      <nav class="tabbar" id="tabbar-news"></nav>
+      <nav class="bottom-nav" id="newsNav"></nav>
     </section>
 
-    <section id="profile" class="screen">
-      <div class="page padded">
-        <a href="#home" class="back-link"><i class="fas fa-arrow-left"></i> Home</a>
-        <h1>Profile</h1>
-        <div id="profileBody" class="panel"></div>
-        <button type="button" class="btn ghost" id="btnLogout"><i class="fas fa-sign-out-alt"></i> Logout</button>
-      </div>
-      <nav class="tabbar" id="tabbar-profile"></nav>
-    </section>
-
-    <section id="fairly-used" class="screen">
-      <div class="page">
-        <a href="#home" class="back-link"><i class="fas fa-arrow-left"></i> Home</a>
+    <!-- FAIRLY USED -->
+    <section id="fairly-used" class="screen" data-screen="fairly-used">
+      <header class="screen-header">
+        <a href="#home" class="back-link">←</a>
         <h1>Fairly used</h1>
-        <div class="panel form">
-          <label>Title<input id="fu-title" /></label>
-          <label>Note<textarea id="fu-body" rows="3"></textarea></label>
-          <label>Price<input id="fu-price" type="number" placeholder="Optional" /></label>
-          <button type="button" class="btn primary" id="btnFairlyPost"><i class="fas fa-paper-plane"></i> Post</button>
+        <button type="button" class="icon-btn btn-open-rules">?</button>
+      </header>
+      <div class="content">
+        <div class="card panel">
+          <label class="field"><span>Title</span><input id="fu-title" placeholder="What are you selling?" /></label>
+          <label class="field"><span>Note</span><textarea id="fu-body" rows="3"></textarea></label>
+          <label class="field"><span>Price (optional)</span><input id="fu-price" type="number" inputmode="decimal" /></label>
+          <button type="button" class="btn primary block" id="btnFuPost">Post</button>
         </div>
-        <div id="fairlyFeed" class="feed"></div>
+        <div id="fairlyUsedFeed" class="feed-list"></div>
       </div>
     </section>
 
-    <section id="premium" class="screen">
-      <div class="page">
-        <a href="#home" class="back-link"><i class="fas fa-arrow-left"></i> Home</a>
-        <h1>Premium</h1>
-        <a href="#documents" class="footer-link"><i class="fas fa-file-invoice"></i> Open documents</a>
-        <div id="premiumPlans" class="feed"></div>
-        <h2 class="subhead">Your plans</h2>
-        <div id="myPremium" class="feed"></div>
-      </div>
-    </section>
-
-    <section id="documents" class="screen">
-      <div class="page">
-        <a href="#premium" class="back-link"><i class="fas fa-arrow-left"></i> Premium</a>
-        <h1>Documents</h1>
-        <div class="panel form">
-          <label>Customer<input id="doc-customer" /></label>
-          <label>Currency<input id="doc-currency" value="NGN" /></label>
-          <label>Lines (name,qty,price)<textarea id="doc-lines" rows="4" placeholder="Rice,2,500"></textarea></label>
-          <div class="btn-pair">
-            <button type="button" class="btn primary" id="btnCreateInvoice">E-invoice</button>
-            <button type="button" class="btn ghost" id="btnCreateInvoicePP">Invoice++</button>
-          </div>
-          <button type="button" class="btn ghost" id="btnCreateReceipt">Receipt</button>
-        </div>
-        <div id="docList" class="feed"></div>
-      </div>
-    </section>
-
-    <section id="banqueue" class="screen">
-      <div class="page">
-        <a href="#home" class="back-link"><i class="fas fa-arrow-left"></i> Home</a>
+    <!-- BANQUEUE -->
+    <section id="banqueue" class="screen" data-screen="banqueue">
+      <header class="screen-header">
+        <a href="#home" class="back-link">←</a>
         <h1>Banqueue</h1>
-        <div id="banqueueList" class="feed"></div>
+        <button type="button" class="icon-btn btn-open-rules">?</button>
+      </header>
+      <div class="content">
+        <div id="banqueueList" class="feed-list"></div>
       </div>
     </section>
 
-    <section id="emergency" class="screen">
-      <div class="page">
-        <a href="#home" class="back-link"><i class="fas fa-arrow-left"></i> Home</a>
-        <h1>Emergency</h1>
-        <div id="emergencyList" class="feed"></div>
+    <!-- EMERGENCY -->
+    <section id="emergency" class="screen" data-screen="emergency">
+      <header class="screen-header">
+        <a href="#home" class="back-link">←</a>
+        <h1>Emergency nearby</h1>
+        <button type="button" class="icon-btn btn-open-rules">?</button>
+      </header>
+      <div class="content">
+        <div id="emergencyList" class="feed-list"></div>
       </div>
     </section>
 
-    <section id="checkout" class="screen">
-      <div class="page">
-        <a href="#home" class="back-link"><i class="fas fa-arrow-left"></i> Home</a>
+    <!-- PLATFORM RULES -->
+    <section id="rules" class="screen" data-screen="rules">
+      <header class="screen-header">
+        <a href="#home" class="back-link">←</a>
+        <h1>Rules &amp; guidelines</h1>
+        <span class="header-spacer"></span>
+      </header>
+      <div class="content">
+        <div id="platformRulesBody" class="rules-stack"></div>
+        <button type="button" class="btn primary block" id="btnAcceptRules">I understand</button>
+        <h2 class="section-title">Report</h2>
+        <label class="field"><span>Details</span>
+          <textarea id="report-body" rows="3" placeholder="What happened?"></textarea>
+        </label>
+        <button type="button" class="btn secondary block" id="btnSubmitReport">Submit report</button>
+        <h2 class="section-title">Message admin</h2>
+        <label class="field"><span>Message</span>
+          <textarea id="admin-msg-body" rows="3" placeholder="Support, premium, appeals…"></textarea>
+        </label>
+        <button type="button" class="btn secondary block" id="btnAdminMessage">Send to admin</button>
+      </div>
+    </section>
+
+    <!-- PREMIUM HUB -->
+    <section id="premium" class="screen" data-screen="premium">
+      <header class="screen-header">
+        <a href="#home" class="back-link">←</a>
+        <h1>Premium</h1>
+        <button type="button" class="icon-btn btn-open-rules">?</button>
+      </header>
+      <div class="content">
+        <p class="muted">Plans from API. Invoice tools unlock after active subscription.</p>
+        <div id="premiumPlans" class="feed-list"></div>
+        <div class="row gap wrap">
+          <button type="button" class="btn secondary" id="btnOpenDocuments">Documents</button>
+          <button type="button" class="btn primary" id="btnOpenCalculator">Calculator</button>
+          <button type="button" class="btn primary" id="btnOpenInvoiceStudio">Invoice studio</button>
+        </div>
+        <p class="muted small">Coming soon on card: PDF export, cloud backup, AI media, multi-branch (per catalog).</p>
+      </div>
+    </section>
+
+    <!-- DOCUMENTS: receipts + list e-invoices -->
+    <section id="documents" class="screen" data-screen="documents">
+      <header class="screen-header">
+        <a href="#home" class="back-link">←</a>
+        <h1>Documents</h1>
+        <button type="button" class="icon-btn" id="btnRefreshDocuments" title="Refresh">↻</button>
+      </header>
+      <div class="content">
+        <p class="muted">Receipts: free, device download. E-invoices: premium capacity. Use Calculator to total lines, then issue here or in Invoice studio.</p>
+        <div class="card panel">
+          <h2 class="section-title">Quick issue</h2>
+          <label class="field"><span>Customer name</span><input id="doc-customer" type="text" /></label>
+          <label class="field"><span>Customer phone</span><input id="doc-customer-phone" type="tel" placeholder="+234…" /></label>
+          <label class="field"><span>Item / service</span><input id="doc-item-name" type="text" /></label>
+          <div class="row gap">
+            <label class="field grow"><span>Qty</span><input id="doc-item-qty" type="number" value="1" min="0" step="any" /></label>
+            <label class="field grow"><span>Unit price</span><input id="doc-item-price" type="number" min="0" step="any" /></label>
+          </div>
+          <div class="row gap wrap">
+            <button type="button" class="btn secondary" id="btnCreateReceipt">Save receipt</button>
+            <button type="button" class="btn primary" id="btnCreateEinvoice">E-invoice</button>
+            <button type="button" class="btn primary" id="btnCreateEinvoicePp">Invoice++</button>
+          </div>
+        </div>
+        <h2 class="section-title">Receipts</h2>
+        <div id="receiptList" class="feed-list"></div>
+        <h2 class="section-title">E-invoices</h2>
+        <div id="einvoiceList" class="feed-list"></div>
+      </div>
+    </section>
+
+    <!-- CALCULATOR (premium / checkout assist) -->
+    <section id="calculator" class="screen" data-screen="calculator">
+      <header class="screen-header">
+        <a href="#documents" class="back-link">←</a>
+        <h1>Calculator</h1>
+        <button type="button" class="icon-btn btn-open-rules">?</button>
+      </header>
+      <div class="content">
+        <p class="muted">Line totals → optional VAT / discount. Send result into Documents or Invoice studio. Backend: calculators + checkout.</p>
+        <div class="card panel">
+          <label class="field"><span>Subtotal</span><input id="calc-subtotal" type="number" inputmode="decimal" placeholder="0" /></label>
+          <label class="field"><span>Discount</span><input id="calc-discount" type="number" inputmode="decimal" value="0" /></label>
+          <label class="field"><span>VAT %</span><input id="calc-vat" type="number" inputmode="decimal" value="0" /></label>
+          <label class="field"><span>Currency</span><input id="calc-currency" value="NGN" /></label>
+          <button type="button" class="btn primary block" id="btnCalcRun">Calculate</button>
+          <div id="calcResult" class="calc-result muted">—</div>
+          <button type="button" class="btn secondary block" id="btnCalcToDocuments">Use in Documents</button>
+          <button type="button" class="btn secondary block" id="btnCalcToInvoice">Use in Invoice studio</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- INVOICE STUDIO -->
+    <section id="invoice-studio" class="screen" data-screen="invoice-studio">
+      <header class="screen-header">
+        <a href="#premium" class="back-link">←</a>
+        <h1>Invoice studio</h1>
+        <button type="button" class="icon-btn btn-open-rules">?</button>
+      </header>
+      <div class="content">
+        <p class="muted">E-invoice / Invoice++ after premium activation. Themes &amp; layout options; issue via API.</p>
+        <div class="card panel">
+          <label class="field"><span>Kind</span>
+            <select id="inv-kind">
+              <option value="e_invoice">E-invoice</option>
+              <option value="e_invoice_pp">Invoice++</option>
+            </select>
+          </label>
+          <label class="field"><span>Customer</span><input id="inv-customer" type="text" /></label>
+          <label class="field"><span>Phone</span><input id="inv-phone" type="tel" /></label>
+          <label class="field"><span>Line item</span><input id="inv-item-name" type="text" /></label>
+          <div class="row gap">
+            <label class="field grow"><span>Qty</span><input id="inv-item-qty" type="number" value="1" /></label>
+            <label class="field grow"><span>Unit price</span><input id="inv-item-price" type="number" /></label>
+          </div>
+          <label class="field"><span>Notes</span><textarea id="inv-notes" rows="2"></textarea></label>
+          <label class="field"><span>Surface</span>
+            <select id="inv-surface">
+              <option>Stacked</option>
+              <option>Split</option>
+              <option>Compact</option>
+              <option>Wide</option>
+            </select>
+          </label>
+          <label class="field"><span>Layout</span>
+            <select id="inv-layout">
+              <option>Standard</option>
+              <option>Modern</option>
+              <option>Centered</option>
+              <option>Minimal</option>
+            </select>
+          </label>
+          <button type="button" class="btn primary block" id="btnInvIssue">Issue e-invoice</button>
+        </div>
+        <div id="invStudioList" class="feed-list"></div>
+      </div>
+    </section>
+
+    <!-- CHECKOUT ASSIST -->
+    <section id="checkout-assist" class="screen" data-screen="checkout-assist">
+      <header class="screen-header">
+        <a href="#home" class="back-link">←</a>
         <h1>Checkout assist</h1>
-        <div class="panel form">
-          <label>Item<input id="co-item" /></label>
-          <label>Qty<input id="co-qty" type="number" value="1" /></label>
-          <label class="check"><input type="checkbox" id="co-bulky" /> Bulky</label>
-          <label class="check"><input type="checkbox" id="co-pod" checked /> Pay on delivery</label>
-          <button type="button" class="btn primary" id="btnRunCheckout">Run assist</button>
-        </div>
-        <div id="checkoutResult"></div>
+        <button type="button" class="icon-btn btn-open-rules">?</button>
+      </header>
+      <div class="content">
+        <p class="muted">Pay on Delivery · walk-in · optional bulky carrier / driver suggest.</p>
+        <div id="checkoutAssistBody" class="feed-list"></div>
+        <a href="#calculator" class="btn secondary block">Open calculator</a>
       </div>
     </section>
 
-    <section id="trust" class="screen">
-      <div class="page">
-        <a href="#home" class="back-link"><i class="fas fa-arrow-left"></i> Home</a>
-        <h1>Trust</h1>
-        <div class="panel form">
-          <label>Report phone<input id="rep-target" placeholder="+234…" /></label>
-          <label>Reason<input id="rep-reason" /></label>
-          <button type="button" class="btn primary" id="btnSubmitReport">Report</button>
-          <hr class="divider" />
-          <label>Rate phone<input id="rate-target" /></label>
-          <label>Score (1–5)<input id="rate-score" type="number" min="1" max="5" /></label>
-          <label>Note<input id="rate-note" /></label>
-          <button type="button" class="btn ghost" id="btnSubmitRating">Rate</button>
-        </div>
+    <!-- PROFILE SHEET -->
+    <div id="profileSheet" class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-content">
+        <div id="profileBody"></div>
+        <button type="button" class="btn secondary block" id="btnCloseProfile">Close</button>
+        <button type="button" class="btn danger block" id="btnLogoutProfile">Logout</button>
       </div>
-    </section>
+    </div>
 
-    <section id="admin-contact" class="screen">
-      <div class="page">
-        <a href="#home" class="back-link"><i class="fas fa-arrow-left"></i> Home</a>
-        <h1>Contact admin</h1>
-        <div class="panel form">
-          <label>Message<textarea id="admin-msg" rows="4"></textarea></label>
-          <button type="button" class="btn primary" id="btnAdminSend">Send</button>
-        </div>
-      </div>
-    </section>
+    <!-- MENU SHEET -->
+    <div id="menuSheet" class="top-menu hidden">
+      <button type="button" data-menu="notifications">Notifications</button>
+      <button type="button" data-menu="premium" id="btnMenuPremium">Premium</button>
+      <button type="button" data-menu="documents" id="btnDocuments">Documents · Receipts &amp; e-invoices</button>
+      <button type="button" data-menu="calculator">Calculator</button>
+      <button type="button" data-menu="invoice">Invoice studio</button>
+      <button type="button" class="btn-open-rules">Community rules</button>
+      <button type="button" data-menu="about">About</button>
+      <button type="button" data-menu="logout" class="danger">Logout</button>
+    </div>
 
-    <section id="menu" class="screen">
-      <div class="page">
-          <a href="#home" class="back-link"><i class="fas fa-arrow-left"></i> Close menu</a>
-        <h1>Menu</h1>
-        <div class="stack">
-          <a href="#premium" class="choice-card slim"><span class="choice-icon"><i class="fas fa-crown"></i></span><span class="choice-copy"><strong>Premium</strong></span><i class="fas fa-chevron-right choice-go"></i></a>
-          <a href="#documents" class="choice-card slim"><span class="choice-icon"><i class="fas fa-file-invoice"></i></span><span class="choice-copy"><strong>Documents</strong></span><i class="fas fa-chevron-right choice-go"></i></a>
-          <a href="#fairly-used" class="choice-card slim"><span class="choice-icon"><i class="fas fa-recycle"></i></span><span class="choice-copy"><strong>Fairly used</strong></span><i class="fas fa-chevron-right choice-go"></i></a>
-          <a href="#banqueue" class="choice-card slim"><span class="choice-icon"><i class="fas fa-clock"></i></span><span class="choice-copy"><strong>Banqueue</strong></span><i class="fas fa-chevron-right choice-go"></i></a>
-          <a href="#emergency" class="choice-card slim"><span class="choice-icon"><i class="fas fa-ambulance"></i></span><span class="choice-copy"><strong>Emergency</strong></span><i class="fas fa-chevron-right choice-go"></i></a>
-          <a href="#checkout" class="choice-card slim"><span class="choice-icon"><i class="fas fa-calculator"></i></span><span class="choice-copy"><strong>Checkout assist</strong></span><i class="fas fa-chevron-right choice-go"></i></a>
-          <a href="#trust" class="choice-card slim"><span class="choice-icon"><i class="fas fa-shield-alt"></i></span><span class="choice-copy"><strong>Trust</strong></span><i class="fas fa-chevron-right choice-go"></i></a>
-          <a href="#admin-contact" class="choice-card slim"><span class="choice-icon"><i class="fas fa-headset"></i></span><span class="choice-copy"><strong>Contact admin</strong></span><i class="fas fa-chevron-right choice-go"></i></a>
-          <a href="#about" class="choice-card slim"><span class="choice-icon"><i class="fas fa-info-circle"></i></span><span class="choice-copy"><strong>About</strong></span><i class="fas fa-chevron-right choice-go"></i></a>
-          <button type="button" class="choice-card slim danger-card" id="btnLogoutMenu">
-            <span class="choice-icon"><i class="fas fa-sign-out-alt"></i></span>
-            <span class="choice-copy"><strong>Logout</strong></span>
-          </button>
-        </div>
-      </div>
-    </section>
-
+    <button type="button" class="fab" id="btnFab" title="Banqueue">＋</button>
   </div>
 
-  <div id="toast" class="toast" hidden></div>
-  <p class="site-credit">Powered by: The Guru Innovations 🌀</p>
+  <footer class="app-footer">Powered by: The Guru Innovations 🌀.</footer>
 
-    <script src="js/config.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/local.js"></script>
-    <script src="js/particles.js"></script>
-    <script src="js/router.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/home.js"></script>
-    <script src="js/search.js"></script>
-    <script src="js/shop.js"></script>
-    <script src="js/messages.js"></script>
-    <script src="js/fairly_used.js"></script>
-    <script src="js/local_services.js"></script>
-    <script src="js/platform_rules.js"></script>
-    <script src="js/premium.js"></script>
-    <script src="js/documents.js"></script>
-    <script src="js/trust.js"></script>
-    <script src="js/app.js"></script>
-
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/local.js"></script>
+  <script src="js/particles.js"></script>
+  <script src="js/router.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/home.js"></script>
+  <script src="js/search.js"></script>
+  <script src="js/shop.js"></script>
+  <script src="js/messages.js"></script>
+  <script src="js/fairly_used.js"></script>
+  <script src="js/local_services.js"></script>
+  <script src="js/documents.js"></script>
+  <script src="js/platform_rules.js"></script>
+  <script src="js/premium.js"></script>
+  <script src="js/calculator.js"></script>
+  <script src="js/invoice_studio.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>
+
