@@ -2,17 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#166534" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Shop Near Me</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
   <canvas id="network-bg" aria-hidden="true"></canvas>
+
   <div id="app">
 
-    <!-- SPLASH only auto-advances -->
+    <!-- SPLASH — only auto advance -->
     <section id="splash" class="screen active">
       <div class="splash-card">
         <div class="splash-icon"><i class="fas fa-store"></i></div>
@@ -21,7 +23,7 @@
       </div>
     </section>
 
-    <!-- ROLE LANDING — stacked href cards -->
+    <!-- ROLE LANDING — stacked cards -->
     <section id="role-select" class="screen">
       <div class="page">
         <header class="page-head">
@@ -32,7 +34,6 @@
           <a href="#about" class="icon-pill" title="About"><i class="fas fa-question"></i></a>
         </header>
         <div class="stack" id="roleStack">
-          <!-- filled by auth.js from SNM.ROLES, or static fallback below -->
           <a href="#register" class="choice-card" data-role="buyer">
             <span class="choice-icon"><i class="fas fa-shopping-cart"></i></span>
             <span class="choice-copy"><strong>Buyer</strong><small>Discover, save, message sellers</small></span>
@@ -75,7 +76,7 @@
       </div>
     </section>
 
-    <!-- REGISTER — hierarchy selects -->
+    <!-- REGISTER -->
     <section id="register" class="screen">
       <div class="page">
         <a href="#role-select" class="back-link"><i class="fas fa-arrow-left"></i> Back</a>
@@ -85,7 +86,6 @@
           <label>Full name
             <input id="reg-name" autocomplete="name" placeholder="Your full name" />
           </label>
-
           <label>Continent
             <select id="reg-continent" required></select>
           </label>
@@ -101,7 +101,6 @@
           <label>Community
             <select id="reg-community" disabled><option value="">Select town first</option></select>
           </label>
-
           <label>Primary location / business location
             <input id="reg-primary" placeholder="27, Dabu street, Eneka" />
           </label>
@@ -135,6 +134,7 @@
             </label>
           </div>
 
+          <p class="form-error" id="regError" hidden></p>
           <button type="button" class="btn primary" id="btnRegister">
             <i class="fas fa-sms"></i> Continue to OTP
           </button>
@@ -152,6 +152,7 @@
           <label>Code
             <input id="otp-code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="••••••" />
           </label>
+          <p class="form-error" id="otpError" hidden></p>
           <button type="button" class="btn primary" id="btnVerifyOtp">
             <i class="fas fa-check"></i> Verify &amp; enter
           </button>
@@ -174,6 +175,7 @@
           <label>Password
             <input id="login-password" type="password" />
           </label>
+          <p class="form-error" id="loginError" hidden></p>
           <button type="button" class="btn primary" id="btnLogin">
             <i class="fas fa-sign-in-alt"></i> Login
           </button>
@@ -182,6 +184,7 @@
       </div>
     </section>
 
+    <!-- HOME -->
     <section id="home" class="screen">
       <header class="topbar">
         <a href="#menu" class="icon-pill"><i class="fas fa-bars"></i></a>
@@ -206,9 +209,10 @@
         </div>
         <div id="homeFeed" class="feed"></div>
       </div>
-      <nav class="tabbar"></nav>
+      <nav class="tabbar" id="tabbar-home"></nav>
     </section>
 
+    <!-- SEARCH + AI CARD -->
     <section id="search" class="screen">
       <div class="page padded">
         <a href="#home" class="back-link"><i class="fas fa-arrow-left"></i> Home</a>
@@ -223,9 +227,19 @@
             <button type="button" class="btn ghost" id="btnSearchMerchants"><i class="fas fa-store"></i> Merchants</button>
           </div>
         </div>
+
+        <div id="searchAiCard" class="ai-card" hidden>
+          <div class="ai-card-head">
+            <span class="ai-card-title"><i class="fas fa-sparkles"></i> Shop Near Me AI</span>
+            <span class="ai-card-source" id="searchAiSource">—</span>
+          </div>
+          <div class="ai-card-body" id="searchAiBody"></div>
+          <div class="ai-card-meta" id="searchAiMeta"></div>
+        </div>
+
         <div id="searchResults" class="feed"></div>
       </div>
-      <nav class="tabbar"></nav>
+      <nav class="tabbar" id="tabbar-search"></nav>
     </section>
 
     <section id="saved" class="screen">
@@ -234,7 +248,7 @@
         <h1>Saved</h1>
         <div id="savedList" class="feed"><p class="soft">Bookmarks appear here.</p></div>
       </div>
-      <nav class="tabbar"></nav>
+      <nav class="tabbar" id="tabbar-saved"></nav>
     </section>
 
     <section id="shop" class="screen">
@@ -258,7 +272,7 @@
         <button type="button" class="text-btn" id="btnReloadProducts">Reload listings</button>
         <div id="myProducts" class="feed"></div>
       </div>
-      <nav class="tabbar"></nav>
+      <nav class="tabbar" id="tabbar-shop"></nav>
     </section>
 
     <section id="messages" class="screen">
@@ -268,7 +282,7 @@
         <div id="inboxList" class="feed"></div>
         <div id="threadView" class="hidden">
           <div class="section-title">
-            <strong id="threadTitle" style="color:#fff">Thread</strong>
+            <strong id="threadTitle">Thread</strong>
             <button type="button" class="text-btn" id="btnCloseThread">Close</button>
           </div>
           <div id="threadMessages" class="thread"></div>
@@ -278,9 +292,10 @@
           </div>
         </div>
       </div>
-      <nav class="tabbar"></nav>
+      <nav class="tabbar" id="tabbar-messages"></nav>
     </section>
 
+    <!-- NEWS + AI CARD -->
     <section id="news" class="screen">
       <div class="page padded">
         <a href="#home" class="back-link"><i class="fas fa-arrow-left"></i> Home</a>
@@ -289,10 +304,22 @@
           <a href="#news" class="soft-chip" data-news-cat="local">Local</a>
           <a href="#news" class="soft-chip" data-news-cat="agriculture">Agriculture</a>
           <a href="#news" class="soft-chip" data-news-cat="business">Business</a>
+          <a href="#news" class="soft-chip" data-news-cat="retail">Retail</a>
+          <a href="#news" class="soft-chip" data-news-cat="health">Health</a>
         </div>
+
+        <div id="newsAiCard" class="ai-card" hidden>
+          <div class="ai-card-head">
+            <span class="ai-card-title"><i class="fas fa-newspaper"></i> Sector brief</span>
+            <span class="ai-card-source" id="newsAiSource">—</span>
+          </div>
+          <div class="ai-card-body" id="newsAiBody"></div>
+          <div class="ai-card-meta" id="newsAiMeta"></div>
+        </div>
+
         <div id="newsFeed" class="feed"></div>
       </div>
-      <nav class="tabbar"></nav>
+      <nav class="tabbar" id="tabbar-news"></nav>
     </section>
 
     <section id="profile" class="screen">
@@ -302,7 +329,7 @@
         <div id="profileBody" class="panel"></div>
         <button type="button" class="btn ghost" id="btnLogout"><i class="fas fa-sign-out-alt"></i> Logout</button>
       </div>
-      <nav class="tabbar"></nav>
+      <nav class="tabbar" id="tabbar-profile"></nav>
     </section>
 
     <section id="fairly-used" class="screen">
@@ -409,7 +436,7 @@
 
     <section id="menu" class="screen">
       <div class="page">
-        <a href="#home" class="back-link"><i class="fas fa-arrow-left"></i> Close menu</a>
+          <a href="#home" class="back-link"><i class="fas fa-arrow-left"></i> Close menu</a>
         <h1>Menu</h1>
         <div class="stack">
           <a href="#premium" class="choice-card slim"><span class="choice-icon"><i class="fas fa-crown"></i></span><span class="choice-copy"><strong>Premium</strong></span><i class="fas fa-chevron-right choice-go"></i></a>
@@ -434,21 +461,22 @@
   <div id="toast" class="toast" hidden></div>
   <p class="site-credit">Powered by: The Guru Innovations 🌀</p>
 
-  <script src="js/config.js"></script>
-  <script src="js/countries.js"></script>
-  <script src="js/cascade.js"></script>
-  <script src="js/api.js"></script>
-  <script src="js/local.js"></script>
-  <script src="js/particles.js"></script>
-  <script src="js/router.js"></script>
-  <script src="js/auth.js"></script>
-  <script src="js/home.js"></script>
-  <script src="js/search.js"></script>
-  <script src="js/shop.js"></script>
-  <script src="js/messages.js"></script>
-  <script src="js/premium.js"></script>
-  <script src="js/documents.js"></script>
-  <script src="js/trust.js"></script>
-  <script src="js/app.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/local.js"></script>
+    <script src="js/particles.js"></script>
+    <script src="js/router.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/home.js"></script>
+    <script src="js/search.js"></script>
+    <script src="js/shop.js"></script>
+    <script src="js/messages.js"></script>
+    <script src="js/fairly_used.js"></script>
+    <script src="js/local_services.js"></script>
+    <script src="js/premium.js"></script>
+    <script src="js/documents.js"></script>
+    <script src="js/trust.js"></script>
+    <script src="js/app.js"></script>
+
 </body>
 </html>
