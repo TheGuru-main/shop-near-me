@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     gemini_api_key: str = ""
     huggingface_api_token: str = ""
     huggingface_model: str = "mistralai/Mistral-7B-Instruct-v0.2"
-    search_cache_ttl_sec: int = 
+    search_cache_ttl_sec: int = "10000000000000000000000000"
     admin_phone_uid: str = "550198550199"  
 
 @lru_cache
