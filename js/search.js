@@ -9,6 +9,7 @@ SNM.PROVIDER_ROLES = [
 ];
 
 SNM._providerRoleFilter = "";
+SNM._lastProviderRows = null;
 
 SNM.roleLabel = function (role) {
   var map = {
@@ -21,6 +22,25 @@ SNM.roleLabel = function (role) {
   return map[role] || role || "Provider";
 };
 
+/** km · compass · rough ETA (crow-fly stub only) */
+SNM.proximityLine = function (r) {
+  var parts = [];
+  if (r && r.km != null) parts.push(r.km + " km");
+  if (r && r.compass) parts.push(r.compass);
+  if (r && r.eta_min != null && r.eta_mode === "crow_fly_stub") {
+    parts.push("\~" + r.eta_min + " min (est.)");
+  }
+  return parts.join(" · ");
+};
+
+SNM._seekerGeo = function () {
+  var user = SNM.getUser() || {};
+  return {
+    lat: user.lat != null ? user.lat : undefined,
+    lng: user.lng != null ? user.lng : undefined
+  };
+};
+
 SNM._renderSearchResults = function (rows, mode) {
   var box = document.getElementById("searchResults");
   if (!box) return;
@@ -31,7 +51,6 @@ SNM._renderSearchResults = function (rows, mode) {
     return;
   }
 
-  // People & services (merchant + service_provider + driver + emergency)
   if (mode === "providers") {
     var filter = SNM._providerRoleFilter || "";
     var list = filter
@@ -51,6 +70,7 @@ SNM._renderSearchResults = function (rows, mode) {
     box.innerHTML = list
       .map(function (r) {
         var role = r.role || "";
+        var prox = SNM.proximityLine(r);
         return (
           '<article class="feed-card">' +
           '<div class="title">' +
@@ -60,7 +80,7 @@ SNM._renderSearchResults = function (rows, mode) {
           SNM.roleLabel(role) +
           " · " +
           (r.primary_location || r.community || r.city || "") +
-          (r.km != null ? " · " + r.km + " km" : "") +
+          (prox ? " · " + prox : "") +
           (r.live ? " · live" : "") +
           "</div>" +
           "</article>"
@@ -70,7 +90,6 @@ SNM._renderSearchResults = function (rows, mode) {
     return;
   }
 
-  // Products / objects (any seller role behind the listing)
   box.innerHTML = rows
     .map(function (r) {
       var p = r.product || {};
@@ -80,6 +99,7 @@ SNM._renderSearchResults = function (rows, mode) {
         p.price != null
           ? (p.currency || "NGN") + " " + p.price
           : "Price on request";
+      var prox = SNM.proximityLine(r);
       return (
         '<article class="feed-card">' +
         '<div class="title">' +
@@ -91,7 +111,7 @@ SNM._renderSearchResults = function (rows, mode) {
         SNM.roleLabel(sellerRole) +
         " · " +
         (s.primary_location || s.community || "") +
-        (r.km != null ? " · " + r.km + " km" : "") +
+        (prox ? " · " + prox : "") +
         (s.live ? " · live" : "") +
         "</div>" +
         '<div class="price">' +
@@ -106,12 +126,19 @@ SNM._renderSearchResults = function (rows, mode) {
 SNM.doProductSearch = async function () {
   var box = document.getElementById("searchResults");
   if (box) box.innerHTML = '<p class="soft">Searching products…</p>';
-  SNM.renderAssistant("search", null);
+  if (typeof SNM.renderAssistant === "function") {
+    SNM.renderAssistant("search", null);
+  }
 
   var user = SNM.getUser() || {};
-  var q = SNM.val("searchQ");
-  var community = SNM.val("searchCommunity") || user.community || "";
-  var maxKm = SNM.val("searchMaxKm") || "100";
+  var geo = SNM._seekerGeo();
+  var q = typeof SNM.val === "function" ? SNM.val("searchQ") : (document.getElementById("searchQ") || {}).value || "";
+  var community =
+    (typeof SNM.val === "function" ? SNM.val("searchCommunity") : "") ||
+    user.community ||
+    "";
+  var maxKm =
+    (typeof SNM.val === "function" ? SNM.val("searchMaxKm") : "") || "2000";
 
   try {
     var data = await SNM.api(
@@ -122,19 +149,26 @@ SNM.doProductSearch = async function () {
           city: user.city || "",
           region: user.region || "",
           country: user.country || "",
+          lat: geo.lat,
+          lng: geo.lng,
           max_km: maxKm,
           limit: 40
         })
     );
-    SNM.renderAssistant(
-      "search",
-      data.assistant,
-      (data.count != null ? data.count + " results" : "") +
-        (data.directive ? " · " + data.directive : "")
-    );
+    if (typeof SNM.renderAssistant === "function") {
+      SNM.renderAssistant(
+        "search",
+        data.assistant,
+        (data.count != null ? data.count + " results" : "") +
+          (data.directive ? " · " + data.directive : "") +
+          (data.max_km != null ? " · ≤" + data.max_km + " km" : "")
+      );
+    }
     SNM._renderSearchResults(data.results || [], "products");
   } catch (e) {
-    SNM.renderAssistant("search", null);
+    if (typeof SNM.renderAssistant === "function") {
+      SNM.renderAssistant("search", null);
+    }
     if (box) {
       box.innerHTML =
         '<p class="soft">Search failed: ' + (e.message || "error") + "</p>";
@@ -142,16 +176,25 @@ SNM.doProductSearch = async function () {
   }
 };
 
-/** All non-buyer roles from API /search/merchants */
 SNM.doProviderSearch = async function () {
   var box = document.getElementById("searchResults");
   if (box) box.innerHTML = '<p class="soft">Searching people & services…</p>';
-  SNM.renderAssistant("search", null);
+  if (typeof SNM.renderAssistant === "function") {
+    SNM.renderAssistant("search", null);
+  }
 
   var user = SNM.getUser() || {};
-  var q = SNM.val("searchQ") || SNM.val("searchMerchant");
-  var community = SNM.val("searchCommunity") || user.community || "";
-  var maxKm = SNM.val("searchMaxKm") || "100";
+  var geo = SNM._seekerGeo();
+  var q =
+    (typeof SNM.val === "function"
+      ? SNM.val("searchQ") || SNM.val("searchMerchant")
+      : "") || "";
+  var community =
+    (typeof SNM.val === "function" ? SNM.val("searchCommunity") : "") ||
+    user.community ||
+    "";
+  var maxKm =
+    (typeof SNM.val === "function" ? SNM.val("searchMaxKm") : "") || "2000";
 
   try {
     var data = await SNM.api(
@@ -162,20 +205,27 @@ SNM.doProviderSearch = async function () {
           city: user.city || "",
           region: user.region || "",
           country: user.country || "",
+          lat: geo.lat,
+          lng: geo.lng,
           max_km: maxKm,
           limit: 40
         })
     );
-    SNM.renderAssistant(
-      "search",
-      data.assistant,
-      (data.count != null ? data.count + " results" : "") +
-        (data.directive ? " · " + data.directive : "")
-    );
+    if (typeof SNM.renderAssistant === "function") {
+      SNM.renderAssistant(
+        "search",
+        data.assistant,
+        (data.count != null ? data.count + " results" : "") +
+          (data.directive ? " · " + data.directive : "") +
+          (data.max_km != null ? " · ≤" + data.max_km + " km" : "")
+      );
+    }
     SNM._lastProviderRows = data.results || [];
     SNM._renderSearchResults(SNM._lastProviderRows, "providers");
   } catch (e) {
-    SNM.renderAssistant("search", null);
+    if (typeof SNM.renderAssistant === "function") {
+      SNM.renderAssistant("search", null);
+    }
     if (box) {
       box.innerHTML =
         '<p class="soft">Search failed: ' + (e.message || "error") + "</p>";
@@ -183,15 +233,19 @@ SNM.doProviderSearch = async function () {
   }
 };
 
-// backward-compatible name used in older HTML/comments
 SNM.doMerchantSearch = function () {
   return SNM.doProviderSearch();
 };
 
 SNM.bindSearch = function () {
+  var maxInput = document.getElementById("searchMaxKm");
+  if (maxInput && (!maxInput.value || maxInput.value === "100")) {
+    maxInput.value = "2000";
+    maxInput.max = "2000";
+  }
+
   var bp = document.getElementById("btnDoSearch");
   if (bp) {
-    bp.innerHTML = '<i class="fas fa-box"></i> Products';
     bp.onclick = function () {
       SNM.doProductSearch();
     };
@@ -199,18 +253,17 @@ SNM.bindSearch = function () {
 
   var bm = document.getElementById("btnSearchMerchants");
   if (bm) {
-    bm.innerHTML = '<i class="fas fa-users"></i> People & services';
     bm.onclick = function () {
       SNM.doProviderSearch();
     };
   }
 
-  // Optional role filter row under search buttons (created once)
-  var form = bp && bp.closest ? bp.closest(".panel") : null;
-  if (form && !document.getElementById("providerRoleFilters")) {
+  var form = bp && bp.closest ? bp.closest(".panel, .content") : null;
+  var existing = document.getElementById("providerRoleFilters");
+  if (form && !existing) {
     var row = document.createElement("div");
     row.id = "providerRoleFilters";
-    row.className = "link-row";
+    row.className = "chip-wrap";
     row.style.marginTop = "0.65rem";
     row.innerHTML = SNM.PROVIDER_ROLES.map(function (r) {
       return (
@@ -222,10 +275,10 @@ SNM.bindSearch = function () {
       );
     }).join("");
     form.appendChild(row);
-
     row.querySelectorAll("[data-provider-role]").forEach(function (chip) {
       chip.addEventListener("click", function () {
-        SNM._providerRoleFilter = chip.getAttribute("data-provider-role") || "";
+        SNM._providerRoleFilter =
+          chip.getAttribute("data-provider-role") || "";
         if (SNM._lastProviderRows) {
           SNM._renderSearchResults(SNM._lastProviderRows, "providers");
         } else {

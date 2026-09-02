@@ -2,8 +2,9 @@
 Search API — full wire-up:
   directives → tokenize → dictionaries.expand_synonyms
   → letter/word grids → crawler → location brotherhood
-  → max_km → word relevance first → location proxy → rank
-  → persistent cache → ai_prompter (analyze / suggest / follow-up)
+  → max_km default 2000 → word relevance first → location proxy → rank
+  → GSG compass + crow-fly ETA stub (no OSRM)
+  → persistent cache + optional AI promo
 """
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -13,10 +14,10 @@ from app.core.limiter import limiter
 from app.db import get_db
 from app.models.product import Product
 from app.models.user import User
-from app.services.ai_prompter import build_search_context, promote_search
 from app.services.crawler import crawl_score_product
 from app.services.dictionaries import commerce_lookup, expand_synonyms
 from app.services.directives import detect_directive, location_intent
+from app.services.gsg_compass import proximity
 from app.services.identity import public_identity
 from app.services.location_brotherhood import (
     DEFAULT_MAX_KM,
@@ -27,6 +28,17 @@ from app.services.location_brotherhood import (
 from app.services.search import haversine_km, lex_score
 from app.services.search_cache import cache_get, cache_set
 from app.services.token_grids import letter_score, tokenize, word_score
+
+try:
+    from app.services.crawler import crawl_entry
+except Exception:
+    crawl_entry = None  # type: ignore
+
+try:
+    from app.services.ai_prompter import build_search_context, promote_search
+except Exception:
+    build_search_context = None  # type: ignore
+    promote_search = None  # type: ignore
 
 router = APIRouter(prefix="/search", tags=["search"])
 
@@ -63,24 +75,45 @@ def _sort_key(item: dict) -> tuple:
     return (-wr, -bro, km, -total)
 
 
-def _crawl_entry_stub(query: str, tokens: list[dict], lang: str) -> dict:
-    """Lightweight entry for AI + train cache when crawler.crawl_entry is absent."""
-    try:
-        from app.services.crawler import crawl_entry  # type: ignore
+def _cache_payload(
+    kind: str,
+    q: str,
+    lat,
+    lng,
+    max_km,
+    community,
+    city,
+    region,
+    country,
+    lang,
+    limit,
+    perishable=None,
+    category=None,
+) -> dict:
+    return {
+        "kind": kind,
+        "q": q or "",
+        "lat": lat,
+        "lng": lng,
+        "max_km": max_km,
+        "community": community,
+        "city": city,
+        "region": region,
+        "country": country,
+        "lang": lang,
+        "limit": limit,
+        "perishable": perishable,
+        "category": category,
+    }
 
-        return crawl_entry(query, lang=lang)
-    except Exception:
-        return {
-            "query": query,
-            "lang": lang,
-            "token_count": len(tokens),
-            "tokens": tokens[:24],
-            "phases": {
-                "letters": [t.get("letter") for t in tokens if t.get("letter")],
-                "words": [t.get("word") for t in tokens if t.get("word")],
-                "full_text_gsp": [],
-            },
-        }
+
+def _owner_proximity(lat, lng, owner_lat, owner_lng) -> dict:
+    return proximity(
+        lat,
+        lng,
+        float(owner_lat) if owner_lat is not None else None,
+        float(owner_lng) if owner_lng is not None else None,
+    )
 
 
 @router.get("/products")
@@ -101,25 +134,30 @@ async def search_products(
     limit: int = Query(40, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
+    if max_km is None:
+        max_km = DEFAULT_MAX_KM
+
     query = (q or "").strip()
-    cache_key = {
-        "kind": "products",
-        "q": query,
-        "lat": lat,
-        "lng": lng,
-        "max_km": max_km,
-        "community": community,
-        "city": city,
-        "region": region,
-        "country": country,
-        "lang": lang,
-        "perishable": perishable,
-        "category": category,
-        "limit": limit,
-    }
+    cache_key = _cache_payload(
+        "products",
+        query,
+        lat,
+        lng,
+        max_km,
+        community,
+        city,
+        region,
+        country,
+        lang,
+        limit,
+        perishable,
+        category,
+    )
     cached = cache_get(cache_key)
     if cached is not None:
-        return cached
+        out = dict(cached)
+        out["cache"] = True
+        return out
 
     directive = detect_directive(query) if query else "general"
     loc_focus = location_intent(directive)
@@ -129,7 +167,7 @@ async def search_products(
     )
     commerce = commerce_lookup(query) if query else {}
     seeker = place_profile(community, city, region, country)
-    entry = _crawl_entry_stub(query, tokens, lang)
+    entry = crawl_entry(query, lang) if (query and crawl_entry) else None
 
     rows = (
         db.query(Product, User)
@@ -149,10 +187,19 @@ async def search_products(
     scored: list[dict] = []
 
     for product, owner in pairs:
-        rank = crawl_score_product(
-            query or product.name, product, owner, lat, lng
-        )
-        km = rank.get("km")
+        try:
+            rank = crawl_score_product(
+                query or product.name, product, owner, lat, lng, lang=lang
+            )
+        except TypeError:
+            rank = crawl_score_product(
+                query or product.name, product, owner, lat, lng
+            )
+
+        prox = _owner_proximity(lat, lng, owner.lat, owner.lng)
+        km = prox.get("km")
+        if km is None:
+            km = rank.get("km")
         if (
             km is None
             and lat is not None
@@ -163,6 +210,7 @@ async def search_products(
             km = round(
                 haversine_km(lat, lng, float(owner.lat), float(owner.lng)), 2
             )
+
         if not within_max_km(km, max_km):
             continue
 
@@ -194,10 +242,13 @@ async def search_products(
 
         w_score = word_score(tokens, doc, lang) if tokens else 0.0
         l_score = letter_score(tokens, doc, lang) if tokens else 0.0
+        grid_lex = float(rank.get("grid_lex") or 0)
         place_lex = float(lex_score(query, place_blob)) if query else 0.0
         place_w = word_score(tokens, place_blob, lang) if tokens else 0.0
 
-        word_relevance = object_lex * 1.2 + w_score + l_score * 0.5
+        word_relevance = (
+            object_lex * 1.2 + w_score + l_score * 0.5 + grid_lex * 0.35
+        )
         if loc_focus:
             word_relevance += place_lex * 0.3 + place_w * 0.2
 
@@ -208,7 +259,7 @@ async def search_products(
 
         geo = float(rank.get("geo") or 0)
         if km is not None:
-            geo = max(geo, max(0.0, 50.0 - float(km)))
+            geo = max(geo, max(0.0, 50.0 - min(float(km), 50.0)))
         hb = float(rank.get("hb") or 0)
         rel = float(rank.get("rel") or 0)
 
@@ -260,6 +311,11 @@ async def search_products(
                     "place_boxes": target,
                 },
                 "km": km,
+                "bearing_deg": prox.get("bearing_deg"),
+                "compass": prox.get("compass"),
+                "eta_min": prox.get("eta_min"),
+                "eta_mode": prox.get("eta_mode"),
+                "gsg_route": prox.get("gsg"),
                 "max_km": max_km,
                 "brotherhood_score": bro,
                 "brotherhood_tags": bro_tags,
@@ -269,6 +325,7 @@ async def search_products(
                     "object_lex": object_lex,
                     "word_score": w_score,
                     "letter_score": l_score,
+                    "grid_lex": grid_lex,
                     "place_lex": place_lex,
                     "place_word": place_w,
                     "brotherhood": bro,
@@ -276,37 +333,12 @@ async def search_products(
                     "hb": hb,
                     "rel": rel,
                     "crawler_score": rank.get("score"),
+                    "crawler_start_row": rank.get("start_row"),
                 },
             }
         )
 
     scored.sort(key=_sort_key)
-    limited = scored[:limit]
-
-    news_headlines: list[str] = []
-    try:
-        from app.services.news_provider import fetch_gnews
-
-        if query:
-            nd = await fetch_gnews(category=category, q=query, limit=5)
-            for a in nd.get("articles") or []:
-                t = a.get("title")
-                if t:
-                    news_headlines.append(str(t))
-    except Exception:
-        pass
-
-    ctx = build_search_context(
-        query,
-        limited,
-        entry,
-        seeker,
-        max_km,
-        directive=directive,
-        news_headlines=news_headlines,
-    )
-    assistant = await promote_search(ctx)
-
     body = {
         "query": query,
         "lang": lang,
@@ -318,10 +350,22 @@ async def search_products(
         "seeker_place": seeker,
         "token_count": len(tokens),
         "crawl_entry": entry,
-        "count": len(limited),
-        "results": limited,
-        "assistant": assistant,
+        "count": len(scored[:limit]),
+        "results": scored[:limit],
+        "cache": False,
     }
+
+    if promote_search and build_search_context:
+        ctx = build_search_context(
+            query,
+            scored[:limit],
+            entry,
+            seeker,
+            max_km,
+            directive=directive,
+        )
+        body["assistant"] = await promote_search(ctx)
+
     cache_set(cache_key, body, train=True)
     return body
 
@@ -342,23 +386,28 @@ async def search_merchants(
     limit: int = Query(40, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
+    if max_km is None:
+        max_km = DEFAULT_MAX_KM
+
     query = (q or "").strip()
-    cache_key = {
-        "kind": "merchants",
-        "q": query,
-        "lat": lat,
-        "lng": lng,
-        "max_km": max_km,
-        "community": community,
-        "city": city,
-        "region": region,
-        "country": country,
-        "lang": lang,
-        "limit": limit,
-    }
+    cache_key = _cache_payload(
+        "merchants",
+        query,
+        lat,
+        lng,
+        max_km,
+        community,
+        city,
+        region,
+        country,
+        lang,
+        limit,
+    )
     cached = cache_get(cache_key)
     if cached is not None:
-        return cached
+        out = dict(cached)
+        out["cache"] = True
+        return out
 
     directive = detect_directive(query) if query else "general"
     loc_focus = location_intent(directive)
@@ -366,7 +415,7 @@ async def search_merchants(
         await _expand_query_tokens(query, lang) if query else ([], [])
     )
     seeker = place_profile(community, city, region, country)
-    entry = _crawl_entry_stub(query, tokens, lang)
+    entry = crawl_entry(query, lang) if (query and crawl_entry) else None
 
     users = (
         db.query(User)
@@ -381,16 +430,8 @@ async def search_merchants(
     out: list[dict] = []
 
     for u in users:
-        km = None
-        if (
-            lat is not None
-            and lng is not None
-            and u.lat is not None
-            and u.lng is not None
-        ):
-            km = round(
-                haversine_km(lat, lng, float(u.lat), float(u.lng)), 2
-            )
+        prox = _owner_proximity(lat, lng, u.lat, u.lng)
+        km = prox.get("km")
         if not within_max_km(km, max_km):
             continue
 
@@ -419,7 +460,7 @@ async def search_merchants(
 
         target = place_profile(u.community, u.city, u.region, u.country)
         bro, tags = brotherhood_score(seeker, target)
-        geo = max(0.0, 50.0 - km) if km is not None else 0.0
+        geo = max(0.0, 50.0 - min(km, 50.0)) if km is not None else 0.0
         total = (
             word_relevance * 1.5
             + bro * (1.4 if loc_focus else 1.2)
@@ -446,6 +487,11 @@ async def search_merchants(
                 "country": u.country,
                 "live": u.live,
                 "km": km,
+                "bearing_deg": prox.get("bearing_deg"),
+                "compass": prox.get("compass"),
+                "eta_min": prox.get("eta_min"),
+                "eta_mode": prox.get("eta_mode"),
+                "gsg_route": prox.get("gsg"),
                 "max_km": max_km,
                 "brotherhood_score": bro,
                 "brotherhood_tags": tags,
@@ -466,18 +512,6 @@ async def search_merchants(
 
     out.sort(key=_sort_key)
     limited = out[:limit]
-
-    ctx = build_search_context(
-        query,
-        limited,
-        entry,
-        seeker,
-        max_km,
-        directive=directive,
-        news_headlines=[],
-    )
-    assistant = await promote_search(ctx)
-
     body = {
         "query": query,
         "lang": lang,
@@ -490,7 +524,19 @@ async def search_merchants(
         "crawl_entry": entry,
         "count": len(limited),
         "results": limited,
-        "assistant": assistant,
+        "cache": False,
     }
+
+    if promote_search and build_search_context:
+        ctx = build_search_context(
+            query,
+            limited,
+            entry,
+            seeker,
+            max_km,
+            directive=directive,
+        )
+        body["assistant"] = await promote_search(ctx)
+
     cache_set(cache_key, body, train=True)
     return body
