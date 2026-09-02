@@ -14,9 +14,52 @@ SNM.CONTINENTS = [
 ];
 
 SNM.ROLES = [
-  { id: "buyer", label: "Buyer", icon: "fa-shopping-cart", blurb: "Discover, save, message sellers" },
-  { id: "merchant", label: "Merchant", icon: "fa-store", blurb: "List goods, receive nearby demand" },
-  { id: "service_provider", label: "Service provider", icon: "fa-tools", blurb: "Hotels, artisans, clinics & more" },
-  { id: "driver", label: "Driver / logistics", icon: "fa-motorcycle", blurb: "Deliveries, okada, vans, coverage" },
-  { id: "emergency", label: "Emergency unit", icon: "fa-ambulance", blurb: "Police, ambulance, community response" }
+  {
+    id: "buyer",
+    label: "Buyer",
+    icon: "fa-shopping-cart",
+    blurb: "Discover, save, message sellers"
+  },
+  {
+    id: "merchant",
+    label: "Merchant",
+    icon: "fa-store",
+    blurb: "List goods, receive nearby demand"
+  },
+  {
+    id: "service_provider",
+    label: "Service provider",
+    icon: "fa-tools",
+    blurb: "Hotels, artisans, clinics & more"
+  },
+  {
+    id: "driver",
+    label: "Driver / logistics",
+    icon: "fa-motorcycle",
+    blurb: "Deliveries, okada, vans, coverage"
+  },
+  {
+    id: "emergency",
+    label: "Emergency unit",
+    icon: "fa-ambulance",
+    blurb: "Police, ambulance, community response"
+  }
+];
+
+SNM.BUYER_TABS = [
+  { id: "home", label: "Home", icon: "fa-home" },
+  { id: "search", label: "Search", icon: "fa-search" },
+  { id: "saved", label: "Saved", icon: "fa-bookmark" },
+  { id: "messages", label: "Msg", icon: "fa-comments" },
+  { id: "news", label: "News", icon: "fa-newspaper" },
+  { id: "profile", label: "Profile", icon: "fa-user" }
+];
+
+SNM.SELLER_TABS = [
+  { id: "home", label: "Home", icon: "fa-home" },
+  { id: "search", label: "Search", icon: "fa-search" },
+  { id: "shop", label: "Shop", icon: "fa-store" },
+  { id: "messages", label: "Msg", icon: "fa-comments" },
+  { id: "news", label: "News", icon: "fa-newspaper" },
+  { id: "profile", label: "Profile", icon: "fa-user" }
 ];
