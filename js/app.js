@@ -16,7 +16,8 @@
     if (typeof SNM.bindPremium === "function") SNM.bindPremium();
     if (typeof SNM.bindDocuments === "function") SNM.bindDocuments();
     if (typeof SNM.bindTrust === "function") SNM.bindTrust();
-
+    if (typeof SNM.bindDocuments === "function") SNM.bindDocuments();
+    if (typeof SNM.bindPlatformRules === "function") SNM.bindPlatformRules();
     if (typeof SNM.startSplash === "function") {
       SNM.startSplash();
     } else {
