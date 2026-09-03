@@ -7,13 +7,16 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Shop Near Me</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="css/style.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
   <canvas id="network-bg" aria-hidden="true"></canvas>
 
   <div id="app">
-    <!-- SPLASH -->
+
+    <!-- ========== SPLASH ========== -->
     <section id="splash" class="screen active">
       <div class="splash-inner">
         <div class="logo-ring">🏪</div>
@@ -23,7 +26,7 @@
       </div>
     </section>
 
-    <!-- ROLE -->
+    <!-- ========== ROLE SELECT (vertical stack) ========== -->
     <section id="role-select" class="screen">
       <header class="top-bar">
         <span class="brand-sm">🏪 Shop Near Me</span>
@@ -32,13 +35,22 @@
       <div class="container stack">
         <h1 class="page-title">How will you use Shop Near Me?</h1>
         <p class="muted">Pick a role to continue.</p>
-        <div class="role-grid" id="roleGrid"></div>
+
+        <!-- vertical stacked roles — not a 2-col grid -->
+        <div class="role-stack" id="roleGrid">
+          <button type="button" class="role-card" data-role="buyer">🛒 Buyer</button>
+          <button type="button" class="role-card" data-role="merchant">🏪 Merchant</button>
+          <button type="button" class="role-card" data-role="service_provider">🔧 Service provider</button>
+          <button type="button" class="role-card" data-role="driver">🛵 Driver</button>
+          <button type="button" class="role-card" data-role="emergency">🚨 Emergency unit</button>
+        </div>
+
         <button type="button" class="btn secondary block" id="btnGoLogin">Already registered · Login</button>
       </div>
       <footer class="app-footer">Powered by: The Guru Innovations 🌀</footer>
     </section>
 
-    <!-- RULES -->
+    <!-- ========== RULES ========== -->
     <section id="rules" class="screen">
       <header class="top-bar">
         <a href="#role-select" class="back-link"><i class="fa fa-arrow-left"></i></a>
@@ -51,7 +63,7 @@
       </div>
     </section>
 
-    <!-- ABOUT -->
+    <!-- ========== ABOUT ========== -->
     <section id="about" class="screen">
       <header class="top-bar">
         <a href="#role-select" class="back-link"><i class="fa fa-arrow-left"></i></a>
@@ -64,7 +76,7 @@
       </div>
     </section>
 
-    <!-- REGISTER (cascade selects) -->
+    <!-- ========== REGISTER ========== -->
     <section id="register" class="screen">
       <header class="top-bar">
         <a href="#role-select" class="back-link"><i class="fa fa-arrow-left"></i></a>
@@ -103,8 +115,13 @@
         <label>Primary location / business
           <input id="reg-primary" placeholder="27, Dabu street, Eneka" required />
         </label>
-        <label>Phone (dial set by country · must keep +)
-          <input id="reg-phone" type="tel" inputmode="tel" placeholder="+234…" required />
+        <label>Phone
+          <div class="phone-row">
+            <span class="dial-box" id="reg-dial">+</span>
+            <input id="reg-phone-local" type="tel" inputmode="numeric" placeholder="8012345678" autocomplete="tel-national" required />
+          </div>
+          <input type="hidden" id="reg-phone" value="" />
+          <small class="muted">Country sets +code. Local number only — do not start with 0.</small>
         </label>
         <label>Password
           <input id="reg-password" type="password" required />
@@ -115,7 +132,7 @@
       </div>
     </section>
 
-    <!-- OTP -->
+    <!-- ========== OTP ========== -->
     <section id="otp" class="screen">
       <header class="top-bar">
         <a href="#register" class="back-link" id="otpBack"><i class="fa fa-arrow-left"></i></a>
@@ -133,7 +150,7 @@
       </div>
     </section>
 
-    <!-- LOGIN -->
+    <!-- ========== LOGIN ========== -->
     <section id="login" class="screen">
       <header class="top-bar">
         <a href="#role-select" class="back-link"><i class="fa fa-arrow-left"></i></a>
@@ -152,7 +169,7 @@
       </div>
     </section>
 
-    <!-- HOME -->
+    <!-- ========== HOME ========== -->
     <section id="home" class="screen">
       <header class="top-bar home-bar">
         <button type="button" class="icon-btn" id="btnMenu" aria-label="Menu"><i class="fa fa-bars"></i></button>
@@ -170,7 +187,9 @@
             <span>GSG map</span>
             <button type="button" class="btn small secondary" id="btnExpandMap">Expand</button>
           </div>
-          <div id="homeMapStub" class="map-stub">Primary pin · line-to-pin · compass</div>
+          <div id="homeMapStub" class="map-stub">
+            <div id="gsgMap"></div>
+          </div>
         </div>
         <div class="section-head">
           <h2>Near you</h2>
@@ -181,7 +200,7 @@
       <nav class="bottom-nav" id="bottomNav"></nav>
     </section>
 
-    <!-- SEARCH -->
+    <!-- ========== SEARCH ========== -->
     <section id="search" class="screen">
       <header class="top-bar">
         <a href="#home" class="back-link"><i class="fa fa-arrow-left"></i></a>
@@ -196,10 +215,10 @@
         <div id="searchAiCard" class="ai-card hidden"></div>
         <div id="searchResults" class="feed-list"></div>
       </div>
-      <nav class="bottom-nav" data-active="search"></nav>
+      <nav class="bottom-nav"></nav>
     </section>
 
-    <!-- NEWS -->
+    <!-- ========== NEWS ========== -->
     <section id="news" class="screen">
       <header class="top-bar">
         <a href="#home" class="back-link"><i class="fa fa-arrow-left"></i></a>
@@ -211,10 +230,10 @@
         <div id="newsAiCard" class="ai-card hidden"></div>
         <div id="newsList" class="feed-list"></div>
       </div>
-      <nav class="bottom-nav" data-active="news"></nav>
+      <nav class="bottom-nav"></nav>
     </section>
 
-    <!-- SHOP -->
+    <!-- ========== SHOP ========== -->
     <section id="shop" class="screen">
       <header class="top-bar">
         <a href="#home" class="back-link"><i class="fa fa-arrow-left"></i></a>
@@ -231,10 +250,10 @@
         </div>
         <div id="shopList" class="feed-list"></div>
       </div>
-      <nav class="bottom-nav" data-active="shop"></nav>
+      <nav class="bottom-nav"></nav>
     </section>
 
-    <!-- MESSAGES -->
+    <!-- ========== MESSAGES ========== -->
     <section id="messages" class="screen">
       <header class="top-bar">
         <a href="#home" class="back-link"><i class="fa fa-arrow-left"></i></a>
@@ -251,10 +270,10 @@
           </div>
         </div>
       </div>
-      <nav class="bottom-nav" data-active="messages"></nav>
+      <nav class="bottom-nav"></nav>
     </section>
 
-    <!-- FAIRLY USED -->
+    <!-- ========== FAIRLY USED ========== -->
     <section id="fairly-used" class="screen">
       <header class="top-bar">
         <a href="#home" class="back-link"><i class="fa fa-arrow-left"></i></a>
@@ -272,35 +291,43 @@
       </div>
     </section>
 
-    <!-- BANQUEUE / EMERGENCY -->
+    <!-- ========== BANQUEUE ========== -->
     <section id="banqueue" class="screen">
       <header class="top-bar">
         <a href="#home" class="back-link"><i class="fa fa-arrow-left"></i></a>
         <h1>Banqueue</h1>
         <span></span>
       </header>
-      <div class="container"><div id="banqueueList" class="feed-list"></div></div>
+      <div class="container">
+        <div id="banqueueList" class="feed-list"></div>
+      </div>
     </section>
 
+    <!-- ========== EMERGENCY ========== -->
     <section id="emergency" class="screen">
       <header class="top-bar">
         <a href="#home" class="back-link"><i class="fa fa-arrow-left"></i></a>
         <h1>Emergency</h1>
         <span></span>
       </header>
-      <div class="container"><div id="emergencyList" class="feed-list"></div></div>
+      <div class="container">
+        <div id="emergencyList" class="feed-list"></div>
+      </div>
     </section>
 
-    <!-- PREMIUM / DOCUMENTS / CALC / INVOICE -->
+    <!-- ========== PREMIUM ========== -->
     <section id="premium" class="screen">
       <header class="top-bar">
         <a href="#home" class="back-link"><i class="fa fa-arrow-left"></i></a>
         <h1>Premium</h1>
         <span></span>
       </header>
-      <div class="container"><div id="premiumPlans" class="feed-list"></div></div>
+      <div class="container">
+        <div id="premiumPlans" class="feed-list"></div>
+      </div>
     </section>
 
+    <!-- ========== DOCUMENTS ========== -->
     <section id="documents" class="screen">
       <header class="top-bar">
         <a href="#home" class="back-link"><i class="fa fa-arrow-left"></i></a>
@@ -327,6 +354,7 @@
       </div>
     </section>
 
+    <!-- ========== CALCULATOR ========== -->
     <section id="calculator" class="screen">
       <header class="top-bar">
         <a href="#documents" class="back-link"><i class="fa fa-arrow-left"></i></a>
@@ -342,6 +370,7 @@
       </div>
     </section>
 
+    <!-- ========== INVOICE STUDIO ========== -->
     <section id="invoice" class="screen">
       <header class="top-bar">
         <a href="#documents" class="back-link"><i class="fa fa-arrow-left"></i></a>
@@ -359,7 +388,7 @@
       </div>
     </section>
 
-    <!-- PROFILE SHEET -->
+    <!-- ========== PROFILE SHEET ========== -->
     <div id="profileSheet" class="sheet">
       <div class="sheet-handle"></div>
       <div id="profileBody" class="container stack"></div>
@@ -369,7 +398,7 @@
       </div>
     </div>
 
-    <!-- MENU -->
+    <!-- ========== MENU ========== -->
     <div id="menuSheet" class="top-menu hidden">
       <button type="button" data-menu="premium">Premium</button>
       <button type="button" data-menu="documents">Documents</button>
@@ -379,6 +408,7 @@
       <button type="button" data-menu="about">About</button>
       <button type="button" data-menu="logout" class="danger">Logout</button>
     </div>
+
   </div>
 
   <script src="js/config.js"></script>
