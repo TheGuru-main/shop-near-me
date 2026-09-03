@@ -1,4 +1,4 @@
-"""Phone is the only Uid. Tag form: [ S \]<phoneUid> ]"""
+"""Phone number is important"""
 
 from app.services.phone import normalize_e164, phone_digits
 
