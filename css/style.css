@@ -76,6 +76,8 @@ input, select, textarea {
   border-radius: var(--radius);
   padding: 1rem;
   box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  text-decoration: none;
+  font-family: Monospace
 }
 .ai-card { border-left: 4px solid var(--primary); margin-bottom: 0.75rem; }
 .feed-list { display: flex; flex-direction: column; gap: 0.75rem; }
@@ -93,10 +95,11 @@ input, select, textarea {
   text-align: left;
   padding: 1rem 1.1rem;
   font-size: 1.05rem;
+  height : 1.15rem;
 }
 .role-card {
   background: var(--card); border: 1px solid var(--card-border);
-  border-radius: var(--radius); padding: 1rem; text-align: center;
+  border-radius: var(--radius); padding: 1rem; text-align: center; text-transform: uppercase;
   cursor: pointer; font-weight: 600; color: var(--primary);
 }
 .role-card:active { transform: scale(0.98); }
@@ -145,6 +148,7 @@ input, select, textarea {
 .app-footer {
   text-align: center; font-size: 0.75rem; color: var(--muted);
   padding: 1rem; margin-top: auto;
+  
 }
 .map-stub {
   min-height: 100px; border-radius: 12px; background: #ecfdf5;
