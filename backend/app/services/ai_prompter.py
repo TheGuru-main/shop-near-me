@@ -38,7 +38,15 @@ def _template_search(ctx: dict[str, Any]) -> str:
 def _template_news(ctx: dict[str, Any]) -> str:
     cat = ctx.get("category") or "business"
     n = int(ctx.get("result_count") or 0)
-    return f"{cat.title()} brief: {n} update(s) tied to your sector focus."
+    place = ctx.get("place_hint") or ""
+    heads = ctx.get("headlines") or []
+    lead = heads[0] if heads else ""
+    base = f"{cat.title()} brief: {n} update(s)"
+    if place:
+        base += f" relevant near {place}"
+    if lead:
+        base += f". Lead: {lead}"
+    return base + "."
 
 
 def build_search_context(
@@ -48,6 +56,7 @@ def build_search_context(
     seeker_place: dict | None,
     max_km: float | None,
     directive: str = "general",
+    news_headlines: list[str] | None = None,
 ) -> dict[str, Any]:
     raw = (seeker_place or {}).get("raw") or {}
     place_hint = ", ".join(
@@ -68,6 +77,30 @@ def build_search_context(
         "phase_word_n": len(phases.get("words") or []),
         "phase_gsp_n": len(phases.get("full_text_gsp") or []),
         "score_breakdown": (top.get("score_breakdown") or {}) if top else {},
+        "news_headlines": list(news_headlines or [])[:5],
+    }
+
+
+def build_news_context(
+    category: str,
+    items: list[dict],
+    place_hint: str = "",
+    related_query: str = "",
+) -> dict[str, Any]:
+    """Context for promote_news — required by app.api.news."""
+    headlines: list[str] = []
+    for a in items or []:
+        t = a.get("title") if isinstance(a, dict) else None
+        if t:
+            headlines.append(str(t))
+        if len(headlines) >= 8:
+            break
+    return {
+        "category": category or "business",
+        "result_count": len(items or []),
+        "headlines": headlines,
+        "place_hint": place_hint or "",
+        "related_query": related_query or "",
     }
 
 
@@ -98,8 +131,7 @@ async def _gemini(prompt: str) -> str | None:
                 return None
             data = r.json()
             parts = (
-                data.get("candidates")
-                or [{}]
+                data.get("candidates") or [{}]
             )[0].get("content", {}).get("parts") or []
             text = (parts[0].get("text") if parts else "") or ""
             return text.strip() or None
@@ -152,14 +184,15 @@ def _prompt_search(ctx: dict[str, Any]) -> str:
         "You are Shop Near Me assistant. One or two short sentences. "
         "Do not invent shops or prices. Use only this context.\n"
         f"Context: {ctx}\n"
-        "Explain ranking focus: item match, place brotherhood, distance, live shops."
+        "Explain ranking focus: item match, place brotherhood, distance, live shops. "
+        "Optionally one follow-up question."
     )
 
 
 def _prompt_news(ctx: dict[str, Any]) -> str:
     return (
-        "You are Shop Near Me sector desk. One short briefing sentence. "
-        "No invented facts beyond context.\n"
+        "You are Shop Near Me sector desk. One short briefing sentence, "
+        "then optionally one follow-up question. No invented facts beyond context.\n"
         f"Context: {ctx}"
     )
 
@@ -174,17 +207,21 @@ async def promote_search(ctx: dict[str, Any]) -> dict[str, Any]:
     if not text:
         text = _template_search(ctx)
         source = "template"
-    return {"message": text, "source": source, "context_used": {
-        "query": ctx.get("query"),
-        "result_count": ctx.get("result_count"),
-        "place_hint": ctx.get("place_hint"),
-        "token_count": ctx.get("token_count"),
-        "phases": {
-            "letter": ctx.get("phase_letter_n"),
-            "word": ctx.get("phase_word_n"),
-            "full_text_gsp": ctx.get("phase_gsp_n"),
+    return {
+        "message": text,
+        "source": source,
+        "context_used": {
+            "query": ctx.get("query"),
+            "result_count": ctx.get("result_count"),
+            "place_hint": ctx.get("place_hint"),
+            "token_count": ctx.get("token_count"),
+            "phases": {
+                "letter": ctx.get("phase_letter_n"),
+                "word": ctx.get("phase_word_n"),
+                "full_text_gsp": ctx.get("phase_gsp_n"),
+            },
         },
-    }}
+    }
 
 
 async def promote_news(ctx: dict[str, Any]) -> dict[str, Any]:
@@ -197,7 +234,10 @@ async def promote_news(ctx: dict[str, Any]) -> dict[str, Any]:
     if not text:
         text = _template_news(ctx)
         source = "template"
-    return {"message": text, "source": source, "mode": "analyze_suggest_followup",
+    return {
+        "message": text,
+        "source": source,
+        "mode": "analyze_suggest_followup",
         "context_used": {
             "category": ctx.get("category"),
             "result_count": ctx.get("result_count"),
