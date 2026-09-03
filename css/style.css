@@ -82,7 +82,18 @@ input, select, textarea {
 .product-card .title { font-weight: 700; }
 .product-card .meta { font-size: 0.85rem; color: #166534; margin-top: 0.25rem; }
 
-.role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+.role-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+}
+.role-stack .role-card {
+  width: 100%;
+  text-align: left;
+  padding: 1rem 1.1rem;
+  font-size: 1.05rem;
+}
 .role-card {
   background: var(--card); border: 1px solid var(--card-border);
   border-radius: var(--radius); padding: 1rem; text-align: center;
