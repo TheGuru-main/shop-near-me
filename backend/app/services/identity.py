@@ -1,6 +1,4 @@
-"""Phone is the only Uid. Tag form: \( S \)<phoneUid>$"""
-
-
+"""Phone is the only Uid. Tag form: [ S \]<phoneUid> ]"""
 
 from app.services.phone import normalize_e164, phone_digits
 
@@ -28,7 +26,7 @@ def start_row(L: int, S: int, R: int = 64) -> int:
 def identity_tag(phone: str) -> str:
     uid = phone_uid(phone)
     S = placement_S(uid)
-    return f"\( {S} \){uid}$"
+    return f"[ {S}\[ {uid} ]"
 
 
 def public_identity(name: str, phone: str) -> dict:
@@ -36,12 +34,11 @@ def public_identity(name: str, phone: str) -> dict:
     L = placement_L(name)
     S = placement_S(uid)
     row = start_row(L, S)
-    tag = f"\( {S} \){uid}$"
     return {
         "uid": uid,
         "name": name,
         "L": L,
         "S": S,
         "start_row": row,
-        "identity_tag": tag,
+        "identity_tag": f"[ {S} \]{uid} ]",
     }

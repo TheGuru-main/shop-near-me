@@ -22,7 +22,7 @@ def admin_public() -> dict:
         "S": ADMIN_S,
         "c": ADMIN_C,
         "start_row": ADMIN_START_ROW,
-        "identity_tag": f"\[ {ADMIN_S}${ADMIN_UID} \]",
+        "identity_tag": f"[ {ADMIN_S}\[ {ADMIN_UID} ]",
         "role": "admin",
         "permanent": True,
     }
