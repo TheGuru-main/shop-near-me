@@ -31,14 +31,14 @@
       </header>
       <div class="container stack">
         <h1 class="page-title">How will you use Shop Near Me?</h1>
-        <p class="muted">Pick a role to continue. You can switch accounts later.</p>
+        <p class="muted">Pick a role to continue.</p>
         <div class="role-grid" id="roleGrid"></div>
-        <a href="#login" class="btn secondary block">Already registered · Login</a>
+        <button type="button" class="btn secondary block" id="btnGoLogin">Already registered · Login</button>
       </div>
       <footer class="app-footer">Powered by: The Guru Innovations 🌀</footer>
     </section>
 
-    <!-- ABOUT / RULES -->
+    <!-- RULES -->
     <section id="rules" class="screen">
       <header class="top-bar">
         <a href="#role-select" class="back-link"><i class="fa fa-arrow-left"></i></a>
@@ -51,6 +51,7 @@
       </div>
     </section>
 
+    <!-- ABOUT -->
     <section id="about" class="screen">
       <header class="top-bar">
         <a href="#role-select" class="back-link"><i class="fa fa-arrow-left"></i></a>
@@ -63,7 +64,7 @@
       </div>
     </section>
 
-    <!-- REGISTER -->
+    <!-- REGISTER (cascade selects) -->
     <section id="register" class="screen">
       <header class="top-bar">
         <a href="#role-select" class="back-link"><i class="fa fa-arrow-left"></i></a>
@@ -71,21 +72,43 @@
         <a href="#rules" class="icon-btn">?</a>
       </header>
       <div class="container stack form-stack">
-        <label>Full name<input id="reg-name" autocomplete="name" required /></label>
-        <label>Continent
-          <select id="reg-continent" required></select>
+        <label>Full name
+          <input id="reg-name" autocomplete="name" required />
         </label>
-        <label>Country<input id="reg-country" placeholder="Nigeria" required /></label>
-        <label>State / Region<input id="reg-region" placeholder="Rivers" /></label>
-        <label>City/LGA<input id="reg-city" placeholder="Port Harcourt" /></label>
-        <label>Community<input id="reg-community" placeholder="Eneka" /></label>
+        <label>Continent
+          <select id="reg-continent" required>
+            <option value="">Select continent</option>
+          </select>
+        </label>
+        <label>Country
+          <select id="reg-country" required disabled>
+            <option value="">Select continent first</option>
+          </select>
+        </label>
+        <label>State / Region
+          <select id="reg-region" required disabled>
+            <option value="">Select country first</option>
+          </select>
+        </label>
+        <label>City / Town
+          <select id="reg-city" required disabled>
+            <option value="">Select state first</option>
+          </select>
+        </label>
+        <label>Community / LGA
+          <select id="reg-community" required disabled>
+            <option value="">Select city first</option>
+          </select>
+        </label>
         <label>Primary location / business
           <input id="reg-primary" placeholder="27, Dabu street, Eneka" required />
         </label>
-        <label>Phone (must start with +)
-          <input id="reg-phone" type="tel" inputmode="tel" placeholder="+2348012345678" required />
+        <label>Phone (dial set by country · must keep +)
+          <input id="reg-phone" type="tel" inputmode="tel" placeholder="+234…" required />
         </label>
-        <label>Password<input id="reg-password" type="password" required /></label>
+        <label>Password
+          <input id="reg-password" type="password" required />
+        </label>
         <div id="regExtras" class="stack"></div>
         <p class="error" id="regError"></p>
         <button type="button" class="btn block" id="btnRegister">Get OTP</button>
@@ -100,10 +123,12 @@
         <span></span>
       </header>
       <div class="container stack form-stack">
-        <p class="muted">Enter the 6-digit code. On beta it may also show on-screen.</p>
-        <label>OTP<input id="otp-code" inputmode="numeric" maxlength="6" placeholder="123456" /></label>
+        <p class="muted">Enter the 6-digit code. Beta may show OTP on-screen.</p>
+        <label>OTP
+          <input id="otp-code" inputmode="numeric" maxlength="6" placeholder="123456" />
+        </label>
         <p class="error" id="otpError"></p>
-        <button type="button" class="btn block" id="btnVerifyOtp">Verify & continue</button>
+        <button type="button" class="btn block" id="btnVerifyOtp">Verify &amp; continue</button>
         <button type="button" class="btn secondary block" id="btnResendOtp">Resend OTP</button>
       </div>
     </section>
@@ -116,8 +141,12 @@
         <a href="#rules" class="icon-btn">?</a>
       </header>
       <div class="container stack form-stack">
-        <label>Phone<input id="login-phone" type="tel" placeholder="+234..." /></label>
-        <label>Password<input id="login-password" type="password" /></label>
+        <label>Phone
+          <input id="login-phone" type="tel" placeholder="+234…" />
+        </label>
+        <label>Password
+          <input id="login-password" type="password" />
+        </label>
         <p class="error" id="loginError"></p>
         <button type="button" class="btn block" id="btnLogin">Login</button>
       </div>
@@ -132,7 +161,6 @@
       </header>
       <div class="chip-row scroll-x">
         <a href="#fairly-used" class="chip">Fairly used</a>
-        <a href="#perishables" class="chip">Perishables</a>
         <a href="#banqueue" class="chip">Banqueue</a>
         <a href="#emergency" class="chip">Emergency</a>
       </div>
@@ -165,7 +193,6 @@
           <input id="searchQ" type="search" placeholder="Goods, services, shops…" />
           <button type="button" class="btn" id="btnDoSearch"><i class="fa fa-search"></i></button>
         </div>
-        <div class="chip-row" id="searchRoleChips"></div>
         <div id="searchAiCard" class="ai-card hidden"></div>
         <div id="searchResults" class="feed-list"></div>
       </div>
@@ -264,7 +291,7 @@
       <div class="container"><div id="emergencyList" class="feed-list"></div></div>
     </section>
 
-    <!-- PREMIUM / DOCS / CALC / INVOICE -->
+    <!-- PREMIUM / DOCUMENTS / CALC / INVOICE -->
     <section id="premium" class="screen">
       <header class="top-bar">
         <a href="#home" class="back-link"><i class="fa fa-arrow-left"></i></a>
@@ -355,6 +382,7 @@
   </div>
 
   <script src="js/config.js"></script>
+  <script src="js/cascade.js"></script>
   <script src="js/api.js"></script>
   <script src="js/local.js"></script>
   <script src="js/particles.js"></script>

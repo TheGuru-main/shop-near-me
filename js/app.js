@@ -1,11 +1,13 @@
 (function () {
   function boot() {
     if (typeof SNM === "undefined") {
-      console.error("SNM missing");
+      console.error("SNM missing — check script order");
       return;
     }
+
     if (typeof SNM.initParticles === "function") SNM.initParticles();
     if (typeof SNM.bindRouter === "function") SNM.bindRouter();
+    if (typeof SNM.bindCascade === "function") SNM.bindCascade();
     if (typeof SNM.bindAuth === "function") SNM.bindAuth();
     if (typeof SNM.bindHome === "function") SNM.bindHome();
     if (typeof SNM.bindSearch === "function") SNM.bindSearch();
@@ -20,12 +22,15 @@
     if (typeof SNM.bindInvoiceStudio === "function") SNM.bindInvoiceStudio();
     if (typeof SNM.bindPremium === "function") SNM.bindPremium();
 
-    if (typeof SNM.startSplash === "function") SNM.startSplash();
-    else {
+    if (typeof SNM.startSplash === "function") {
+      SNM.startSplash();
+    } else {
       document.getElementById("splash")?.classList.add("hidden");
-      SNM.showScreen(
-        SNM.getToken() && SNM.getUser() ? "home" : "role-select"
-      );
+      if (SNM.getToken && SNM.getToken() && SNM.getUser && SNM.getUser()) {
+        SNM.showScreen("home");
+      } else {
+        SNM.showScreen("role-select");
+      }
     }
   }
 

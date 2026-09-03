@@ -10,6 +10,28 @@ function showErr(id, msg) {
   else el.classList.remove("show");
 }
 
+function getGeo() {
+  return new Promise(function (resolve) {
+    if (!navigator.geolocation) {
+      resolve({ lat: null, lng: null, err: "Geolocation not supported" });
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      function (pos) {
+        resolve({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          err: null
+        });
+      },
+      function () {
+        resolve({ lat: null, lng: null, err: "Location permission denied" });
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+    );
+  });
+}
+
 SNM.onAuthed = function () {
   SNM.showScreen("home");
   if (typeof SNM.refreshHome === "function") SNM.refreshHome();
@@ -22,7 +44,7 @@ SNM.logout = function () {
 
 SNM.bindAuth = function () {
   var grid = document.getElementById("roleGrid");
-  if (grid && !grid.children.length) {
+  if (grid) {
     grid.innerHTML = (SNM.ROLES || [])
       .map(function (r) {
         return (
@@ -39,21 +61,24 @@ SNM.bindAuth = function () {
   }
 
   var cont = document.getElementById("reg-continent");
-  if (cont && !cont.options.length) {
+  if (cont) {
     cont.innerHTML =
       '<option value="">Select continent</option>' +
       (SNM.CONTINENTS || [])
         .map(function (c) {
           return (
-            '<option value="' +
-            c.id +
-            '">' +
-            c.name +
-            "</option>"
+            '<option value="' + c.id + '">' + c.name + "</option>"
           );
         })
         .join("");
   }
+
+  if (typeof SNM.bindCascade === "function") {
+    SNM.bindCascade();
+  }
+
+  var ver = document.getElementById("aboutVersion");
+  if (ver) ver.textContent = SNM.APP_VERSION || "1.0.0.1p";
 
   document.getElementById("roleGrid")?.addEventListener("click", function (e) {
     var btn = e.target.closest("[data-role]");
@@ -65,8 +90,7 @@ SNM.bindAuth = function () {
     SNM.showScreen("register");
   });
 
-  document.getElementById("btnGoLogin")?.addEventListener("click", function (e) {
-    e.preventDefault();
+  document.getElementById("btnGoLogin")?.addEventListener("click", function () {
     SNM.showScreen("login");
   });
 
@@ -84,15 +108,29 @@ SNM.bindAuth = function () {
 
     if (!name) return showErr("regError", "Enter name");
     if (!continent) return showErr("regError", "Select continent");
-    if (!country) return showErr("regError", "Enter country");
+    if (!country) return showErr("regError", "Select country");
+    if (!region) return showErr("regError", "Select state / region");
+    if (!city) return showErr("regError", "Select city / town");
+    if (!community) return showErr("regError", "Select community / LGA");
     if (!primary) return showErr("regError", "Enter primary location");
     if (!phone || phone.charAt(0) !== "+")
-      return showErr("regError", "Phone must start with + (E.164)");
+      return showErr("regError", "Phone must start with + (set by country)");
     if (!password) return showErr("regError", "Create password");
 
     var cmeta = (SNM.CONTINENTS || []).find(function (c) {
       return c.id === continent;
     });
+
+    showErr("regError", "Getting your location…");
+    var geo = await getGeo();
+    if (geo.lat == null || geo.lng == null) {
+      return showErr(
+        "regError",
+        geo.err ||
+          "Location required. Enable GPS and allow location, then try again."
+      );
+    }
+    showErr("regError", "");
 
     var body = {
       name: name,
@@ -105,11 +143,16 @@ SNM.bindAuth = function () {
       region: region,
       city: city,
       community: community,
-      primary_location: primary
+      primary_location: primary,
+      lat: geo.lat,
+      lng: geo.lng
     };
 
     try {
-      var data = await SNM.api("/auth/otp/request", { method: "POST", body: body });
+      var data = await SNM.api("/auth/otp/request", {
+        method: "POST",
+        body: body
+      });
       SNM.setPending({
         pending_id: data.pending_id || data.id,
         phone: phone,
@@ -118,7 +161,7 @@ SNM.bindAuth = function () {
       if (data.otp_dev) {
         SNM.toast("Beta OTP: " + data.otp_dev);
         var otpInput = document.getElementById("otp-code");
-        if (otpInput) otpInput.value = data.otp_dev;
+        if (otpInput) otpInput.value = String(data.otp_dev);
       }
       SNM.showScreen("otp");
     } catch (err) {
@@ -153,13 +196,14 @@ SNM.bindAuth = function () {
     if (!pending.pending_id) return showErr("otpError", "No pending signup");
     try {
       var data = await SNM.api(
-        "/auth/otp/resend?pending_id=" + encodeURIComponent(pending.pending_id),
+        "/auth/otp/resend?pending_id=" +
+          encodeURIComponent(pending.pending_id),
         { method: "POST" }
       );
       if (data && data.otp_dev) {
         SNM.toast("Beta OTP: " + data.otp_dev);
         var otpInput = document.getElementById("otp-code");
-        if (otpInput) otpInput.value = data.otp_dev;
+        if (otpInput) otpInput.value = String(data.otp_dev);
       } else {
         SNM.toast("OTP resent");
       }
@@ -205,7 +249,4 @@ SNM.bindAuth = function () {
     if (act === "logout") return SNM.logout();
     if (document.getElementById(act)) SNM.showScreen(act);
   });
-
-  var ver = document.getElementById("aboutVersion");
-  if (ver) ver.textContent = SNM.APP_VERSION || "1.0.0.1p";
 };
