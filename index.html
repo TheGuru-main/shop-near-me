@@ -3,460 +3,356 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <meta name="theme-color" content="#16a34a" />
+  <meta name="theme-color" content="#14532d" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="description" content="Shop Near Me — local discovery, live shops, Pay on Delivery" />
   <title>Shop Near Me</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
   <canvas id="network-bg" aria-hidden="true"></canvas>
 
   <div id="app">
-
     <!-- SPLASH -->
-    <section id="splash" class="screen active" data-screen="splash">
+    <section id="splash" class="screen active">
       <div class="splash-inner">
-        <div class="logo-box"><span class="logo-emoji">🏪</span></div>
-        <h1 class="brand">Shop Near Me</h1>
-        <p class="tagline">Connecting customers and merchants through smarter discovery, communication, and local business exposure.</p>
-        <p class="sub-tagline">— Bridging global and local commerce —</p>
-      </div>
-    </section>
-
-    <!-- ROLE SELECT -->
-    <section id="role-select" class="screen" data-screen="role-select">
-      <header class="screen-header">
-        <span class="header-spacer"></span>
+        <div class="logo-ring">🏪</div>
         <h1>Shop Near Me</h1>
-        <button type="button" class="icon-btn btn-open-rules" title="Community rules">?</button>
-      </header>
-      <div class="content">
-        <p class="lead">Choose how you join</p>
-        <div class="role-grid" id="roleGrid"></div>
-        <a href="#login" class="btn secondary block" id="btnGoLogin">Already registered · Login</a>
-        <a href="#about" class="text-link" id="btnAboutFromRole">About Shop Near Me</a>
+        <p class="tagline">Local discovery · Heartbeat shops · Trusted deals</p>
+        <p class="sub">Powered by The Guru Innovations 🌀</p>
       </div>
     </section>
 
-    <!-- ABOUT -->
-    <section id="about" class="screen" data-screen="about">
-      <header class="screen-header">
-        <a href="#role-select" class="back-link">←</a>
-        <h1>About</h1>
-        <button type="button" class="icon-btn btn-open-rules">?</button>
+    <!-- ROLE -->
+    <section id="role-select" class="screen">
+      <header class="top-bar">
+        <span class="brand-sm">🏪 Shop Near Me</span>
+        <a href="#rules" class="icon-btn" title="Rules">?</a>
       </header>
-      <div class="content">
-        <p>Make goods, services, drivers, and emergency units discoverable near you — with live heartbeat, place-aware search, and in-app messaging.</p>
-        <p class="muted">Beta focus: local density, Pay on Delivery, honest listings.</p>
+      <div class="container stack">
+        <h1 class="page-title">How will you use Shop Near Me?</h1>
+        <p class="muted">Pick a role to continue. You can switch accounts later.</p>
+        <div class="role-grid" id="roleGrid"></div>
+        <a href="#login" class="btn secondary block">Already registered · Login</a>
+      </div>
+      <footer class="app-footer">Powered by: The Guru Innovations 🌀</footer>
+    </section>
+
+    <!-- ABOUT / RULES -->
+    <section id="rules" class="screen">
+      <header class="top-bar">
+        <a href="#role-select" class="back-link"><i class="fa fa-arrow-left"></i></a>
+        <h1>Platform rules</h1>
+        <span></span>
+      </header>
+      <div class="container stack" id="platformRulesBody"></div>
+      <div class="container">
+        <button type="button" class="btn block" id="btnAcceptRules">I understand</button>
+      </div>
+    </section>
+
+    <section id="about" class="screen">
+      <header class="top-bar">
+        <a href="#role-select" class="back-link"><i class="fa fa-arrow-left"></i></a>
+        <h1>About</h1>
+        <span></span>
+      </header>
+      <div class="container stack">
+        <p>Shop Near Me connects buyers, merchants, service providers, drivers, and emergency units through proximity, heartbeat ranking, and trusted in-app deals.</p>
         <p class="muted">Version <span id="aboutVersion">1.0.0.1p</span></p>
-        <p class="footer-note">Powered by: The Guru Innovations 🌀</p>
       </div>
     </section>
 
     <!-- REGISTER -->
-    <section id="register" class="screen" data-screen="register">
-      <header class="screen-header">
-        <a href="#role-select" class="back-link">←</a>
+    <section id="register" class="screen">
+      <header class="top-bar">
+        <a href="#role-select" class="back-link"><i class="fa fa-arrow-left"></i></a>
         <h1>Register · <span id="regRoleLabel">—</span></h1>
-        <button type="button" class="icon-btn btn-open-rules">?</button>
+        <a href="#rules" class="icon-btn">?</a>
       </header>
-      <div class="content">
-        <label class="field"><span>Full name</span><input id="reg-name" name="name" autocomplete="name" required /></label>
-        <label class="field"><span>Continent</span><select id="reg-continent" name="continent" required></select></label>
-        <label class="field"><span>Country</span><input id="reg-country" name="country" placeholder="Nigeria" required /></label>
-        <label class="field"><span>State / region</span><input id="reg-region" name="region" placeholder="Rivers" /></label>
-        <label class="field"><span>City / town</span><input id="reg-city" name="city" placeholder="Port Harcourt" /></label>
-        <label class="field"><span>Community / LGA</span><input id="reg-community" name="community" placeholder="Eneka" /></label>
-        <label class="field"><span>Primary location / business location</span>
-          <input id="reg-primary" name="primary_location" placeholder="27, Dabu street, Eneka" required />
+      <div class="container stack form-stack">
+        <label>Full name<input id="reg-name" autocomplete="name" required /></label>
+        <label>Continent
+          <select id="reg-continent" required></select>
         </label>
-        <label class="field"><span>Phone (E.164)</span>
-          <input id="reg-phone" name="phone" type="tel" inputmode="tel" placeholder="+2348012345678" required />
+        <label>Country<input id="reg-country" placeholder="Nigeria" required /></label>
+        <label>State / Region<input id="reg-region" placeholder="Rivers" /></label>
+        <label>City/LGA<input id="reg-city" placeholder="Port Harcourt" /></label>
+        <label>Community<input id="reg-community" placeholder="Eneka" /></label>
+        <label>Primary location / business
+          <input id="reg-primary" placeholder="27, Dabu street, Eneka" required />
         </label>
-        <label class="field"><span>Password</span>
-          <input id="reg-password" name="password" type="password" autocomplete="new-password" required />
+        <label>Phone (must start with +)
+          <input id="reg-phone" type="tel" inputmode="tel" placeholder="+2348012345678" required />
         </label>
-        <div id="reg-prefs-wrap" class="field-block hidden">
-          <span class="label">Buyer item preferences (feed)</span>
-          <div id="regPrefs" class="chip-wrap"></div>
-        </div>
-        <div id="regError" class="err"></div>
-        <button type="button" class="btn primary block" id="btnRegister">Get OTP</button>
+        <label>Password<input id="reg-password" type="password" required /></label>
+        <div id="regExtras" class="stack"></div>
+        <p class="error" id="regError"></p>
+        <button type="button" class="btn block" id="btnRegister">Get OTP</button>
       </div>
     </section>
 
     <!-- OTP -->
-    <section id="otp" class="screen" data-screen="otp">
-      <header class="screen-header">
-        <a href="#register" class="back-link" id="btnBackFromOtp">←</a>
+    <section id="otp" class="screen">
+      <header class="top-bar">
+        <a href="#register" class="back-link" id="otpBack"><i class="fa fa-arrow-left"></i></a>
         <h1>Verify OTP</h1>
-        <button type="button" class="icon-btn btn-open-rules">?</button>
+        <span></span>
       </header>
-      <div class="content">
-        <p class="muted">Enter the 6-digit code. Beta may show on-screen code when SMS is sandbox.</p>
-        <label class="field"><span>OTP</span>
-          <input id="otp-code" inputmode="numeric" maxlength="6" placeholder="6 digits" />
-        </label>
-        <div id="otpError" class="err"></div>
-        <button type="button" class="btn primary block" id="btnVerifyOtp">Verify &amp; continue</button>
+      <div class="container stack form-stack">
+        <p class="muted">Enter the 6-digit code. On beta it may also show on-screen.</p>
+        <label>OTP<input id="otp-code" inputmode="numeric" maxlength="6" placeholder="123456" /></label>
+        <p class="error" id="otpError"></p>
+        <button type="button" class="btn block" id="btnVerifyOtp">Verify & continue</button>
         <button type="button" class="btn secondary block" id="btnResendOtp">Resend OTP</button>
       </div>
     </section>
 
     <!-- LOGIN -->
-    <section id="login" class="screen" data-screen="login">
-      <header class="screen-header">
-        <a href="#role-select" class="back-link">←</a>
+    <section id="login" class="screen">
+      <header class="top-bar">
+        <a href="#role-select" class="back-link"><i class="fa fa-arrow-left"></i></a>
         <h1>Login</h1>
-        <button type="button" class="icon-btn btn-open-rules">?</button>
+        <a href="#rules" class="icon-btn">?</a>
       </header>
-      <div class="content">
-        <label class="field"><span>Phone</span>
-          <input id="login-phone" type="tel" inputmode="tel" placeholder="+234…" autocomplete="tel" />
-        </label>
-        <label class="field"><span>Password</span>
-          <input id="login-password" type="password" autocomplete="current-password" />
-        </label>
-        <div id="loginError" class="err"></div>
-        <button type="button" class="btn primary block" id="btnLogin">Login</button>
+      <div class="container stack form-stack">
+        <label>Phone<input id="login-phone" type="tel" placeholder="+234..." /></label>
+        <label>Password<input id="login-password" type="password" /></label>
+        <p class="error" id="loginError"></p>
+        <button type="button" class="btn block" id="btnLogin">Login</button>
       </div>
     </section>
 
     <!-- HOME -->
-    <section id="home" class="screen" data-screen="home">
-      <header class="home-header">
-        <button type="button" class="icon-btn btn-open-rules" title="Rules">?</button>
-        <div class="brand-inline"><span>🏪</span> <span>Shop Near Me</span></div>
-        <button type="button" class="icon-btn" id="btnSearchTop" title="Search">🔍</button>
-        <button type="button" class="icon-btn" id="btnMenu" title="Menu">☰</button>
+    <section id="home" class="screen">
+      <header class="top-bar home-bar">
+        <button type="button" class="icon-btn" id="btnMenu" aria-label="Menu"><i class="fa fa-bars"></i></button>
+        <span class="brand-sm">🏪 Shop Near Me</span>
+        <button type="button" class="icon-btn" id="btnSearchTop"><i class="fa fa-search"></i></button>
       </header>
-      <div class="content">
-        <div class="chip-row">
-          <button type="button" class="chip-btn" id="btnFairlyUsed">Fairly used</button>
-          <button type="button" class="chip-btn" id="btnBanqueue">Banqueue</button>
-          <button type="button" class="chip-btn" id="btnEmergency">Emergency</button>
-          <button type="button" class="chip-btn" id="btnCheckoutAssist">Checkout assist</button>
-        </div>
-        <div class="map-collapse">
+      <div class="chip-row scroll-x">
+        <a href="#fairly-used" class="chip">Fairly used</a>
+        <a href="#perishables" class="chip">Perishables</a>
+        <a href="#banqueue" class="chip">Banqueue</a>
+        <a href="#emergency" class="chip">Emergency</a>
+      </div>
+      <div class="container">
+        <div class="map-card">
           <div class="map-head">
             <span>GSG map</span>
             <button type="button" class="btn small secondary" id="btnExpandMap">Expand</button>
           </div>
-          <div id="homeMapStub" class="map-stub">Primary pin · line-to-pin · compass later</div>
+          <div id="homeMapStub" class="map-stub">Primary pin · line-to-pin · compass</div>
         </div>
-        <div class="row-between">
+        <div class="section-head">
           <h2>Near you</h2>
           <button type="button" class="btn small secondary" id="btnRefreshFeed">Refresh</button>
         </div>
-        <div id="homeAiCard" class="ai-card hidden"></div>
         <div id="homeFeed" class="feed-list"></div>
       </div>
-      <nav class="bottom-nav" id="homeNav"></nav>
+      <nav class="bottom-nav" id="bottomNav"></nav>
     </section>
 
     <!-- SEARCH -->
-    <section id="search" class="screen" data-screen="search">
-      <header class="screen-header">
-        <a href="#home" class="back-link">←</a>
+    <section id="search" class="screen">
+      <header class="top-bar">
+        <a href="#home" class="back-link"><i class="fa fa-arrow-left"></i></a>
         <h1>Search</h1>
-        <button type="button" class="icon-btn btn-open-rules">?</button>
+        <span></span>
       </header>
-      <div class="content">
-        <label class="field"><span>Query</span>
+      <div class="container stack">
+        <div class="search-row">
           <input id="searchQ" type="search" placeholder="Goods, services, shops…" />
-        </label>
-        <label class="field"><span>Max km</span>
-          <input id="searchMaxKm" type="number" value="2000" min="1" max="2000" />
-        </label>
-        <div class="row gap wrap">
-          <button type="button" class="btn primary" id="btnDoSearch">Search items</button>
-          <button type="button" class="btn secondary" id="btnSearchMerchants">People &amp; services</button>
+          <button type="button" class="btn" id="btnDoSearch"><i class="fa fa-search"></i></button>
         </div>
+        <div class="chip-row" id="searchRoleChips"></div>
         <div id="searchAiCard" class="ai-card hidden"></div>
-        <div id="providerRoleFilters" class="chip-wrap"></div>
         <div id="searchResults" class="feed-list"></div>
       </div>
-      <nav class="bottom-nav" id="searchNav"></nav>
-    </section>
-
-    <!-- SHOP (non-buyer catalogue) -->
-    <section id="shop" class="screen" data-screen="shop">
-      <header class="screen-header">
-        <a href="#home" class="back-link">←</a>
-        <h1>Shop · Catalogue</h1>
-        <button type="button" class="icon-btn btn-open-rules">?</button>
-      </header>
-      <div class="content">
-        <div class="card panel">
-          <label class="field"><span>Name</span><input id="shop-name" placeholder="Item or service" /></label>
-          <label class="field"><span>Category</span><input id="shop-category" placeholder="e.g. Food" /></label>
-          <div class="row gap">
-            <label class="field grow"><span>Price</span><input id="shop-price" type="number" inputmode="decimal" /></label>
-            <label class="field grow"><span>Qty</span><input id="shop-qty" type="number" inputmode="decimal" value="1" /></label>
-          </div>
-          <button type="button" class="btn primary block" id="btnShopAdd">Save &amp; add another</button>
-        </div>
-        <div id="shopList" class="feed-list"></div>
-      </div>
-      <nav class="bottom-nav" id="shopNav"></nav>
-    </section>
-
-    <!-- MESSAGES -->
-    <section id="messages" class="screen" data-screen="messages">
-      <header class="screen-header">
-        <a href="#home" class="back-link">←</a>
-        <h1>Messages</h1>
-        <button type="button" class="icon-btn btn-open-rules">?</button>
-      </header>
-      <div class="content split-msg">
-        <div id="threadList" class="feed-list"></div>
-        <div id="messagePane" class="message-pane"></div>
-        <div id="msgComposer" class="composer hidden">
-          <input id="msgInput" type="text" placeholder="Message…" />
-          <button type="button" class="btn small primary" id="btnSendMsg">Send</button>
-        </div>
-      </div>
-      <nav class="bottom-nav" id="messagesNav"></nav>
+      <nav class="bottom-nav" data-active="search"></nav>
     </section>
 
     <!-- NEWS -->
-    <section id="news" class="screen" data-screen="news">
-      <header class="screen-header">
-        <a href="#home" class="back-link">←</a>
+    <section id="news" class="screen">
+      <header class="top-bar">
+        <a href="#home" class="back-link"><i class="fa fa-arrow-left"></i></a>
         <h1>News</h1>
-        <button type="button" class="icon-btn btn-open-rules">?</button>
+        <span></span>
       </header>
-      <div class="content">
+      <div class="container stack">
+        <div class="chip-row scroll-x" id="newsCats"></div>
         <div id="newsAiCard" class="ai-card hidden"></div>
-        <div id="newsFeed" class="feed-list"></div>
+        <div id="newsList" class="feed-list"></div>
       </div>
-      <nav class="bottom-nav" id="newsNav"></nav>
+      <nav class="bottom-nav" data-active="news"></nav>
+    </section>
+
+    <!-- SHOP -->
+    <section id="shop" class="screen">
+      <header class="top-bar">
+        <a href="#home" class="back-link"><i class="fa fa-arrow-left"></i></a>
+        <h1>My shop</h1>
+        <span></span>
+      </header>
+      <div class="container stack">
+        <div class="card form-stack">
+          <label>Item name<input id="shop-name" /></label>
+          <label>Price<input id="shop-price" type="number" inputmode="decimal" /></label>
+          <label>Qty<input id="shop-qty" type="number" inputmode="numeric" /></label>
+          <label class="check"><input type="checkbox" id="shop-perishable" /> Perishable</label>
+          <button type="button" class="btn block" id="btnAddShopItem">Add listing</button>
+        </div>
+        <div id="shopList" class="feed-list"></div>
+      </div>
+      <nav class="bottom-nav" data-active="shop"></nav>
+    </section>
+
+    <!-- MESSAGES -->
+    <section id="messages" class="screen">
+      <header class="top-bar">
+        <a href="#home" class="back-link"><i class="fa fa-arrow-left"></i></a>
+        <h1>Messages</h1>
+        <span></span>
+      </header>
+      <div class="container">
+        <div id="threadList" class="feed-list"></div>
+        <div id="threadView" class="hidden">
+          <div id="threadMsgs" class="msg-list"></div>
+          <div class="composer">
+            <input id="msgBody" placeholder="Message…" />
+            <button type="button" class="btn" id="btnSendMsg"><i class="fa fa-paper-plane"></i></button>
+          </div>
+        </div>
+      </div>
+      <nav class="bottom-nav" data-active="messages"></nav>
     </section>
 
     <!-- FAIRLY USED -->
-    <section id="fairly-used" class="screen" data-screen="fairly-used">
-      <header class="screen-header">
-        <a href="#home" class="back-link">←</a>
+    <section id="fairly-used" class="screen">
+      <header class="top-bar">
+        <a href="#home" class="back-link"><i class="fa fa-arrow-left"></i></a>
         <h1>Fairly used</h1>
-        <button type="button" class="icon-btn btn-open-rules">?</button>
+        <span></span>
       </header>
-      <div class="content">
-        <div class="card panel">
-          <label class="field"><span>Title</span><input id="fu-title" placeholder="What are you selling?" /></label>
-          <label class="field"><span>Note</span><textarea id="fu-body" rows="3"></textarea></label>
-          <label class="field"><span>Price (optional)</span><input id="fu-price" type="number" inputmode="decimal" /></label>
-          <button type="button" class="btn primary block" id="btnFuPost">Post</button>
+      <div class="container stack">
+        <div class="card form-stack">
+          <label>Title<input id="fu-title" /></label>
+          <label>Note<textarea id="fu-note" rows="2"></textarea></label>
+          <label>Price (optional)<input id="fu-price" type="number" /></label>
+          <button type="button" class="btn block" id="btnFuPost">Post</button>
         </div>
         <div id="fairlyUsedFeed" class="feed-list"></div>
       </div>
     </section>
 
-    <!-- BANQUEUE -->
-    <section id="banqueue" class="screen" data-screen="banqueue">
-      <header class="screen-header">
-        <a href="#home" class="back-link">←</a>
+    <!-- BANQUEUE / EMERGENCY -->
+    <section id="banqueue" class="screen">
+      <header class="top-bar">
+        <a href="#home" class="back-link"><i class="fa fa-arrow-left"></i></a>
         <h1>Banqueue</h1>
-        <button type="button" class="icon-btn btn-open-rules">?</button>
+        <span></span>
       </header>
-      <div class="content">
-        <div id="banqueueList" class="feed-list"></div>
-      </div>
+      <div class="container"><div id="banqueueList" class="feed-list"></div></div>
     </section>
 
-    <!-- EMERGENCY -->
-    <section id="emergency" class="screen" data-screen="emergency">
-      <header class="screen-header">
-        <a href="#home" class="back-link">←</a>
-        <h1>Emergency nearby</h1>
-        <button type="button" class="icon-btn btn-open-rules">?</button>
+    <section id="emergency" class="screen">
+      <header class="top-bar">
+        <a href="#home" class="back-link"><i class="fa fa-arrow-left"></i></a>
+        <h1>Emergency</h1>
+        <span></span>
       </header>
-      <div class="content">
-        <div id="emergencyList" class="feed-list"></div>
-      </div>
+      <div class="container"><div id="emergencyList" class="feed-list"></div></div>
     </section>
 
-    <!-- PLATFORM RULES -->
-    <section id="rules" class="screen" data-screen="rules">
-      <header class="screen-header">
-        <a href="#home" class="back-link">←</a>
-        <h1>Rules &amp; guidelines</h1>
-        <span class="header-spacer"></span>
-      </header>
-      <div class="content">
-        <div id="platformRulesBody" class="rules-stack"></div>
-        <button type="button" class="btn primary block" id="btnAcceptRules">I understand</button>
-        <h2 class="section-title">Report</h2>
-        <label class="field"><span>Details</span>
-          <textarea id="report-body" rows="3" placeholder="What happened?"></textarea>
-        </label>
-        <button type="button" class="btn secondary block" id="btnSubmitReport">Submit report</button>
-        <h2 class="section-title">Message admin</h2>
-        <label class="field"><span>Message</span>
-          <textarea id="admin-msg-body" rows="3" placeholder="Support, premium, appeals…"></textarea>
-        </label>
-        <button type="button" class="btn secondary block" id="btnAdminMessage">Send to admin</button>
-      </div>
-    </section>
-
-    <!-- PREMIUM HUB -->
-    <section id="premium" class="screen" data-screen="premium">
-      <header class="screen-header">
-        <a href="#home" class="back-link">←</a>
+    <!-- PREMIUM / DOCS / CALC / INVOICE -->
+    <section id="premium" class="screen">
+      <header class="top-bar">
+        <a href="#home" class="back-link"><i class="fa fa-arrow-left"></i></a>
         <h1>Premium</h1>
-        <button type="button" class="icon-btn btn-open-rules">?</button>
+        <span></span>
       </header>
-      <div class="content">
-        <p class="muted">Plans from API. Invoice tools unlock after active subscription.</p>
-        <div id="premiumPlans" class="feed-list"></div>
-        <div class="row gap wrap">
-          <button type="button" class="btn secondary" id="btnOpenDocuments">Documents</button>
-          <button type="button" class="btn primary" id="btnOpenCalculator">Calculator</button>
-          <button type="button" class="btn primary" id="btnOpenInvoiceStudio">Invoice studio</button>
-        </div>
-        <p class="muted small">Coming soon on card: PDF export, cloud backup, AI media, multi-branch (per catalog).</p>
-      </div>
+      <div class="container"><div id="premiumPlans" class="feed-list"></div></div>
     </section>
 
-    <!-- DOCUMENTS: receipts + list e-invoices -->
-    <section id="documents" class="screen" data-screen="documents">
-      <header class="screen-header">
-        <a href="#home" class="back-link">←</a>
+    <section id="documents" class="screen">
+      <header class="top-bar">
+        <a href="#home" class="back-link"><i class="fa fa-arrow-left"></i></a>
         <h1>Documents</h1>
-        <button type="button" class="icon-btn" id="btnRefreshDocuments" title="Refresh">↻</button>
+        <span></span>
       </header>
-      <div class="content">
-        <p class="muted">Receipts: free, device download. E-invoices: premium capacity. Use Calculator to total lines, then issue here or in Invoice studio.</p>
-        <div class="card panel">
-          <h2 class="section-title">Quick issue</h2>
-          <label class="field"><span>Customer name</span><input id="doc-customer" type="text" /></label>
-          <label class="field"><span>Customer phone</span><input id="doc-customer-phone" type="tel" placeholder="+234…" /></label>
-          <label class="field"><span>Item / service</span><input id="doc-item-name" type="text" /></label>
-          <div class="row gap">
-            <label class="field grow"><span>Qty</span><input id="doc-item-qty" type="number" value="1" min="0" step="any" /></label>
-            <label class="field grow"><span>Unit price</span><input id="doc-item-price" type="number" min="0" step="any" /></label>
+      <div class="container stack">
+        <div class="card form-stack">
+          <label>Customer<input id="doc-customer" /></label>
+          <label>Phone<input id="doc-customer-phone" /></label>
+          <label>Item<input id="doc-item-name" /></label>
+          <label>Qty<input id="doc-item-qty" type="number" value="1" /></label>
+          <label>Unit price<input id="doc-item-price" type="number" /></label>
+          <div class="btn-row">
+            <button type="button" class="btn secondary" id="btnCreateReceipt">Receipt</button>
+            <button type="button" class="btn" id="btnCreateEinvoice">E-Invoice</button>
           </div>
-          <div class="row gap wrap">
-            <button type="button" class="btn secondary" id="btnCreateReceipt">Save receipt</button>
-            <button type="button" class="btn primary" id="btnCreateEinvoice">E-invoice</button>
-            <button type="button" class="btn primary" id="btnCreateEinvoicePp">Invoice++</button>
-          </div>
+          <button type="button" class="btn secondary block" id="btnCreateEinvoicePp">E-Invoice++</button>
         </div>
-        <h2 class="section-title">Receipts</h2>
+        <h3>Receipts</h3>
         <div id="receiptList" class="feed-list"></div>
-        <h2 class="section-title">E-invoices</h2>
+        <h3>E-Invoices</h3>
         <div id="einvoiceList" class="feed-list"></div>
       </div>
     </section>
 
-    <!-- CALCULATOR (premium / checkout assist) -->
-    <section id="calculator" class="screen" data-screen="calculator">
-      <header class="screen-header">
-        <a href="#documents" class="back-link">←</a>
+    <section id="calculator" class="screen">
+      <header class="top-bar">
+        <a href="#documents" class="back-link"><i class="fa fa-arrow-left"></i></a>
         <h1>Calculator</h1>
-        <button type="button" class="icon-btn btn-open-rules">?</button>
+        <span></span>
       </header>
-      <div class="content">
-        <p class="muted">Line totals → optional VAT / discount. Send result into Documents or Invoice studio. Backend: calculators + checkout.</p>
-        <div class="card panel">
-          <label class="field"><span>Subtotal</span><input id="calc-subtotal" type="number" inputmode="decimal" placeholder="0" /></label>
-          <label class="field"><span>Discount</span><input id="calc-discount" type="number" inputmode="decimal" value="0" /></label>
-          <label class="field"><span>VAT %</span><input id="calc-vat" type="number" inputmode="decimal" value="0" /></label>
-          <label class="field"><span>Currency</span><input id="calc-currency" value="NGN" /></label>
-          <button type="button" class="btn primary block" id="btnCalcRun">Calculate</button>
-          <div id="calcResult" class="calc-result muted">—</div>
-          <button type="button" class="btn secondary block" id="btnCalcToDocuments">Use in Documents</button>
-          <button type="button" class="btn secondary block" id="btnCalcToInvoice">Use in Invoice studio</button>
-        </div>
+      <div class="container stack form-stack">
+        <label>Subtotal<input id="calc-sub" type="number" /></label>
+        <label>Discount %<input id="calc-disc" type="number" value="0" /></label>
+        <label>VAT %<input id="calc-vat" type="number" value="0" /></label>
+        <button type="button" class="btn block" id="btnCalcRun">Calculate</button>
+        <p id="calcOut" class="card"></p>
       </div>
     </section>
 
-    <!-- INVOICE STUDIO -->
-    <section id="invoice-studio" class="screen" data-screen="invoice-studio">
-      <header class="screen-header">
-        <a href="#premium" class="back-link">←</a>
+    <section id="invoice" class="screen">
+      <header class="top-bar">
+        <a href="#documents" class="back-link"><i class="fa fa-arrow-left"></i></a>
         <h1>Invoice studio</h1>
-        <button type="button" class="icon-btn btn-open-rules">?</button>
+        <span></span>
       </header>
-      <div class="content">
-        <p class="muted">E-invoice / Invoice++ after premium activation. Themes &amp; layout options; issue via API.</p>
-        <div class="card panel">
-          <label class="field"><span>Kind</span>
-            <select id="inv-kind">
-              <option value="e_invoice">E-invoice</option>
-              <option value="e_invoice_pp">Invoice++</option>
-            </select>
-          </label>
-          <label class="field"><span>Customer</span><input id="inv-customer" type="text" /></label>
-          <label class="field"><span>Phone</span><input id="inv-phone" type="tel" /></label>
-          <label class="field"><span>Line item</span><input id="inv-item-name" type="text" /></label>
-          <div class="row gap">
-            <label class="field grow"><span>Qty</span><input id="inv-item-qty" type="number" value="1" /></label>
-            <label class="field grow"><span>Unit price</span><input id="inv-item-price" type="number" /></label>
-          </div>
-          <label class="field"><span>Notes</span><textarea id="inv-notes" rows="2"></textarea></label>
-          <label class="field"><span>Surface</span>
-            <select id="inv-surface">
-              <option>Stacked</option>
-              <option>Split</option>
-              <option>Compact</option>
-              <option>Wide</option>
-            </select>
-          </label>
-          <label class="field"><span>Layout</span>
-            <select id="inv-layout">
-              <option>Standard</option>
-              <option>Modern</option>
-              <option>Centered</option>
-              <option>Minimal</option>
-            </select>
-          </label>
-          <button type="button" class="btn primary block" id="btnInvIssue">Issue e-invoice</button>
-        </div>
-        <div id="invStudioList" class="feed-list"></div>
-      </div>
-    </section>
-
-    <!-- CHECKOUT ASSIST -->
-    <section id="checkout-assist" class="screen" data-screen="checkout-assist">
-      <header class="screen-header">
-        <a href="#home" class="back-link">←</a>
-        <h1>Checkout assist</h1>
-        <button type="button" class="icon-btn btn-open-rules">?</button>
-      </header>
-      <div class="content">
-        <p class="muted">Pay on Delivery · walk-in · optional bulky carrier / driver suggest.</p>
-        <div id="checkoutAssistBody" class="feed-list"></div>
-        <a href="#calculator" class="btn secondary block">Open calculator</a>
+      <div class="container stack form-stack">
+        <label>Kind
+          <select id="inv-kind">
+            <option value="e_invoice">E-Invoice</option>
+            <option value="e_invoice_pp">E-Invoice++</option>
+          </select>
+        </label>
+        <button type="button" class="btn block" id="btnInvIssue">Issue from document form</button>
       </div>
     </section>
 
     <!-- PROFILE SHEET -->
     <div id="profileSheet" class="sheet">
       <div class="sheet-handle"></div>
-      <div class="sheet-content">
-        <div id="profileBody"></div>
-        <button type="button" class="btn secondary block" id="btnCloseProfile">Close</button>
+      <div id="profileBody" class="container stack"></div>
+      <div class="container">
         <button type="button" class="btn danger block" id="btnLogoutProfile">Logout</button>
+        <button type="button" class="btn secondary block" id="btnCloseProfile">Close</button>
       </div>
     </div>
 
-    <!-- MENU SHEET -->
+    <!-- MENU -->
     <div id="menuSheet" class="top-menu hidden">
-      <button type="button" data-menu="notifications">Notifications</button>
-      <button type="button" data-menu="premium" id="btnMenuPremium">Premium</button>
-      <button type="button" data-menu="documents" id="btnDocuments">Documents · Receipts &amp; e-invoices</button>
+      <button type="button" data-menu="premium">Premium</button>
+      <button type="button" data-menu="documents">Documents</button>
       <button type="button" data-menu="calculator">Calculator</button>
       <button type="button" data-menu="invoice">Invoice studio</button>
-      <button type="button" class="btn-open-rules">Community rules</button>
+      <button type="button" data-menu="rules">Rules</button>
       <button type="button" data-menu="about">About</button>
       <button type="button" data-menu="logout" class="danger">Logout</button>
     </div>
-
-    <button type="button" class="fab" id="btnFab" title="Banqueue">＋</button>
   </div>
-
-  <footer class="app-footer">Powered by: The Guru Innovations 🌀.</footer>
 
   <script src="js/config.js"></script>
   <script src="js/api.js"></script>
@@ -466,16 +362,16 @@
   <script src="js/auth.js"></script>
   <script src="js/home.js"></script>
   <script src="js/search.js"></script>
+  <script src="js/news.js"></script>
   <script src="js/shop.js"></script>
   <script src="js/messages.js"></script>
   <script src="js/fairly_used.js"></script>
   <script src="js/local_services.js"></script>
   <script src="js/documents.js"></script>
   <script src="js/platform_rules.js"></script>
-  <script src="js/premium.js"></script>
   <script src="js/calculator.js"></script>
   <script src="js/invoice_studio.js"></script>
+  <script src="js/premium.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
-

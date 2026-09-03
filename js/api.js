@@ -1,13 +1,25 @@
 window.SNM = window.SNM || {};
 
-SNM.qs = function (params) {
-  var parts = [];
-  Object.keys(params || {}).forEach(function (k) {
-    var v = params[k];
-    if (v === undefined || v === null || v === "") return;
-    parts.push(encodeURIComponent(k) + "=" + encodeURIComponent(String(v)));
-  });
-  return parts.length ? "?" + parts.join("&") : "";
+SNM.toast = function (msg) {
+  try {
+    alert(msg);
+  } catch (e) {}
+};
+
+SNM.renderAssistant = function (el, data) {
+  if (!el) return;
+  if (!data || !data.message) {
+    el.classList.add("hidden");
+    el.innerHTML = "";
+    return;
+  }
+  el.classList.remove("hidden");
+  el.innerHTML =
+    "<strong>Assistant</strong><p>" +
+    String(data.message).replace(/</g, "&lt;") +
+    "</p><p class='muted'>source: " +
+    (data.source || "—") +
+    "</p>";
 };
 
 SNM.api = async function (path, options) {
@@ -17,32 +29,36 @@ SNM.api = async function (path, options) {
     { Accept: "application/json" },
     options.headers || {}
   );
-
-  var token = SNM.getToken ? SNM.getToken() : null;
+  var token = SNM.getToken && SNM.getToken();
   if (token) headers.Authorization = "Bearer " + token;
 
-  var init = { method: method, headers: headers };
-
-  if (options.body !== undefined && options.body !== null) {
+  var body = options.body;
+  if (body && typeof body === "object" && !(body instanceof FormData)) {
     headers["Content-Type"] = "application/json";
-    init.body = JSON.stringify(options.body);
+    body = JSON.stringify(body);
   }
 
   var url = SNM.API_BASE + path;
-  var res = await fetch(url, init);
+  var res = await fetch(url, {
+    method: method,
+    headers: headers,
+    body: method === "GET" || method === "HEAD" ? undefined : body
+  });
+
   var text = await res.text();
   var data = null;
   try {
     data = text ? JSON.parse(text) : null;
   } catch (e) {
-    data = { detail: text || "Invalid JSON from server" };
+    data = { raw: text };
   }
 
   if (!res.ok) {
-    var err = new Error(
-      (data && (data.detail || data.message)) ||
-        "Request failed (" + res.status + ")"
-    );
+    var detail =
+      (data && (data.detail || data.message || data.error)) ||
+      res.statusText ||
+      "Request failed";
+    var err = new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
     err.status = res.status;
     err.data = data;
     throw err;
@@ -50,42 +66,12 @@ SNM.api = async function (path, options) {
   return data;
 };
 
-SNM.renderAssistant = function (prefix, assistant, extraMeta) {
-  var card = document.getElementById(prefix + "AiCard");
-  var body = document.getElementById(prefix + "AiBody");
-  var source = document.getElementById(prefix + "AiSource");
-  var meta = document.getElementById(prefix + "AiMeta");
-  if (!card || !body) return;
-
-  if (!assistant || !assistant.message) {
-    card.hidden = true;
-    body.textContent = "";
-    if (source) source.textContent = "—";
-    if (meta) meta.textContent = "";
-    return;
-  }
-
-  body.textContent = assistant.message;
-  if (source) source.textContent = assistant.source || "assistant";
-  if (meta) {
-    var bits = [];
-    if (assistant.mode) bits.push(assistant.mode);
-    if (extraMeta) bits.push(extraMeta);
-    meta.textContent = bits.join(" · ");
-  }
-  card.hidden = false;
-};
-
-SNM.toast = function (msg, ms) {
-  var el = document.getElementById("toast");
-  if (!el) {
-    alert(msg);
-    return;
-  }
-  el.textContent = msg;
-  el.hidden = false;
-  clearTimeout(SNM._toastTimer);
-  SNM._toastTimer = setTimeout(function () {
-    el.hidden = true;
-  }, ms || 2800);
+SNM.qs = function (obj) {
+  var parts = [];
+  Object.keys(obj || {}).forEach(function (k) {
+    var v = obj[k];
+    if (v === undefined || v === null || v === "") return;
+    parts.push(encodeURIComponent(k) + "=" + encodeURIComponent(String(v)));
+  });
+  return parts.length ? "?" + parts.join("&") : "";
 };

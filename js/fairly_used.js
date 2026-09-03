@@ -1,147 +1,90 @@
-/* Shop Near Me — fairly_used.js (global open market) */
-(function () {
-  function el(id) {
-    return document.getElementById(id);
-  }
+window.SNM = window.SNM || {};
 
-  function escapeHtml(s) {
-    return String(s == null ? "" : s)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
-  }
-
-  SNM.loadFairlyUsed = async function () {
-    var box = el("fairlyUsedFeed") || el("fuFeed");
-    if (!box) return;
-    box.innerHTML = '<p class="muted">Loading fairly used…</p>';
-    try {
-      var data = await SNM.api("/fairly-used/posts", { method: "GET" });
-      var posts = (data && (data.posts || data.items || data)) || [];
-      if (!Array.isArray(posts)) posts = [];
-      if (!posts.length) {
-        box.innerHTML =
-          '<p class="muted">No posts yet. Be first to list a fairly used item.</p>';
-        return;
-      }
-      box.innerHTML = posts
-        .map(function (p) {
-          var id = escapeHtml(p.id || "");
-          var title = escapeHtml(p.title || p.body || "Listing");
-          var price =
-            p.price != null
-              ? escapeHtml(String(p.price)) + " NGN"
-              : "Contact seller";
-          var seller = escapeHtml(p.owner_name || p.seller_name || "Seller");
-          var peer = escapeHtml(p.owner_id || p.seller_id || "");
-          var place = escapeHtml(p.primary_location || p.city || "");
-          return (
-            '<article class="feed-card">' +
-            "<strong>" +
-            title +
-            "</strong>" +
-            '<p class="meta">' +
-            price +
-            (place ? " · " + place : "") +
-            "</p>" +
-            '<p class="muted">Seller: ' +
-            seller +
-            "</p>" +
-            '<div class="row gap">' +
-            '<button type="button" class="btn small" data-fu-comment="' +
-            id +
-            '">Comment</button>' +
-            '<button type="button" class="btn small secondary" data-fu-share="' +
-            id +
-            '">Share</button>' +
-            '<button type="button" class="btn small" data-message-seller="' +
-            peer +
-            '" data-seed="Hi — about your fairly used post">Message seller</button>' +
-            "</div></article>"
-          );
-        })
-        .join("");
-    } catch (e) {
-      box.innerHTML =
-        '<p class="err">' + escapeHtml(e.message || String(e)) + "</p>";
+SNM.loadFairlyUsed = async function () {
+  var feed = document.getElementById("fairlyUsedFeed");
+  if (!feed) return;
+  feed.innerHTML = "<p class='muted'>Loading fairly used…</p>";
+  try {
+    var data = await SNM.api("/fairly-used/posts");
+    var rows = data.posts || data.items || data.results || [];
+    if (!rows.length) {
+      feed.innerHTML =
+        "<div class='card'><p>No posts yet.</p><p class='muted'>Be the first to list a fairly used item.</p></div>";
+      return;
     }
-  };
+    feed.innerHTML = rows
+      .map(function (p) {
+        var title = p.title || p.name || "Post";
+        var note = p.note || p.body || "";
+        var price = p.price != null ? p.price : "";
+        var who = p.owner_name || p.seller_name || "";
+        var id = p.id || "";
+        var ownerId = p.owner_id || p.user_id || "";
+        return (
+          '<article class="product-card">' +
+          '<div class="title">' +
+          title +
+          "</div>" +
+          (note ? "<p>" + note + "</p>" : "") +
+          '<div class="meta">' +
+          [price, who].filter(Boolean).join(" · ") +
+          "</div>" +
+          '<div class="btn-row" style="margin-top:0.5rem">' +
+          '<button type="button" class="btn small secondary" data-fu-msg="' +
+          ownerId +
+          '" data-fu-name="' +
+          who +
+          '">Message seller</button>' +
+          "</div>" +
+          "</article>"
+        );
+      })
+      .join("");
+  } catch (err) {
+    feed.innerHTML =
+      "<div class='card'><p class='error show'>" +
+      (err.message || "Fairly used failed") +
+      "</p></div>";
+  }
+};
 
-  SNM.postFairlyUsed = async function () {
-    var bodyEl = el("fu-body") || el("fuText");
-    var priceEl = el("fu-price");
-    var titleEl = el("fu-title");
-    var body = bodyEl ? bodyEl.value.trim() : "";
-    var title = titleEl ? titleEl.value.trim() : body.slice(0, 80);
-    var price = priceEl ? parseFloat(priceEl.value) : null;
-    if (!body && !title) {
-      SNM.toast("Write a short note or title");
+SNM.bindFairlyUsed = function () {
+  document.getElementById("btnFuPost")?.addEventListener("click", async function () {
+    var title = (document.getElementById("fu-title")?.value || "").trim();
+    var note = (document.getElementById("fu-note")?.value || "").trim();
+    var priceRaw = document.getElementById("fu-price")?.value;
+    var price = priceRaw === "" || priceRaw == null ? null : parseFloat(priceRaw);
+    if (!title) {
+      SNM.toast("Enter a title");
       return;
     }
     try {
       await SNM.api("/fairly-used/posts", {
         method: "POST",
         body: {
-          title: title || "Fairly used",
-          body: body,
-          price: isNaN(price) ? null : price,
-        },
+          title: title,
+          note: note,
+          body: note,
+          price: price
+        }
       });
+      document.getElementById("fu-title").value = "";
+      document.getElementById("fu-note").value = "";
+      if (document.getElementById("fu-price"))
+        document.getElementById("fu-price").value = "";
       SNM.toast("Posted");
-      if (bodyEl) bodyEl.value = "";
-      if (titleEl) titleEl.value = "";
-      if (priceEl) priceEl.value = "";
-      await SNM.loadFairlyUsed();
-    } catch (e) {
-      SNM.toast(e.message || "Post failed");
+      SNM.loadFairlyUsed();
+    } catch (err) {
+      SNM.toast(err.message || "Post failed");
     }
-  };
+  });
 
-  SNM.bindFairlyUsed = function () {
-    var postBtn = el("btnFuPost") || el("btnFairlyPost");
-    if (postBtn) {
-      postBtn.onclick = function () {
-        SNM.postFairlyUsed();
-      };
-    }
-    var openBtn = el("btnFairlyUsed") || el("btnOpenFairlyUsed");
-    if (openBtn) {
-      openBtn.onclick = function () {
-        if (typeof SNM.showScreen === "function") {
-          SNM.showScreen("fairly-used");
-        }
-        SNM.loadFairlyUsed();
-      };
-    }
-    document.body.addEventListener("click", function (e) {
-      var c = e.target.closest("[data-fu-comment]");
-      if (c) {
-        var text = prompt("Comment:");
-        if (!text) return;
-        SNM.api(
-          "/fairly-used/posts/" +
-            encodeURIComponent(c.getAttribute("data-fu-comment")) +
-            "/comments",
-          { method: "POST", body: { body: text } }
-        )
-          .then(function () {
-            SNM.toast("Comment added");
-          })
-          .catch(function (err) {
-            SNM.toast(err.message || "Failed");
-          });
-        return;
-      }
-      var s = e.target.closest("[data-fu-share]");
-      if (s) {
-        var url = location.origin + location.pathname + "#fairly-used";
-        if (navigator.share) {
-          navigator.share({ title: "Fairly used", url: url }).catch(function () {});
-        } else {
-          SNM.toast("Link: " + url);
-        }
-      }
-    });
-  };
-})();
+  document.getElementById("fairlyUsedFeed")?.addEventListener("click", function (e) {
+    var btn = e.target.closest("[data-fu-msg]");
+    if (!btn) return;
+    var uid = btn.getAttribute("data-fu-msg");
+    var name = btn.getAttribute("data-fu-name") || "";
+    if (uid && typeof SNM.startChatWith === "function") SNM.startChatWith(uid, name);
+    else SNM.toast("Seller unavailable");
+  });
+};

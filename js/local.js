@@ -1,111 +1,72 @@
 window.SNM = window.SNM || {};
 
-SNM.STORAGE = {
-  token: "snm_token",
-  user: "snm_user",
-  pending: "snm_pending",
-  role: "snm_role"
-};
-
 SNM.getToken = function () {
   try {
-    return localStorage.getItem(SNM.STORAGE.token) || "";
+    return localStorage.getItem("snm_token") || "";
   } catch (e) {
     return "";
   }
 };
 
-SNM.setToken = function (token) {
+SNM.setToken = function (t) {
   try {
-    if (token) localStorage.setItem(SNM.STORAGE.token, token);
-    else localStorage.removeItem(SNM.STORAGE.token);
+    if (t) localStorage.setItem("snm_token", t);
+    else localStorage.removeItem("snm_token");
   } catch (e) {}
 };
 
 SNM.getUser = function () {
   try {
-    var raw = localStorage.getItem(SNM.STORAGE.user);
+    var raw = localStorage.getItem("snm_user");
     return raw ? JSON.parse(raw) : null;
   } catch (e) {
     return null;
   }
 };
 
-SNM.setUser = function (user) {
+SNM.setUser = function (u) {
   try {
-    if (user) localStorage.setItem(SNM.STORAGE.user, JSON.stringify(user));
-    else localStorage.removeItem(SNM.STORAGE.user);
+    if (u) localStorage.setItem("snm_user", JSON.stringify(u));
+    else localStorage.removeItem("snm_user");
   } catch (e) {}
 };
 
 SNM.clearSession = function () {
+  SNM.setToken("");
+  SNM.setUser(null);
   try {
-    localStorage.removeItem(SNM.STORAGE.token);
-    localStorage.removeItem(SNM.STORAGE.user);
-    localStorage.removeItem(SNM.STORAGE.pending);
-  } catch (e) {}
-};
-
-SNM.setPending = function (obj) {
-  try {
-    localStorage.setItem(SNM.STORAGE.pending, JSON.stringify(obj || {}));
+    localStorage.removeItem("snm_pending");
+    localStorage.removeItem("snm_role");
   } catch (e) {}
 };
 
 SNM.getPending = function () {
   try {
-    var raw = localStorage.getItem(SNM.STORAGE.pending);
+    var raw = localStorage.getItem("snm_pending");
     return raw ? JSON.parse(raw) : null;
   } catch (e) {
     return null;
   }
 };
 
-SNM.setRole = function (role) {
+SNM.setPending = function (p) {
   try {
-    localStorage.setItem(SNM.STORAGE.role, role || "buyer");
+    if (p) localStorage.setItem("snm_pending", JSON.stringify(p));
+    else localStorage.removeItem("snm_pending");
   } catch (e) {}
 };
 
 SNM.getRole = function () {
   try {
-    return localStorage.getItem(SNM.STORAGE.role) || "buyer";
+    return localStorage.getItem("snm_role") || (SNM.getUser() || {}).role || "";
   } catch (e) {
-    return "buyer";
+    return "";
   }
 };
 
-SNM.isBuyer = function (user) {
-  var u = user || SNM.getUser();
-  return !u || u.role === "buyer";
-};
-
-SNM.tabsFor = function (user) {
-  var u = user || SNM.getUser();
-  if (u && u.role && u.role !== "buyer") return SNM.SELLER_TABS;
-  return SNM.BUYER_TABS;
-};
-
-SNM.showError = function (id, msg) {
-  var el = document.getElementById(id);
-  if (!el) return;
-  if (!msg) {
-    el.textContent = "";
-    el.hidden = true;
-    return;
-  }
-  el.textContent = typeof msg === "string" ? msg : JSON.stringify(msg);
-  el.hidden = false;
-};
-
-SNM.val = function (id) {
-  var el = document.getElementById(id);
-  return el ? String(el.value || "").trim() : "";
-};
-
-SNM.requirePhonePlus = function (phone) {
-  if (!phone) return "Phone is required.";
-  if (phone.charAt(0) !== "+") return "Phone must start with + (international format).";
-  if (phone.length < 10) return "Phone number looks too short.";
-  return "";
+SNM.setRole = function (r) {
+  try {
+    if (r) localStorage.setItem("snm_role", r);
+    else localStorage.removeItem("snm_role");
+  } catch (e) {}
 };

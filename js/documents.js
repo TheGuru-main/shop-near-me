@@ -1,209 +1,155 @@
-/* Shop Near Me — documents.js
-   Receipts (free, download-oriented) + e-invoice / e-invoice++ (premium)
-   APIs: /receipts · /e-invoices · /premium/...
-*/
-(function () {
-  function el(id) {
-    return document.getElementById(id);
-  }
+window.SNM = window.SNM || {};
 
-  function escapeHtml(s) {
-    return String(s == null ? "" : s)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
-  }
+function money(n) {
+  var x = Number(n);
+  if (isNaN(x)) return "—";
+  return x.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
 
-  function money(n, cur) {
-    if (n == null || n === "") return "—";
-    var c = cur || "NGN";
-    return c + " " + Number(n).toLocaleString();
-  }
-
-  function parseLinesFromForm() {
-    var name = (el("doc-item-name") && el("doc-item-name").value.trim()) || "";
-    var qty = parseFloat((el("doc-item-qty") && el("doc-item-qty").value) || "1");
-    var price = parseFloat((el("doc-item-price") && el("doc-item-price").value) || "0");
-    if (!name) return [];
-    return [
-      {
-        name: name,
-        qty: isNaN(qty) ? 1 : qty,
-        unit_price: isNaN(price) ? 0 : price,
-      },
-    ];
-  }
-
-  SNM.loadReceipts = async function () {
-    var box = el("receiptList") || el("documentsReceipts");
-    if (!box) return;
-    box.innerHTML = '<p class="muted">Loading receipts…</p>';
-    try {
-      var data = await SNM.api("/receipts", { method: "GET" });
-      var items = (data && (data.items || data.receipts || data)) || [];
-      if (!Array.isArray(items)) items = [];
-      if (!items.length) {
-        box.innerHTML = '<p class="muted">No receipts yet. Create one below.</p>';
-        return;
-      }
-      box.innerHTML = items
-        .map(function (r) {
-          return (
-            '<article class="feed-card">' +
-            "<strong>" +
-            escapeHtml(r.number || r.id) +
-            "</strong>" +
-            '<p class="meta">' +
-            money(r.total, r.currency) +
-            (r.customer_name
-              ? " · " + escapeHtml(r.customer_name)
-              : "") +
-            "</p>" +
-            '<p class="muted">Download only · not shareable cloud link</p>' +
-            "</article>"
-          );
-        })
-        .join("");
-    } catch (e) {
-      box.innerHTML =
-        '<p class="err">' + escapeHtml(e.message || String(e)) + "</p>";
+function docLinesFromForm() {
+  var name = (document.getElementById("doc-item-name")?.value || "").trim();
+  var qty = parseFloat(document.getElementById("doc-item-qty")?.value || "1");
+  var price = parseFloat(document.getElementById("doc-item-price")?.value || "0");
+  if (!name) return [];
+  return [
+    {
+      name: name,
+      qty: isNaN(qty) ? 1 : qty,
+      unit_price: isNaN(price) ? 0 : price
     }
-  };
+  ];
+}
 
-  SNM.createReceipt = async function () {
-    var customer =
-      (el("doc-customer") && el("doc-customer").value.trim()) || "";
-    var lines = parseLinesFromForm();
-    if (!lines.length) {
-      SNM.toast("Add item name for receipt");
+SNM.loadDocuments = async function () {
+  await Promise.all([SNM.loadReceipts(), SNM.loadEInvoices()]);
+};
+
+SNM.loadReceipts = async function () {
+  var list = document.getElementById("receiptList");
+  if (!list) return;
+  list.innerHTML = "<p class='muted'>Loading receipts…</p>";
+  try {
+    var data = await SNM.api("/receipts");
+    var rows = data.items || data.results || [];
+    if (!rows.length) {
+      list.innerHTML = "<p class='muted'>No receipts yet.</p>";
       return;
     }
-    try {
-      var rec = await SNM.api("/receipts", {
-        method: "POST",
-        body: {
-          customer_name: customer,
-          lines: lines,
-          currency: "NGN",
-        },
-      });
-      SNM.toast("Receipt " + (rec.number || "saved"));
-      await SNM.loadReceipts();
-    } catch (e) {
-      SNM.toast(e.message || "Receipt failed");
-    }
-  };
+    list.innerHTML = rows
+      .map(function (r) {
+        return (
+          '<article class="product-card">' +
+          '<div class="title">' +
+          (r.number || r.id) +
+          "</div>" +
+          '<div class="meta">' +
+          money(r.total) +
+          " " +
+          (r.currency || "") +
+          "</div>" +
+          "</article>"
+        );
+      })
+      .join("");
+  } catch (err) {
+    list.innerHTML =
+      "<p class='error show'>" + (err.message || "Receipts failed") + "</p>";
+  }
+};
 
-  SNM.loadEInvoices = async function () {
-    var box = el("einvoiceList") || el("documentsInvoices");
-    if (!box) return;
-    box.innerHTML = '<p class="muted">Loading e-invoices…</p>';
-    try {
-      var data = await SNM.api("/e-invoices", { method: "GET" });
-      var items = (data && (data.items || data.invoices || data)) || [];
-      if (!Array.isArray(items)) items = [];
-      if (!items.length) {
-        box.innerHTML =
-          '<p class="muted">No e-invoices yet. Requires active e-invoice plan when capacity is enforced.</p>';
-        return;
-      }
-      box.innerHTML = items
-        .map(function (r) {
-          var status = escapeHtml(r.status || "issued");
-          return (
-            '<article class="feed-card">' +
-            "<strong>" +
-            escapeHtml(r.number || r.id) +
-            "</strong>" +
-            '<p class="meta">' +
-            money(r.total, r.currency) +
-            " · " +
-            status +
-            "</p>" +
-            '<p class="muted">' +
-            escapeHtml(r.customer_name || "") +
-            (r.kind === "e_invoice_pp" ? " · Invoice++" : " · E-Invoice") +
-            "</p>" +
-            "</article>"
-          );
-        })
-        .join("");
-    } catch (e) {
-      box.innerHTML =
-        '<p class="err">' + escapeHtml(e.message || String(e)) + "</p>";
-    }
-  };
-
-  SNM.createEInvoice = async function (kind) {
-    var customer =
-      (el("doc-customer") && el("doc-customer").value.trim()) || "";
-    var phone =
-      (el("doc-customer-phone") && el("doc-customer-phone").value.trim()) ||
-      null;
-    var lines = parseLinesFromForm();
-    if (!lines.length) {
-      SNM.toast("Add at least one line item");
+SNM.loadEInvoices = async function () {
+  var list = document.getElementById("einvoiceList");
+  if (!list) return;
+  list.innerHTML = "<p class='muted'>Loading e-invoices…</p>";
+  try {
+    var data = await SNM.api("/e-invoices");
+    var rows = data.items || data.results || [];
+    if (!rows.length) {
+      list.innerHTML = "<p class='muted'>No e-invoices yet.</p>";
       return;
     }
-    var k = kind === "e_invoice_pp" ? "e_invoice_pp" : "e_invoice";
+    list.innerHTML = rows
+      .map(function (r) {
+        return (
+          '<article class="product-card">' +
+          '<div class="title">' +
+          (r.number || r.id) +
+          "</div>" +
+          '<div class="meta">' +
+          money(r.total) +
+          " " +
+          (r.currency || "") +
+          (r.kind ? " · " + r.kind : "") +
+          "</div>" +
+          "</article>"
+        );
+      })
+      .join("");
+  } catch (err) {
+    list.innerHTML =
+      "<p class='error show'>" + (err.message || "E-invoices failed") + "</p>";
+  }
+};
+
+SNM.bindDocuments = function () {
+  document.getElementById("btnCreateReceipt")?.addEventListener("click", async function () {
+    var lines = docLinesFromForm();
+    if (!lines.length) return SNM.toast("Enter item name");
     try {
-      var inv = await SNM.api("/e-invoices", {
+      await SNM.api("/receipts", {
         method: "POST",
         body: {
-          customer_name: customer,
-          customer_phone: phone,
+          customer_name: (document.getElementById("doc-customer")?.value || "").trim(),
+          lines: lines,
+          currency: "NGN"
+        }
+      });
+      SNM.toast("Receipt created (device download / list)");
+      SNM.loadReceipts();
+    } catch (err) {
+      SNM.toast(err.message || "Receipt failed");
+    }
+  });
+
+  document.getElementById("btnCreateEinvoice")?.addEventListener("click", async function () {
+    var lines = docLinesFromForm();
+    if (!lines.length) return SNM.toast("Enter item name");
+    try {
+      await SNM.api("/e-invoices", {
+        method: "POST",
+        body: {
+          customer_name: (document.getElementById("doc-customer")?.value || "").trim(),
+          customer_phone: (document.getElementById("doc-customer-phone")?.value || "").trim(),
           lines: lines,
           currency: "NGN",
-          kind: k,
-        },
+          kind: "e_invoice"
+        }
       });
-      SNM.toast("E-invoice " + (inv.number || "created"));
-      await SNM.loadEInvoices();
-    } catch (e) {
-      SNM.toast(e.message || "E-invoice failed — check premium capacity");
+      SNM.toast("E-Invoice created");
+      SNM.loadEInvoices();
+    } catch (err) {
+      SNM.toast(err.message || "E-Invoice failed — check premium capacity");
     }
-  };
+  });
 
-  SNM.openDocuments = function () {
-    if (typeof SNM.showScreen === "function") {
-      SNM.showScreen("documents");
+  document.getElementById("btnCreateEinvoicePp")?.addEventListener("click", async function () {
+    var lines = docLinesFromForm();
+    if (!lines.length) return SNM.toast("Enter item name");
+    try {
+      await SNM.api("/e-invoices", {
+        method: "POST",
+        body: {
+          customer_name: (document.getElementById("doc-customer")?.value || "").trim(),
+          customer_phone: (document.getElementById("doc-customer-phone")?.value || "").trim(),
+          lines: lines,
+          currency: "NGN",
+          kind: "e_invoice_pp"
+        }
+      });
+      SNM.toast("E-Invoice++ created");
+      SNM.loadEInvoices();
+    } catch (err) {
+      SNM.toast(err.message || "E-Invoice++ failed");
     }
-    SNM.loadReceipts();
-    SNM.loadEInvoices();
-  };
-
-  SNM.bindDocuments = function () {
-    var open = el("btnDocuments") || el("btnOpenDocuments");
-    if (open) {
-      open.onclick = function () {
-        SNM.openDocuments();
-      };
-    }
-    var rBtn = el("btnCreateReceipt");
-    if (rBtn) {
-      rBtn.onclick = function () {
-        SNM.createReceipt();
-      };
-    }
-    var iBtn = el("btnCreateEinvoice");
-    if (iBtn) {
-      iBtn.onclick = function () {
-        SNM.createEInvoice("e_invoice");
-      };
-    }
-    var ppBtn = el("btnCreateEinvoicePp");
-    if (ppBtn) {
-      ppBtn.onclick = function () {
-        SNM.createEInvoice("e_invoice_pp");
-      };
-    }
-    var refresh = el("btnRefreshDocuments");
-    if (refresh) {
-      refresh.onclick = function () {
-        SNM.loadReceipts();
-        SNM.loadEInvoices();
-      };
-    }
-  };
-})();
+  });
+};
