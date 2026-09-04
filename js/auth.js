@@ -1,252 +1,176 @@
 window.SNM = window.SNM || {};
 
-SNM.currentRole = null;
-
 function showErr(id, msg) {
   var el = document.getElementById(id);
   if (!el) return;
   el.textContent = msg || "";
-  if (msg) el.classList.add("show");
-  else el.classList.remove("show");
 }
 
 function getGeo() {
   return new Promise(function (resolve) {
     if (!navigator.geolocation) {
-      resolve({ lat: null, lng: null, err: "Geolocation not supported" });
+      resolve({ lat: 4.85, lng: 7.05 }); // PH fallback soft
       return;
     }
     navigator.geolocation.getCurrentPosition(
       function (pos) {
-        resolve({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          err: null
-        });
+        resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
       },
       function () {
-        resolve({ lat: null, lng: null, err: "Location permission denied" });
+        resolve({ lat: 4.85, lng: 7.05 });
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+      { timeout: 12000, maximumAge: 60000 }
     );
   });
 }
 
 SNM.onAuthed = function () {
-  SNM.showScreen("home");
-  if (typeof SNM.refreshHome === "function") SNM.refreshHome();
-};
-
-SNM.logout = function () {
-  SNM.clearSession();
-  SNM.showScreen("role-select");
+  SNM.applyRoleChrome();
+  if (!SNM.isSetupDone()) {
+    var role = SNM.getRole();
+    var map = {
+      buyer: "setup-buyer",
+      merchant: "setup-merchant",
+      service_provider: "setup-service",
+      driver: "setup-driver",
+      emergency: "setup-emergency"
+    };
+    SNM.showScreen(map[role] || "setup-buyer");
+    if (typeof SNM.initSetupScreens === "function") SNM.initSetupScreens();
+    return;
+  }
+  SNM.go("home");
 };
 
 SNM.bindAuth = function () {
-  var grid = document.getElementById("roleGrid");
-  if (grid) {
-    grid.innerHTML = (SNM.ROLES || [])
-      .map(function (r) {
-        return (
-          '<button type="button" class="role-card" data-role="' +
-          r.id +
-          '">' +
-          r.icon +
-          "<br>" +
-          r.label +
-          "</button>"
-        );
-      })
-      .join("");
-  }
+  if (typeof SNM.bindCascade === "function") SNM.bindCascade();
 
-  var cont = document.getElementById("reg-continent");
-  if (cont) {
-    cont.innerHTML =
-      '<option value="">Select continent</option>' +
-      (SNM.CONTINENTS || [])
-        .map(function (c) {
-          return (
-            '<option value="' + c.id + '">' + c.name + "</option>"
-          );
-        })
-        .join("");
-  }
-
-  if (typeof SNM.bindCascade === "function") {
-    SNM.bindCascade();
-  }
-
-  var ver = document.getElementById("aboutVersion");
-  if (ver) ver.textContent = SNM.APP_VERSION || "1.0.0.1p";
-
-  document.getElementById("roleGrid")?.addEventListener("click", function (e) {
-    var btn = e.target.closest("[data-role]");
-    if (!btn) return;
-    SNM.currentRole = btn.getAttribute("data-role");
-    SNM.setRole(SNM.currentRole);
-    var lab = document.getElementById("regRoleLabel");
-    if (lab) lab.textContent = SNM.currentRole;
-    SNM.showScreen("register");
-  });
-
-  document.getElementById("btnGoLogin")?.addEventListener("click", function () {
-    SNM.showScreen("login");
-  });
-
-  document.getElementById("btnRegister")?.addEventListener("click", async function () {
-    showErr("regError", "");
-    var name = (document.getElementById("reg-name")?.value || "").trim();
-    var continent = document.getElementById("reg-continent")?.value || "";
-    var country = (document.getElementById("reg-country")?.value || "").trim();
-    var region = (document.getElementById("reg-region")?.value || "").trim();
-    var city = (document.getElementById("reg-city")?.value || "").trim();
-    var community = (document.getElementById("reg-community")?.value || "").trim();
-    var primary = (document.getElementById("reg-primary")?.value || "").trim();
-    var phone = (document.getElementById("reg-phone")?.value || "").trim();
-    var password = document.getElementById("reg-password")?.value || "";
-
-    if (!name) return showErr("regError", "Enter name");
-    if (!continent) return showErr("regError", "Select continent");
-    if (!country) return showErr("regError", "Select country");
-    if (!region) return showErr("regError", "Select state / region");
-    if (!city) return showErr("regError", "Select city / town");
-    if (!community) return showErr("regError", "Select community / LGA");
-    if (!primary) return showErr("regError", "Enter primary location");
-    if (!phone || phone.charAt(0) !== "+")
-      return showErr("regError", "Phone must start with + (set by country)");
-    if (!password) return showErr("regError", "Create password");
-
-    var cmeta = (SNM.CONTINENTS || []).find(function (c) {
-      return c.id === continent;
-    });
-
-    showErr("regError", "Getting your location…");
-    var geo = await getGeo();
-    if (geo.lat == null || geo.lng == null) {
-      return showErr(
-        "regError",
-        geo.err ||
-          "Location required. Enable GPS and allow location, then try again."
-      );
-    }
-    showErr("regError", "");
-
-    var body = {
-      name: name,
-      phone: phone,
-      password: password,
-      role: SNM.currentRole || SNM.getRole() || "buyer",
-      continent_id: continent,
-      continent_name: cmeta ? cmeta.name : "",
-      country: country,
-      region: region,
-      city: city,
-      community: community,
-      primary_location: primary,
-      lat: geo.lat,
-      lng: geo.lng
+  document.querySelectorAll(".role-card").forEach(function (btn) {
+    btn.onclick = function () {
+      var role = btn.getAttribute("data-role");
+      SNM.setRole(role);
+      var lab = document.getElementById("regRoleLabel");
+      if (lab) lab.textContent = role;
+      SNM.showScreen("register");
     };
+  });
 
+  var goLogin = document.getElementById("btnGoLogin");
+  if (goLogin) goLogin.onclick = function () { SNM.showScreen("login"); };
+
+  var btnReg = document.getElementById("btnRegister");
+  if (btnReg) btnReg.onclick = async function () {
+    showErr("regError", "");
     try {
-      var data = await SNM.api("/auth/otp/request", {
-        method: "POST",
-        body: body
-      });
+      var name = (document.getElementById("reg-name").value || "").trim();
+      var continentId = document.getElementById("reg-continent").value;
+      var continent = (SNM.CONTINENTS || []).find(function (c) { return c.id === continentId; });
+      var country = document.getElementById("reg-country").value;
+      var region = document.getElementById("reg-region").value;
+      var city = document.getElementById("reg-city").value;
+      var community = document.getElementById("reg-community").value;
+      var primary = (document.getElementById("reg-primary").value || "").trim();
+      var password = document.getElementById("reg-password").value || "";
+      var phone = SNM.composePhone();
+      var role = SNM.getRole() || "buyer";
+
+      if (!name || !continentId || !country || !primary || !password) {
+        showErr("regError", "Fill name, continent, country, primary location, password.");
+        return;
+      }
+      if (!phone || phone.length < 10) {
+        showErr("regError", "Enter a valid local number (no leading 0).");
+        return;
+      }
+
+      var geo = await getGeo();
+      var body = {
+        name: name,
+        phone: phone,
+        password: password,
+        role: role,
+        continent_id: continentId,
+        continent_name: (continent && continent.name) || "",
+        country: country,
+        region: region || "",
+        city: city || "",
+        community: community || "",
+        primary_location: primary,
+        lat: geo.lat,
+        lng: geo.lng
+      };
+
+      var data = await SNM.api("/auth/otp/request", { method: "POST", body: body });
       SNM.setPending({
         pending_id: data.pending_id || data.id,
         phone: phone,
         name: name
       });
-      if (data.otp_dev) {
-        SNM.toast("Beta OTP: " + data.otp_dev);
-        var otpInput = document.getElementById("otp-code");
-        if (otpInput) otpInput.value = String(data.otp_dev);
-      }
+      if (data.otp_dev) SNM.toast("Dev OTP: " + data.otp_dev);
       SNM.showScreen("otp");
-    } catch (err) {
-      showErr("regError", err.message || "OTP request failed");
+    } catch (e) {
+      showErr("regError", e.message || String(e));
     }
-  });
+  };
 
-  document.getElementById("btnVerifyOtp")?.addEventListener("click", async function () {
+  var btnOtp = document.getElementById("btnVerifyOtp");
+  if (btnOtp) btnOtp.onclick = async function () {
     showErr("otpError", "");
-    var pending = SNM.getPending() || {};
-    var otp = (document.getElementById("otp-code")?.value || "").trim();
-    if (!otp || otp.length < 4) return showErr("otpError", "Enter OTP");
     try {
+      var pending = SNM.getPending() || {};
+      var otp = (document.getElementById("otp-code").value || "").trim();
+      if (!otp || otp.length < 4) {
+        showErr("otpError", "Enter OTP");
+        return;
+      }
       var data = await SNM.api("/auth/otp/verify", {
         method: "POST",
-        body: {
-          pending_id: pending.pending_id,
-          otp: otp
-        }
+        body: { pending_id: pending.pending_id, otp: otp }
       });
-      SNM.setToken(data.access_token || data.token || "");
-      SNM.setUser(data.user || data);
+      if (data.access_token) SNM.setToken(data.access_token);
+      if (data.user) {
+        SNM.setUser(data.user);
+        if (data.user.role) SNM.setRole(data.user.role);
+      }
       SNM.setPending(null);
       SNM.onAuthed();
-    } catch (err) {
-      showErr("otpError", err.message || "Invalid OTP");
+    } catch (e) {
+      showErr("otpError", e.message || String(e));
     }
-  });
+  };
 
-  document.getElementById("btnResendOtp")?.addEventListener("click", async function () {
-    var pending = SNM.getPending() || {};
-    if (!pending.pending_id) return showErr("otpError", "No pending signup");
+  var btnResend = document.getElementById("btnResendOtp");
+  if (btnResend) btnResend.onclick = async function () {
     try {
-      var data = await SNM.api(
-        "/auth/otp/resend?pending_id=" +
-          encodeURIComponent(pending.pending_id),
-        { method: "POST" }
-      );
-      if (data && data.otp_dev) {
-        SNM.toast("Beta OTP: " + data.otp_dev);
-        var otpInput = document.getElementById("otp-code");
-        if (otpInput) otpInput.value = String(data.otp_dev);
-      } else {
-        SNM.toast("OTP resent");
-      }
-    } catch (err) {
-      showErr("otpError", err.message || "Resend failed");
+      var pending = SNM.getPending() || {};
+      var data = await SNM.api("/auth/otp/resend?pending_id=" + encodeURIComponent(pending.pending_id || ""), {
+        method: "POST"
+      });
+      if (data && data.otp_dev) SNM.toast("Dev OTP: " + data.otp_dev);
+      else SNM.toast("OTP resent");
+    } catch (e) {
+      showErr("otpError", e.message || String(e));
     }
-  });
+  };
 
-  document.getElementById("btnLogin")?.addEventListener("click", async function () {
+  var btnLogin = document.getElementById("btnLogin");
+  if (btnLogin) btnLogin.onclick = async function () {
     showErr("loginError", "");
-    var phone = (document.getElementById("login-phone")?.value || "").trim();
-    var password = document.getElementById("login-password")?.value || "";
-    if (!phone || phone.charAt(0) !== "+")
-      return showErr("loginError", "Phone must start with +");
-    if (!password) return showErr("loginError", "Enter password");
     try {
+      var phone = (document.getElementById("login-phone").value || "").trim();
+      var password = document.getElementById("login-password").value || "";
       var data = await SNM.api("/auth/login", {
         method: "POST",
         body: { phone: phone, password: password }
       });
-      SNM.setToken(data.access_token || data.token || "");
-      SNM.setUser(data.user || data);
+      if (data.access_token) SNM.setToken(data.access_token);
+      if (data.user) {
+        SNM.setUser(data.user);
+        if (data.user.role) SNM.setRole(data.user.role);
+      }
       SNM.onAuthed();
-    } catch (err) {
-      showErr("loginError", err.message || "Login failed");
+    } catch (e) {
+      showErr("loginError", e.message || String(e));
     }
-  });
-
-  document.getElementById("btnLogoutProfile")?.addEventListener("click", SNM.logout);
-  document.getElementById("btnCloseProfile")?.addEventListener("click", function () {
-    document.getElementById("profileSheet")?.classList.remove("open");
-  });
-
-  document.getElementById("btnMenu")?.addEventListener("click", function () {
-    document.getElementById("menuSheet")?.classList.toggle("hidden");
-  });
-
-  document.getElementById("menuSheet")?.addEventListener("click", function (e) {
-    var btn = e.target.closest("[data-menu]");
-    if (!btn) return;
-    var act = btn.getAttribute("data-menu");
-    document.getElementById("menuSheet")?.classList.add("hidden");
-    if (act === "logout") return SNM.logout();
-    if (document.getElementById(act)) SNM.showScreen(act);
-  });
+  };
 };

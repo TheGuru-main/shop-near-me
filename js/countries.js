@@ -1,276 +1,269 @@
 window.SNM = window.SNM || {};
 
-/**
- * Full country registry for Shop Near Me
- * continent: 001 NA · 002 SA · 003 Africa · 004 Asia · 005 Europe · 006 Antarctica · 007 Oceania
- * dial is primary E.164 prefix (spaces stripped in UI compose)
- */
-SNM.COUNTRIES = [
-  // —— Africa (complete) ——
-  { name: "Algeria", code: "DZ", dial: "+213", continent: "003" },
-  { name: "Angola", code: "AO", dial: "+244", continent: "003" },
-  { name: "Benin", code: "BJ", dial: "+229", continent: "003" },
-  { name: "Botswana", code: "BW", dial: "+267", continent: "003" },
-  { name: "Burkina Faso", code: "BF", dial: "+226", continent: "003" },
-  { name: "Burundi", code: "BI", dial: "+257", continent: "003" },
-  { name: "Cameroon", code: "CM", dial: "+237", continent: "003" },
-  { name: "Cape Verde", code: "CV", dial: "+238", continent: "003" },
-  { name: "Central African Republic", code: "CF", dial: "+236", continent: "003" },
-  { name: "Chad", code: "TD", dial: "+235", continent: "003" },
-  { name: "Comoros", code: "KM", dial: "+269", continent: "003" },
-  { name: "Congo", code: "CG", dial: "+242", continent: "003" },
-  { name: "Democratic Republic of the Congo", code: "CD", dial: "+243", continent: "003" },
-  { name: "Djibouti", code: "DJ", dial: "+253", continent: "003" },
-  { name: "Egypt", code: "EG", dial: "+20", continent: "003" },
-  { name: "Equatorial Guinea", code: "GQ", dial: "+240", continent: "003" },
-  { name: "Eritrea", code: "ER", dial: "+291", continent: "003" },
-  { name: "Eswatini", code: "SZ", dial: "+268", continent: "003" },
-  { name: "Ethiopia", code: "ET", dial: "+251", continent: "003" },
-  { name: "Gabon", code: "GA", dial: "+241", continent: "003" },
-  { name: "Gambia", code: "GM", dial: "+220", continent: "003" },
-  { name: "Ghana", code: "GH", dial: "+233", continent: "003" },
-  { name: "Guinea", code: "GN", dial: "+224", continent: "003" },
-  { name: "Guinea-Bissau", code: "GW", dial: "+245", continent: "003" },
-  { name: "Ivory Coast", code: "CI", dial: "+225", continent: "003" },
-  { name: "Kenya", code: "KE", dial: "+254", continent: "003" },
-  { name: "Lesotho", code: "LS", dial: "+266", continent: "003" },
-  { name: "Liberia", code: "LR", dial: "+231", continent: "003" },
-  { name: "Libya", code: "LY", dial: "+218", continent: "003" },
-  { name: "Madagascar", code: "MG", dial: "+261", continent: "003" },
-  { name: "Malawi", code: "MW", dial: "+265", continent: "003" },
-  { name: "Mali", code: "ML", dial: "+223", continent: "003" },
-  { name: "Mauritania", code: "MR", dial: "+222", continent: "003" },
-  { name: "Mauritius", code: "MU", dial: "+230", continent: "003" },
-  { name: "Mayotte", code: "YT", dial: "+262", continent: "003" },
-  { name: "Morocco", code: "MA", dial: "+212", continent: "003" },
-  { name: "Mozambique", code: "MZ", dial: "+258", continent: "003" },
-  { name: "Namibia", code: "NA", dial: "+264", continent: "003" },
-  { name: "Niger", code: "NE", dial: "+227", continent: "003" },
-  { name: "Nigeria", code: "NG", dial: "+234", continent: "003" },
-  { name: "Reunion Island", code: "RE", dial: "+262", continent: "003" },
-  { name: "Rwanda", code: "RW", dial: "+250", continent: "003" },
-  { name: "Sao Tome and Principe", code: "ST", dial: "+239", continent: "003" },
-  { name: "Senegal", code: "SN", dial: "+221", continent: "003" },
-  { name: "Seychelles", code: "SC", dial: "+248", continent: "003" },
-  { name: "Sierra Leone", code: "SL", dial: "+232", continent: "003" },
-  { name: "Somalia", code: "SO", dial: "+252", continent: "003" },
-  { name: "South Africa", code: "ZA", dial: "+27", continent: "003" },
-  { name: "South Sudan", code: "SS", dial: "+211", continent: "003" },
-  { name: "Sudan", code: "SD", dial: "+249", continent: "003" },
-  { name: "Tanzania", code: "TZ", dial: "+255", continent: "003" },
-  { name: "Togo", code: "TG", dial: "+228", continent: "003" },
-  { name: "Tunisia", code: "TN", dial: "+216", continent: "003" },
-  { name: "Uganda", code: "UG", dial: "+256", continent: "003" },
-  { name: "Western Sahara", code: "EH", dial: "+212", continent: "003" },
-  { name: "Zambia", code: "ZM", dial: "+260", continent: "003" },
-  { name: "Zimbabwe", code: "ZW", dial: "+263", continent: "003" },
-
-  // —— North America ——
-  { name: "Anguilla", code: "AI", dial: "+1264", continent: "001" },
-  { name: "Antigua and Barbuda", code: "AG", dial: "+1268", continent: "001" },
-  { name: "Aruba", code: "AW", dial: "+297", continent: "001" },
-  { name: "Bahamas", code: "BS", dial: "+1242", continent: "001" },
-  { name: "Barbados", code: "BB", dial: "+1246", continent: "001" },
-  { name: "Belize", code: "BZ", dial: "+501", continent: "001" },
-  { name: "Bermuda", code: "BM", dial: "+1441", continent: "001" },
-  { name: "British Virgin Islands", code: "VG", dial: "+1284", continent: "001" },
-  { name: "Canada", code: "CA", dial: "+1", continent: "001" },
-  { name: "Cayman Islands", code: "KY", dial: "+1345", continent: "001" },
-  { name: "Costa Rica", code: "CR", dial: "+506", continent: "001" },
-  { name: "Cuba", code: "CU", dial: "+53", continent: "001" },
-  { name: "Dominica", code: "DM", dial: "+1767", continent: "001" },
-  { name: "Dominican Republic", code: "DO", dial: "+1809", continent: "001" },
-  { name: "El Salvador", code: "SV", dial: "+503", continent: "001" },
-  { name: "Greenland", code: "GL", dial: "+299", continent: "001" },
-  { name: "Grenada", code: "GD", dial: "+1473", continent: "001" },
-  { name: "Guadeloupe", code: "GP", dial: "+590", continent: "001" },
-  { name: "Guatemala", code: "GT", dial: "+502", continent: "001" },
-  { name: "Haiti", code: "HT", dial: "+509", continent: "001" },
-  { name: "Honduras", code: "HN", dial: "+504", continent: "001" },
-  { name: "Jamaica", code: "JM", dial: "+1876", continent: "001" },
-  { name: "Martinique", code: "MQ", dial: "+596", continent: "001" },
-  { name: "Mexico", code: "MX", dial: "+52", continent: "001" },
-  { name: "Montserrat", code: "MS", dial: "+1664", continent: "001" },
-  { name: "Nicaragua", code: "NI", dial: "+505", continent: "001" },
-  { name: "Panama", code: "PA", dial: "+507", continent: "001" },
-  { name: "Puerto Rico", code: "PR", dial: "+1787", continent: "001" },
-  { name: "Saint Barthelemy", code: "BL", dial: "+590", continent: "001" },
-  { name: "Saint Kitts and Nevis", code: "KN", dial: "+1869", continent: "001" },
-  { name: "Saint Lucia", code: "LC", dial: "+1758", continent: "001" },
-  { name: "Saint Martin", code: "MF", dial: "+590", continent: "001" },
-  { name: "Saint Pierre and Miquelon", code: "PM", dial: "+508", continent: "001" },
-  { name: "Saint Vincent and the Grenadines", code: "VC", dial: "+1784", continent: "001" },
-  { name: "Sint Maarten", code: "SX", dial: "+1721", continent: "001" },
-  { name: "Trinidad and Tobago", code: "TT", dial: "+1868", continent: "001" },
-  { name: "Turks and Caicos Islands", code: "TC", dial: "+1649", continent: "001" },
-  { name: "United States", code: "US", dial: "+1", continent: "001" },
-  { name: "US Virgin Islands", code: "VI", dial: "+1340", continent: "001" },
-
-  // —— South America ——
-  { name: "Argentina", code: "AR", dial: "+54", continent: "002" },
-  { name: "Bolivia", code: "BO", dial: "+591", continent: "002" },
-  { name: "Brazil", code: "BR", dial: "+55", continent: "002" },
-  { name: "Chile", code: "CL", dial: "+56", continent: "002" },
-  { name: "Colombia", code: "CO", dial: "+57", continent: "002" },
-  { name: "Ecuador", code: "EC", dial: "+593", continent: "002" },
-  { name: "Falkland Islands", code: "FK", dial: "+500", continent: "002" },
-  { name: "French Guiana", code: "GF", dial: "+594", continent: "002" },
-  { name: "Guyana", code: "GY", dial: "+592", continent: "002" },
-  { name: "Paraguay", code: "PY", dial: "+595", continent: "002" },
-  { name: "Peru", code: "PE", dial: "+51", continent: "002" },
-  { name: "Suriname", code: "SR", dial: "+597", continent: "002" },
-  { name: "Uruguay", code: "UY", dial: "+598", continent: "002" },
-  { name: "Venezuela", code: "VE", dial: "+58", continent: "002" },
-
-  // —— Asia ——
-  { name: "Afghanistan", code: "AF", dial: "+93", continent: "004" },
-  { name: "Armenia", code: "AM", dial: "+374", continent: "004" },
-  { name: "Azerbaijan", code: "AZ", dial: "+994", continent: "004" },
-  { name: "Bahrain", code: "BH", dial: "+973", continent: "004" },
-  { name: "Bangladesh", code: "BD", dial: "+880", continent: "004" },
-  { name: "Bhutan", code: "BT", dial: "+975", continent: "004" },
-  { name: "Brunei", code: "BN", dial: "+673", continent: "004" },
-  { name: "Burma (Myanmar)", code: "MM", dial: "+95", continent: "004" },
-  { name: "Cambodia", code: "KH", dial: "+855", continent: "004" },
-  { name: "China", code: "CN", dial: "+86", continent: "004" },
-  { name: "Cyprus", code: "CY", dial: "+357", continent: "004" },
-  { name: "Georgia", code: "GE", dial: "+995", continent: "004" },
-  { name: "Hong Kong", code: "HK", dial: "+852", continent: "004" },
-  { name: "India", code: "IN", dial: "+91", continent: "004" },
-  { name: "Indonesia", code: "ID", dial: "+62", continent: "004" },
-  { name: "Iran", code: "IR", dial: "+98", continent: "004" },
-  { name: "Iraq", code: "IQ", dial: "+964", continent: "004" },
-  { name: "Israel", code: "IL", dial: "+972", continent: "004" },
-  { name: "Japan", code: "JP", dial: "+81", continent: "004" },
-  { name: "Jordan", code: "JO", dial: "+962", continent: "004" },
-  { name: "Kazakhstan", code: "KZ", dial: "+7", continent: "004" },
-  { name: "Kuwait", code: "KW", dial: "+965", continent: "004" },
-  { name: "Kyrgyzstan", code: "KG", dial: "+996", continent: "004" },
-  { name: "Laos", code: "LA", dial: "+856", continent: "004" },
-  { name: "Lebanon", code: "LB", dial: "+961", continent: "004" },
-  { name: "Macau", code: "MO", dial: "+853", continent: "004" },
-  { name: "Malaysia", code: "MY", dial: "+60", continent: "004" },
-  { name: "Maldives", code: "MV", dial: "+960", continent: "004" },
-  { name: "Mongolia", code: "MN", dial: "+976", continent: "004" },
-  { name: "Nepal", code: "NP", dial: "+977", continent: "004" },
-  { name: "North Korea", code: "KP", dial: "+850", continent: "004" },
-  { name: "Oman", code: "OM", dial: "+968", continent: "004" },
-  { name: "Pakistan", code: "PK", dial: "+92", continent: "004" },
-  { name: "Palestine", code: "PS", dial: "+970", continent: "004" },
-  { name: "Philippines", code: "PH", dial: "+63", continent: "004" },
-  { name: "Qatar", code: "QA", dial: "+974", continent: "004" },
-  { name: "Saudi Arabia", code: "SA", dial: "+966", continent: "004" },
-  { name: "Singapore", code: "SG", dial: "+65", continent: "004" },
-  { name: "South Korea", code: "KR", dial: "+82", continent: "004" },
-  { name: "Sri Lanka", code: "LK", dial: "+94", continent: "004" },
-  { name: "Syria", code: "SY", dial: "+963", continent: "004" },
-  { name: "Taiwan", code: "TW", dial: "+886", continent: "004" },
-  { name: "Tajikistan", code: "TJ", dial: "+992", continent: "004" },
-  { name: "Thailand", code: "TH", dial: "+66", continent: "004" },
-  { name: "Timor-Leste", code: "TL", dial: "+670", continent: "004" },
-  { name: "Turkey", code: "TR", dial: "+90", continent: "004" },
-  { name: "Turkmenistan", code: "TM", dial: "+993", continent: "004" },
-  { name: "United Arab Emirates", code: "AE", dial: "+971", continent: "004" },
-  { name: "Uzbekistan", code: "UZ", dial: "+998", continent: "004" },
-  { name: "Vietnam", code: "VN", dial: "+84", continent: "004" },
-  { name: "Yemen", code: "YE", dial: "+967", continent: "004" },
-
-  // —— Europe ——
-  { name: "Albania", code: "AL", dial: "+355", continent: "005" },
-  { name: "Andorra", code: "AD", dial: "+376", continent: "005" },
-  { name: "Austria", code: "AT", dial: "+43", continent: "005" },
-  { name: "Belarus", code: "BY", dial: "+375", continent: "005" },
-  { name: "Belgium", code: "BE", dial: "+32", continent: "005" },
-  { name: "Bosnia and Herzegovina", code: "BA", dial: "+387", continent: "005" },
-  { name: "Bulgaria", code: "BG", dial: "+359", continent: "005" },
-  { name: "Croatia", code: "HR", dial: "+385", continent: "005" },
-  { name: "Czech Republic", code: "CZ", dial: "+420", continent: "005" },
-  { name: "Denmark", code: "DK", dial: "+45", continent: "005" },
-  { name: "Estonia", code: "EE", dial: "+372", continent: "005" },
-  { name: "Faroe Islands", code: "FO", dial: "+298", continent: "005" },
-  { name: "Finland", code: "FI", dial: "+358", continent: "005" },
-  { name: "France", code: "FR", dial: "+33", continent: "005" },
-  { name: "Germany", code: "DE", dial: "+49", continent: "005" },
-  { name: "Gibraltar", code: "GI", dial: "+350", continent: "005" },
-  { name: "Greece", code: "GR", dial: "+30", continent: "005" },
-  { name: "Holy See (Vatican City)", code: "VA", dial: "+39", continent: "005" },
-  { name: "Hungary", code: "HU", dial: "+36", continent: "005" },
-  { name: "Iceland", code: "IS", dial: "+354", continent: "005" },
-  { name: "Ireland", code: "IE", dial: "+353", continent: "005" },
-  { name: "Isle of Man", code: "IM", dial: "+44", continent: "005" },
-  { name: "Italy", code: "IT", dial: "+39", continent: "005" },
-  { name: "Jersey", code: "JE", dial: "+44", continent: "005" },
-  { name: "Latvia", code: "LV", dial: "+371", continent: "005" },
-  { name: "Liechtenstein", code: "LI", dial: "+423", continent: "005" },
-  { name: "Lithuania", code: "LT", dial: "+370", continent: "005" },
-  { name: "Luxembourg", code: "LU", dial: "+352", continent: "005" },
-  { name: "Macedonia", code: "MK", dial: "+389", continent: "005" },
-  { name: "Malta", code: "MT", dial: "+356", continent: "005" },
-  { name: "Moldova", code: "MD", dial: "+373", continent: "005" },
-  { name: "Monaco", code: "MC", dial: "+377", continent: "005" },
-  { name: "Montenegro", code: "ME", dial: "+382", continent: "005" },
-  { name: "Netherlands", code: "NL", dial: "+31", continent: "005" },
-  { name: "Norway", code: "NO", dial: "+47", continent: "005" },
-  { name: "Poland", code: "PL", dial: "+48", continent: "005" },
-  { name: "Portugal", code: "PT", dial: "+351", continent: "005" },
-  { name: "Romania", code: "RO", dial: "+40", continent: "005" },
-  { name: "Russia", code: "RU", dial: "+7", continent: "005" },
-  { name: "San Marino", code: "SM", dial: "+378", continent: "005" },
-  { name: "Serbia", code: "RS", dial: "+381", continent: "005" },
-  { name: "Slovakia", code: "SK", dial: "+421", continent: "005" },
-  { name: "Slovenia", code: "SI", dial: "+386", continent: "005" },
-  { name: "Spain", code: "ES", dial: "+34", continent: "005" },
-  { name: "Svalbard", code: "SJ", dial: "+47", continent: "005" },
-  { name: "Sweden", code: "SE", dial: "+46", continent: "005" },
-  { name: "Switzerland", code: "CH", dial: "+41", continent: "005" },
-  { name: "Ukraine", code: "UA", dial: "+380", continent: "005" },
-  { name: "United Kingdom", code: "GB", dial: "+44", continent: "005" },
-
-  // —— Oceania ——
-  { name: "American Samoa", code: "AS", dial: "+1684", continent: "007" },
-  { name: "Australia", code: "AU", dial: "+61", continent: "007" },
-  { name: "Christmas Island", code: "CX", dial: "+61", continent: "007" },
-  { name: "Cocos (Keeling) Islands", code: "CC", dial: "+61", continent: "007" },
-  { name: "Cook Islands", code: "CK", dial: "+682", continent: "007" },
-  { name: "Fiji", code: "FJ", dial: "+679", continent: "007" },
-  { name: "French Polynesia", code: "PF", dial: "+689", continent: "007" },
-  { name: "Guam", code: "GU", dial: "+1671", continent: "007" },
-  { name: "Kiribati", code: "KI", dial: "+686", continent: "007" },
-  { name: "Marshall Islands", code: "MH", dial: "+692", continent: "007" },
-  { name: "Micronesia", code: "FM", dial: "+691", continent: "007" },
-  { name: "Nauru", code: "NR", dial: "+674", continent: "007" },
-  { name: "New Caledonia", code: "NC", dial: "+687", continent: "007" },
-  { name: "New Zealand", code: "NZ", dial: "+64", continent: "007" },
-  { name: "Niue", code: "NU", dial: "+683", continent: "007" },
-  { name: "Norfolk Island", code: "NF", dial: "+672", continent: "007" },
-  { name: "Northern Mariana Islands", code: "MP", dial: "+1670", continent: "007" },
-  { name: "Palau", code: "PW", dial: "+680", continent: "007" },
-  { name: "Papua New Guinea", code: "PG", dial: "+675", continent: "007" },
-  { name: "Pitcairn Islands", code: "PN", dial: "+870", continent: "007" },
-  { name: "Samoa", code: "WS", dial: "+685", continent: "007" },
-  { name: "Solomon Islands", code: "SB", dial: "+677", continent: "007" },
-  { name: "Tokelau", code: "TK", dial: "+690", continent: "007" },
-  { name: "Tonga Islands", code: "TO", dial: "+676", continent: "007" },
-  { name: "Tuvalu", code: "TV", dial: "+688", continent: "007" },
-  { name: "Vanuatu", code: "VU", dial: "+678", continent: "007" },
-  { name: "Wallis and Futuna", code: "WF", dial: "+681", continent: "007" },
-
-  // —— Antarctica / remote ——
-  { name: "Antarctica", code: "AQ", dial: "+672", continent: "006" },
-  { name: "Ascension Island", code: "AC", dial: "+247", continent: "005" },
-  { name: "Diego Garcia", code: "DG", dial: "+246", continent: "004" },
-  { name: "Saint Helena", code: "SH", dial: "+290", continent: "003" }
+/* Locked continental axis — do not renumber for UX */
+SNM.CONTINENTS = [
+  { id: "001", name: "North America", code: "Na" },
+  { id: "002", name: "South America", code: "Sa" },
+  { id: "003", name: "Africa", code: "A" },
+  { id: "004", name: "Asia", code: "As" },
+  { id: "005", name: "Europe", code: "Eu" },
+  { id: "006", name: "Antarctica", code: "An" },
+  { id: "007", name: "Oceania", code: "Au" }
 ];
 
-SNM.countriesForContinent = function (continentId) {
-  return (SNM.COUNTRIES || []).filter(function (c) {
-    return c.continent === continentId;
-  });
+/**
+ * Continent id → countries { name, iso, dial }
+ * Nigeria first inside Africa (003) only — IDs stay locked.
+ */
+SNM.COUNTRIES_BY_CONTINENT = {
+  "001": [
+    { name: "United States", iso: "US", dial: "+1" },
+    { name: "Canada", iso: "CA", dial: "+1" },
+    { name: "Mexico", iso: "MX", dial: "+52" },
+    { name: "Guatemala", iso: "GT", dial: "+502" },
+    { name: "Belize", iso: "BZ", dial: "+501" },
+    { name: "Honduras", iso: "HN", dial: "+504" },
+    { name: "El Salvador", iso: "SV", dial: "+503" },
+    { name: "Nicaragua", iso: "NI", dial: "+505" },
+    { name: "Costa Rica", iso: "CR", dial: "+506" },
+    { name: "Panama", iso: "PA", dial: "+507" },
+    { name: "Cuba", iso: "CU", dial: "+53" },
+    { name: "Jamaica", iso: "JM", dial: "+1876" },
+    { name: "Haiti", iso: "HT", dial: "+509" },
+    { name: "Dominican Republic", iso: "DO", dial: "+1809" },
+    { name: "Bahamas", iso: "BS", dial: "+1242" },
+    { name: "Trinidad and Tobago", iso: "TT", dial: "+1868" },
+    { name: "Barbados", iso: "BB", dial: "+1246" }
+  ],
+  "002": [
+    { name: "Brazil", iso: "BR", dial: "+55" },
+    { name: "Argentina", iso: "AR", dial: "+54" },
+    { name: "Colombia", iso: "CO", dial: "+57" },
+    { name: "Chile", iso: "CL", dial: "+56" },
+    { name: "Peru", iso: "PE", dial: "+51" },
+    { name: "Venezuela", iso: "VE", dial: "+58" },
+    { name: "Ecuador", iso: "EC", dial: "+593" },
+    { name: "Bolivia", iso: "BO", dial: "+591" },
+    { name: "Paraguay", iso: "PY", dial: "+595" },
+    { name: "Uruguay", iso: "UY", dial: "+598" },
+    { name: "Guyana", iso: "GY", dial: "+592" },
+    { name: "Suriname", iso: "SR", dial: "+597" }
+  ],
+  "003": [
+    { name: "Nigeria", iso: "NG", dial: "+234" },
+    { name: "Ghana", iso: "GH", dial: "+233" },
+    { name: "Kenya", iso: "KE", dial: "+254" },
+    { name: "South Africa", iso: "ZA", dial: "+27" },
+    { name: "Egypt", iso: "EG", dial: "+20" },
+    { name: "Morocco", iso: "MA", dial: "+212" },
+    { name: "Algeria", iso: "DZ", dial: "+213" },
+    { name: "Tunisia", iso: "TN", dial: "+216" },
+    { name: "Libya", iso: "LY", dial: "+218" },
+    { name: "Ethiopia", iso: "ET", dial: "+251" },
+    { name: "Uganda", iso: "UG", dial: "+256" },
+    { name: "Tanzania", iso: "TZ", dial: "+255" },
+    { name: "Rwanda", iso: "RW", dial: "+250" },
+    { name: "Burundi", iso: "BI", dial: "+257" },
+    { name: "Senegal", iso: "SN", dial: "+221" },
+    { name: "Gambia", iso: "GM", dial: "+220" },
+    { name: "Guinea", iso: "GN", dial: "+224" },
+    { name: "Sierra Leone", iso: "SL", dial: "+232" },
+    { name: "Liberia", iso: "LR", dial: "+231" },
+    { name: "Côte d'Ivoire", iso: "CI", dial: "+225" },
+    { name: "Mali", iso: "ML", dial: "+223" },
+    { name: "Burkina Faso", iso: "BF", dial: "+226" },
+    { name: "Niger", iso: "NE", dial: "+227" },
+    { name: "Chad", iso: "TD", dial: "+235" },
+    { name: "Cameroon", iso: "CM", dial: "+237" },
+    { name: "Central African Republic", iso: "CF", dial: "+236" },
+    { name: "Gabon", iso: "GA", dial: "+241" },
+    { name: "Congo", iso: "CG", dial: "+242" },
+    { name: "DR Congo", iso: "CD", dial: "+243" },
+    { name: "Angola", iso: "AO", dial: "+244" },
+    { name: "Zambia", iso: "ZM", dial: "+260" },
+    { name: "Zimbabwe", iso: "ZW", dial: "+263" },
+    { name: "Botswana", iso: "BW", dial: "+267" },
+    { name: "Namibia", iso: "NA", dial: "+264" },
+    { name: "Mozambique", iso: "MZ", dial: "+258" },
+    { name: "Malawi", iso: "MW", dial: "+265" },
+    { name: "Madagascar", iso: "MG", dial: "+261" },
+    { name: "Mauritius", iso: "MU", dial: "+230" },
+    { name: "Seychelles", iso: "SC", dial: "+248" },
+    { name: "Sudan", iso: "SD", dial: "+249" },
+    { name: "South Sudan", iso: "SS", dial: "+211" },
+    { name: "Somalia", iso: "SO", dial: "+252" },
+    { name: "Djibouti", iso: "DJ", dial: "+253" },
+    { name: "Eritrea", iso: "ER", dial: "+291" },
+    { name: "Benin", iso: "BJ", dial: "+229" },
+    { name: "Togo", iso: "TG", dial: "+228" },
+    { name: "Cape Verde", iso: "CV", dial: "+238" },
+    { name: "São Tomé and Príncipe", iso: "ST", dial: "+239" },
+    { name: "Equatorial Guinea", iso: "GQ", dial: "+240" },
+    { name: "Mauritania", iso: "MR", dial: "+222" },
+    { name: "Lesotho", iso: "LS", dial: "+266" },
+    { name: "Eswatini", iso: "SZ", dial: "+268" }
+  ],
+  "004": [
+    { name: "India", iso: "IN", dial: "+91" },
+    { name: "China", iso: "CN", dial: "+86" },
+    { name: "Japan", iso: "JP", dial: "+81" },
+    { name: "South Korea", iso: "KR", dial: "+82" },
+    { name: "Indonesia", iso: "ID", dial: "+62" },
+    { name: "Malaysia", iso: "MY", dial: "+60" },
+    { name: "Singapore", iso: "SG", dial: "+65" },
+    { name: "Thailand", iso: "TH", dial: "+66" },
+    { name: "Vietnam", iso: "VN", dial: "+84" },
+    { name: "Philippines", iso: "PH", dial: "+63" },
+    { name: "Pakistan", iso: "PK", dial: "+92" },
+    { name: "Bangladesh", iso: "BD", dial: "+880" },
+    { name: "Sri Lanka", iso: "LK", dial: "+94" },
+    { name: "Nepal", iso: "NP", dial: "+977" },
+    { name: "Saudi Arabia", iso: "SA", dial: "+966" },
+    { name: "United Arab Emirates", iso: "AE", dial: "+971" },
+    { name: "Qatar", iso: "QA", dial: "+974" },
+    { name: "Kuwait", iso: "KW", dial: "+965" },
+    { name: "Bahrain", iso: "BH", dial: "+973" },
+    { name: "Oman", iso: "OM", dial: "+968" },
+    { name: "Israel", iso: "IL", dial: "+972" },
+    { name: "Jordan", iso: "JO", dial: "+962" },
+    { name: "Lebanon", iso: "LB", dial: "+961" },
+    { name: "Iraq", iso: "IQ", dial: "+964" },
+    { name: "Iran", iso: "IR", dial: "+98" },
+    { name: "Turkey", iso: "TR", dial: "+90" },
+    { name: "Kazakhstan", iso: "KZ", dial: "+7" },
+    { name: "Uzbekistan", iso: "UZ", dial: "+998" }
+  ],
+  "005": [
+    { name: "United Kingdom", iso: "GB", dial: "+44" },
+    { name: "Ireland", iso: "IE", dial: "+353" },
+    { name: "France", iso: "FR", dial: "+33" },
+    { name: "Germany", iso: "DE", dial: "+49" },
+    { name: "Netherlands", iso: "NL", dial: "+31" },
+    { name: "Belgium", iso: "BE", dial: "+32" },
+    { name: "Spain", iso: "ES", dial: "+34" },
+    { name: "Portugal", iso: "PT", dial: "+351" },
+    { name: "Italy", iso: "IT", dial: "+39" },
+    { name: "Switzerland", iso: "CH", dial: "+41" },
+    { name: "Austria", iso: "AT", dial: "+43" },
+    { name: "Sweden", iso: "SE", dial: "+46" },
+    { name: "Norway", iso: "NO", dial: "+47" },
+    { name: "Denmark", iso: "DK", dial: "+45" },
+    { name: "Finland", iso: "FI", dial: "+358" },
+    { name: "Poland", iso: "PL", dial: "+48" },
+    { name: "Czechia", iso: "CZ", dial: "+420" },
+    { name: "Romania", iso: "RO", dial: "+40" },
+    { name: "Greece", iso: "GR", dial: "+30" },
+    { name: "Ukraine", iso: "UA", dial: "+380" },
+    { name: "Russia", iso: "RU", dial: "+7" }
+  ],
+  "006": [],
+  "007": [
+    { name: "Australia", iso: "AU", dial: "+61" },
+    { name: "New Zealand", iso: "NZ", dial: "+64" },
+    { name: "Fiji", iso: "FJ", dial: "+679" },
+    { name: "Papua New Guinea", iso: "PG", dial: "+675" },
+    { name: "Samoa", iso: "WS", dial: "+685" },
+    { name: "Tonga", iso: "TO", dial: "+676" }
+  ]
 };
 
-SNM.findCountry = function (nameOrCode) {
-  var q = String(nameOrCode || "").toLowerCase();
-  return (SNM.COUNTRIES || []).find(function (c) {
-    return c.name.toLowerCase() === q || c.code.toLowerCase() === q;
-  }) || null;
+/**
+ * Optional deep place tree: Country → State/Region → City → [communities]
+ * Missing country → cascade falls back to "Other" (user still sets primary location).
+ */
+SNM.PLACES_BY_COUNTRY = {
+  Nigeria: {
+    "Rivers State": {
+      "Port Harcourt": ["Eneka", "Eliozu", "Rumuokoro", "Rumuola", "Rumuogba", "Trans Amadi", "Diobu", "Amadi Flat"],
+      "Obio-Akpor": ["Rumuodomaya", "Choba", "Aluu", "Rumuokwuta", "Rumuigbo"],
+      "Eleme": ["Alesa", "Ogale", "Ebubu"],
+      "Ikwerre": ["Isiokpo", "Igwuruta"],
+      "Oyigbo": ["Afam", "Obete"]
+    },
+    Lagos: {
+      "Lagos Island": ["Marina", "CMS", "Ikoyi"],
+      "Ikeja": ["Alausa", "Computer Village", "Opebi"],
+      "Ikorodu": ["Igbogbo", "Imota", "Ibeshe"],
+      "Surulere": ["Aguda", "Ijesha"],
+      "Alimosho": ["Egbeda", "Ikotun", "Ipaja"],
+      "Eti-Osa": ["Lekki", "Ajah", "Victoria Island"]
+    },
+    "FCT Abuja": {
+      "Municipal": ["Garki", "Wuse", "Maitama", "Asokoro", "Central Business District"],
+      "Gwagwalada": ["Gwagwalada Town", "Zuba"],
+      "Kuje": ["Kuje Town"],
+      "Bwari": ["Bwari Town", "Kubwa"]
+    },
+    Kano: {
+      "Kano Municipal": ["Fagge", "Dala", "Nassarawa"],
+      "Nassarawa": ["Hotoro", "Yankaba"]
+    },
+    Oyo: {
+      Ibadan: ["Bodija", "Challenge", "Dugbe", "Iwo Road"]
+    },
+    "Rivers": {
+      "Port Harcourt": ["Eneka", "Eliozu"]
+    }
+  },
+  Ghana: {
+    "Greater Accra": {
+      Accra: ["Osu", "Labadi", "Airport Residential", "Madina"],
+      Tema: ["Community 1", "Community 7"]
+    },
+    Ashanti: {
+      Kumasi: ["Adum", "Kejetia", "Asokwa"]
+    }
+  },
+  Kenya: {
+    Nairobi: {
+      "Nairobi Central": ["CBD", "Westlands", "Kilimani", "Eastleigh"]
+    },
+    Mombasa: {
+      Mombasa: ["Nyali", "Likoni"]
+    }
+  },
+  "South Africa": {
+    Gauteng: {
+      Johannesburg: ["Sandton", "Soweto", "Midrand"],
+      Pretoria: ["Centurion", "Hatfield"]
+    },
+    "Western Cape": {
+      "Cape Town": ["CBD", "Sea Point", "Bellville"]
+    }
+  },
+  Egypt: {
+    Cairo: {
+      Cairo: ["Downtown", "Nasr City", "Heliopolis"]
+    },
+    Giza: {
+      Giza: ["Dokki", "Mohandessin"]
+    }
+  },
+  "United States": {
+    California: {
+      "Los Angeles": ["Downtown", "Hollywood"],
+      "San Francisco": ["Mission", "SOMA"]
+    },
+    Texas: {
+      Houston: ["Downtown", "Midtown"],
+      Dallas: ["Uptown"]
+    },
+    "New York": {
+      "New York City": ["Manhattan", "Brooklyn", "Queens"]
+    }
+  },
+  "United Kingdom": {
+    England: {
+      London: ["Westminster", "Camden", "Greenwich"],
+      Manchester: ["City Centre", "Salford"]
+    }
+  },
+  India: {
+    Maharashtra: {
+      Mumbai: ["Andheri", "Bandra", "Colaba"]
+    },
+    Delhi: {
+      "New Delhi": ["Connaught Place", "Karol Bagh"]
+    }
+  }
 };

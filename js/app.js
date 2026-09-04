@@ -1,17 +1,15 @@
 (function () {
   function boot() {
     if (typeof SNM === "undefined") {
-      console.error("SNM missing — check script order");
+      console.error("SNM missing");
       return;
     }
-
     if (typeof SNM.initParticles === "function") SNM.initParticles();
     if (typeof SNM.bindRouter === "function") SNM.bindRouter();
-    if (typeof SNM.bindCascade === "function") SNM.bindCascade();
     if (typeof SNM.bindAuth === "function") SNM.bindAuth();
+    if (typeof SNM.bindSetup === "function") SNM.bindSetup();
     if (typeof SNM.bindHome === "function") SNM.bindHome();
     if (typeof SNM.bindSearch === "function") SNM.bindSearch();
-    if (typeof SNM.bindNews === "function") SNM.bindNews();
     if (typeof SNM.bindShop === "function") SNM.bindShop();
     if (typeof SNM.bindMessages === "function") SNM.bindMessages();
     if (typeof SNM.bindFairlyUsed === "function") SNM.bindFairlyUsed();
@@ -22,16 +20,10 @@
     if (typeof SNM.bindInvoiceStudio === "function") SNM.bindInvoiceStudio();
     if (typeof SNM.bindPremium === "function") SNM.bindPremium();
 
-    if (typeof SNM.startSplash === "function") {
-      SNM.startSplash();
-    } else {
-      document.getElementById("splash")?.classList.add("hidden");
-      if (SNM.getToken && SNM.getToken() && SNM.getUser && SNM.getUser()) {
-        SNM.showScreen("home");
-      } else {
-        SNM.showScreen("role-select");
-      }
-    }
+    var ver = document.getElementById("aboutVersion");
+    if (ver) ver.textContent = SNM.APP_VERSION || "1.0.0.1p";
+
+    SNM.startSplash();
   }
 
   if (document.readyState === "loading") {

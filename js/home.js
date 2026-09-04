@@ -1,190 +1,81 @@
 window.SNM = window.SNM || {};
 
-SNM.refreshHome = function () {
-  var user = SNM.getUser() || {};
-  var nameEl = document.getElementById("homeName");
-  var roleEl = document.getElementById("homeRole");
-  var placeEl = document.getElementById("homePlace");
-  if (nameEl) nameEl.textContent = user.name || "—";
-  if (roleEl) roleEl.textContent = user.role || "—";
-  if (placeEl) {
-    placeEl.textContent =
-      user.primary_location ||
-      [user.community, user.city, user.region, user.country]
-        .filter(Boolean)
-        .join(", ") ||
-      "—";
-  }
-  SNM.loadHomeFeed();
-};
+var _map = null;
+var _marker = null;
 
-SNM.loadHomeFeed = async function () {
-  var box = document.getElementById("homeFeed");
-  if (!box) return;
-  box.innerHTML = '<p class="soft">Loading near you…</p>';
-
-  var user = SNM.getUser() || {};
-  try {
-    var data = await SNM.api(
-      "/search/products" +
-        SNM.qs({
-          q: "",
-          community: user.community || "",
-          city: user.city || "",
-          region: user.region || "",
-          country: user.country || "",
-          max_km: 2000,
-          limit: 20
-        })
-    );
-    var rows = data.results || [];
-    if (!rows.length) {
-      box.innerHTML =
-        '<p class="soft">No nearby listings yet. Try Search, or list an item in Shop.</p>';
-      return;
-    }
-    box.innerHTML = rows
-      .map(function (r) {
-        var p = r.product || {};
-        var s = r.seller || {};
-        var price =
-          p.price != null
-            ? (p.currency || "NGN") + " " + p.price
-            : "Price on request";
-        return (
-          '<article class="feed-card">' +
-          '<div class="title">' +
-          (p.name || "Item") +
-          "</div>" +
-          '<div class="meta">' +
-          (s.name || "Seller") +
-          " · " +
-          (s.primary_location || s.community || s.city || "") +
-          (r.km != null ? " · " + r.km + " km" : "") +
-          (s.live ? " · live" : "") +
-          "</div>" +
-          '<div class="price">' +
-          price +
-          "</div>" +
-          "</article>"
-        );
-      })
-      .join("");
-  } catch (e) {
-    box.innerHTML =
-      '<p class="soft">Feed unavailable: ' +
-      (e.message || "error") +
-      "</p>";
-  }
-};
-
-SNM.renderProfile = function () {
+SNM.renderUserMap = function () {
+  var el = document.getElementById("gsgMap");
+  if (!el || typeof L === "undefined") return;
   var u = SNM.getUser() || {};
-  var box = document.getElementById("profileBody");
-  if (!box) return;
-  box.innerHTML =
-    "<p><strong>" +
-    (u.name || "—") +
-    "</strong></p>" +
-    '<p class="soft">' +
-    (u.role || "") +
-    "</p>" +
-    '<p class="soft">' +
-    (u.phone || "") +
-    "</p>" +
-    '<p class="soft">' +
-    (u.primary_location || "") +
-    "</p>" +
-    '<p class="soft">' +
-    [u.community, u.city, u.region, u.country].filter(Boolean).join(", ") +
-    "</p>";
+  var lat = parseFloat(u.lat);
+  var lng = parseFloat(u.lng);
+  if (isNaN(lat) || isNaN(lng)) {
+    el.innerHTML = "<div style='padding:1rem;text-align:center;color:#166534'>No pin yet — enable GPS on register/login</div>";
+    return;
+  }
+  if (!_map) {
+    _map = L.map(el).setView([lat, lng], 14);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "© OSM"
+    }).addTo(_map);
+    _marker = L.marker([lat, lng]).addTo(_map);
+  } else {
+    _map.setView([lat, lng], 14);
+    if (_marker) _marker.setLatLng([lat, lng]);
+    else _marker = L.marker([lat, lng]).addTo(_map);
+    setTimeout(function () { _map.invalidateSize(); }, 200);
+  }
 };
 
-SNM.loadNews = async function (category) {
-  var box = document.getElementById("newsFeed");
-  if (!box) return;
-  box.innerHTML = '<p class="soft">Loading news…</p>';
-  category = category || SNM._newsCat || "local";
-  SNM._newsCat = category;
-
-  try {
-    var user = SNM.getUser() || {};
-    var data = await SNM.api(
-      "/news" +
-        SNM.qs({
-          category: category,
-          q: "",
-          community: user.community || "",
-          city: user.city || "",
-          region: user.region || "",
-          limit: 20
-        })
-    );
-
-    SNM.renderAssistant(
-      "news",
-      data.assistant,
-      (data.count != null ? data.count + " articles" : "") +
-        (data.provider ? " · " + data.provider : "")
-    );
-
-    var articles = data.articles || [];
-    if (!articles.length) {
-      box.innerHTML =
-        '<p class="soft">No articles right now' +
-        (data.note ? " — " + data.note : "") +
-        ".</p>";
+SNM.refreshHome = function () {
+  SNM.applyRoleChrome();
+  SNM.renderUserMap();
+  var feed = document.getElementById("homeFeed");
+  if (!feed) return;
+  feed.innerHTML = "<p class='muted'>Loading…</p>";
+  var u = SNM.getUser() || {};
+  var q = SNM.qs({
+    q: "",
+    lat: u.lat,
+    lng: u.lng,
+    max_km: SNM.DEFAULT_MAX_KM,
+    limit: 40
+  });
+  SNM.api("/search/products" + q).then(function (data) {
+    var rows = (data && data.results) || data || [];
+    if (!Array.isArray(rows)) rows = [];
+    if (!rows.length) {
+      feed.innerHTML = "<p class='muted'>No nearby listings yet. Try Search or Fairly used.</p>";
       return;
     }
-    box.innerHTML = articles
-      .map(function (a) {
-        return (
-          '<article class="feed-card">' +
-          '<div class="title">' +
-          (a.title || "Update") +
-          "</div>" +
-          '<div class="meta">' +
-          (a.source || "") +
-          (a.published_at ? " · " + a.published_at : "") +
-          "</div>" +
-          "<p>" +
-          (a.summary || "") +
-          "</p>" +
-          (a.url
-            ? '<p class="meta"><a href="' +
-              a.url +
-              '" target="_blank" rel="noopener">Open</a></p>'
-            : "") +
-          "</article>"
-        );
-      })
-      .join("");
-  } catch (e) {
-    SNM.renderAssistant("news", null);
-    box.innerHTML =
-      '<p class="soft">News unavailable: ' + (e.message || "error") + "</p>";
-  }
+    feed.innerHTML = rows.map(function (r) {
+      var title = r.item || r.name || r.title || "Item";
+      var merch = r.merchant || r.owner_name || r.business_name || "";
+      var price = r.price != null ? r.price : "";
+      var km = r.km != null ? Number(r.km).toFixed(1) + " km" : "";
+      var place = r.primary_location || r.community || "";
+      return (
+        '<div class="product-card">' +
+        '<div class="title">' + title + (price !== "" ? " · " + price : "") + "</div>" +
+        '<div class="meta">' + [merch, place, km].filter(Boolean).join(" · ") + "</div>" +
+        "</div>"
+      );
+    }).join("");
+  }).catch(function (e) {
+    feed.innerHTML = "<p class='error'>" + (e.message || "Feed error") + "</p>";
+  });
 };
 
 SNM.bindHome = function () {
   var btn = document.getElementById("btnRefreshFeed");
-  if (btn) btn.onclick = function () {
-    SNM.loadHomeFeed();
+  if (btn) btn.onclick = function () { SNM.refreshHome(); };
+  var exp = document.getElementById("btnExpandMap");
+  if (exp) exp.onclick = function () {
+    var m = document.getElementById("gsgMap");
+    if (m) {
+      m.style.height = m.style.height === "280px" ? "160px" : "280px";
+      if (_map) setTimeout(function () { _map.invalidateSize(); }, 200);
+    }
   };
-
-  document.querySelectorAll("[data-news-cat]").forEach(function (chip) {
-    chip.addEventListener("click", function (e) {
-      e.preventDefault();
-      var cat = chip.getAttribute("data-news-cat") || "local";
-      SNM.loadNews(cat);
-    });
-  });
-
-  var perish = document.getElementById("linkPerishables");
-  if (perish) {
-    perish.addEventListener("click", function () {
-      var q = document.getElementById("searchQ");
-      if (q) q.value = "perishable";
-    });
-  }
 };

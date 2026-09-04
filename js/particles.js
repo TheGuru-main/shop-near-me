@@ -5,7 +5,7 @@ SNM.initParticles = function () {
   if (!canvas || !canvas.getContext) return;
   var ctx = canvas.getContext("2d");
   var particles = [];
-  var n = 36;
+  var n = 32;
 
   function resize() {
     canvas.width = window.innerWidth;
@@ -19,33 +19,31 @@ SNM.initParticles = function () {
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
       vx: (Math.random() - 0.5) * 0.6,
-      vy: (Math.random() - 0.5) * 0.6,
-      r: 1.5 + Math.random() * 2
+      vy: (Math.random() - 0.5) * 0.6
     });
   }
 
   function tick() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    for (var i = 0; i < particles.length; i++) {
-      var p = particles[i];
-      p.x += p.vx;
-      p.y += p.vy;
+    particles.forEach(function (p) {
+      p.x += p.vx; p.y += p.vy;
       if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
       if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(22,101,52,0.35)";
+      ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(20,83,45,0.45)";
       ctx.fill();
-      for (var j = i + 1; j < particles.length; j++) {
-        var q = particles[j];
-        var dx = p.x - q.x;
-        var dy = p.y - q.y;
+    });
+    for (var a = 0; a < particles.length; a++) {
+      for (var b = a + 1; b < particles.length; b++) {
+        var dx = particles[a].x - particles[b].x;
+        var dy = particles[a].y - particles[b].y;
         var d = Math.sqrt(dx * dx + dy * dy);
-        if (d < 110) {
-          ctx.strokeStyle = "rgba(22,101,52," + (0.18 * (1 - d / 110)) + ")";
+        if (d < 120) {
+          ctx.strokeStyle = "rgba(20,83,45," + (0.18 * (1 - d / 120)) + ")";
           ctx.beginPath();
-          ctx.moveTo(p.x, p.y);
-          ctx.lineTo(q.x, q.y);
+          ctx.moveTo(particles[a].x, particles[a].y);
+          ctx.lineTo(particles[b].x, particles[b].y);
           ctx.stroke();
         }
       }

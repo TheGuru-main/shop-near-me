@@ -1,63 +1,38 @@
 window.SNM = window.SNM || {};
 
 SNM.toast = function (msg) {
-  try {
-    alert(msg);
-  } catch (e) {}
+  try { alert(String(msg || "")); } catch (e) {}
 };
 
-SNM.renderAssistant = function (el, data) {
-  if (!el) return;
-  if (!data || !data.message) {
-    el.classList.add("hidden");
-    el.innerHTML = "";
-    return;
-  }
-  el.classList.remove("hidden");
-  el.innerHTML =
-    "<strong>Assistant</strong><p>" +
-    String(data.message).replace(/</g, "&lt;") +
-    "</p><p class='muted'>source: " +
-    (data.source || "—") +
-    "</p>";
-};
-
-SNM.api = async function (path, options) {
-  options = options || {};
-  var method = (options.method || "GET").toUpperCase();
-  var headers = Object.assign(
-    { Accept: "application/json" },
-    options.headers || {}
-  );
-  var token = SNM.getToken && SNM.getToken();
-  if (token) headers.Authorization = "Bearer " + token;
-
-  var body = options.body;
-  if (body && typeof body === "object" && !(body instanceof FormData)) {
-    headers["Content-Type"] = "application/json";
-    body = JSON.stringify(body);
-  }
-
+SNM.api = async function (path, opts) {
+  opts = opts || {};
   var url = SNM.API_BASE + path;
+  var headers = opts.headers || {};
+  headers["Accept"] = "application/json";
+  if (opts.body && typeof opts.body === "object" && !(opts.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+    opts.body = JSON.stringify(opts.body);
+  }
+  var token = SNM.getToken && SNM.getToken();
+  if (token) headers["Authorization"] = "Bearer " + token;
+
   var res = await fetch(url, {
-    method: method,
+    method: opts.method || "GET",
     headers: headers,
-    body: method === "GET" || method === "HEAD" ? undefined : body
+    body: opts.body || undefined
   });
 
   var text = await res.text();
   var data = null;
-  try {
-    data = text ? JSON.parse(text) : null;
-  } catch (e) {
-    data = { raw: text };
-  }
+  try { data = text ? JSON.parse(text) : null; } catch (e) { data = { raw: text }; }
 
   if (!res.ok) {
-    var detail =
-      (data && (data.detail || data.message || data.error)) ||
-      res.statusText ||
-      "Request failed";
+    var detail = (data && (data.detail || data.message)) || text || res.statusText;
+    if (Array.isArray(detail)) {
+      detail = detail.map(function (d) {
+        return (d.loc ? d.loc.join(".") + ": " : "") + (d.msg || JSON.stringify(d));
+      }).join("; ");
+    }
     var err = new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
     err.status = res.status;
     err.data = data;
@@ -69,9 +44,21 @@ SNM.api = async function (path, options) {
 SNM.qs = function (obj) {
   var parts = [];
   Object.keys(obj || {}).forEach(function (k) {
-    var v = obj[k];
-    if (v === undefined || v === null || v === "") return;
-    parts.push(encodeURIComponent(k) + "=" + encodeURIComponent(String(v)));
+    if (obj[k] === undefined || obj[k] === null || obj[k] === "") return;
+    parts.push(encodeURIComponent(k) + "=" + encodeURIComponent(obj[k]));
   });
   return parts.length ? "?" + parts.join("&") : "";
+};
+
+SNM.renderAssistant = function (el, assistant) {
+  if (!el) return;
+  if (!assistant || !assistant.message) {
+    el.classList.add("hidden");
+    el.innerHTML = "";
+    return;
+  }
+  el.classList.remove("hidden");
+  el.innerHTML =
+    "<strong>Assistant · " + (assistant.source || "ai") + "</strong>" +
+    "<div>" + String(assistant.message).replace(/</g, "&lt;") + "</div>";
 };
