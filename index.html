@@ -336,15 +336,29 @@
         <h1>My shop / catalogue</h1>
         <span></span>
       </header>
-      <div class="container stack">
-        <div class="card form-stack">
+
+      <div class="card form-stack">
           <label>Item name<input id="shop-name" /></label>
-          <label>Price<input id="shop-price" type="number" inputmode="decimal" /></label>
-          <label>Qty<input id="shop-qty" type="number" inputmode="numeric" /></label>
+          <label>Price<input id="shop-price" type="number" inputmode="decimal" step="any" /></label>
+          <label>Currency
+            <select id="shop-currency">
+              <option value="NGN">NGN ₦</option>
+              <option value="GHS">GHS</option>
+              <option value="KES">KES</option>
+              <option value="ZAR">ZAR</option>
+              <option value="USD">USD</option>
+              <option value="GBP">GBP</option>
+              <option value="EUR">EUR</option>
+            </select>
+          </label>
+          <label>Quantity (e.g. 12, 5kg, 2 dozen)
+            <input id="shop-qty" type="text" inputmode="text" placeholder="12 or 5kg" />
+          </label>
           <label class="check"><input type="checkbox" id="shop-perishable" /> Perishable</label>
           <label class="check"><input type="checkbox" id="shop-available" checked /> Available</label>
           <button type="button" class="btn block" id="btnAddShopItem">Add listing</button>
         </div>
+
         <div id="shopList" class="feed-list"></div>
       </div>
       <nav class="bottom-nav nav-seller"></nav>

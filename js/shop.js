@@ -5,19 +5,31 @@ SNM.loadShop = async function () {
   if (!list) return;
   list.innerHTML = "<p class='muted'>Loading catalogue…</p>";
   try {
-    var data = await SNM.api("/products/mine");
-    var rows = data.items || data.results || data || [];
-    if (!Array.isArray(rows)) rows = [];
+    /* Backend: GET /products/me  — NOT /mine */
+    var data = await SNM.api("/products/me");
+    var rows = Array.isArray(data) ? data : (data.items || data.results || []);
     if (!rows.length) {
       list.innerHTML = "<p class='muted'>No listings yet. Add your first item above.</p>";
       return;
     }
     list.innerHTML = rows.map(function (p) {
+      var cur = p.currency || "";
+      var price =
+        p.price != null && p.price !== ""
+          ? (cur ? cur + " " : "") + p.price
+          : "";
+      var qty = p.quantity != null ? p.quantity : p.qty;
       return (
-        '<div class="product-card"><div class="title">' + (p.name || "") +
-        (p.price != null ? " · " + p.price : "") + "</div>" +
-        '<div class="meta">qty ' + (p.qty != null ? p.qty : "—") +
-        (p.available === false ? " · unavailable" : " · available") + "</div></div>"
+        '<div class="product-card">' +
+        '<div class="title">' +
+        (p.name || "") +
+        (price ? " · " + price : "") +
+        "</div>" +
+        '<div class="meta">qty ' +
+        (qty != null && qty !== "" ? qty : "—") +
+        (p.available === false ? " · unavailable" : " · available") +
+        (p.perishable ? " · perishable" : "") +
+        "</div></div>"
       );
     }).join("");
   } catch (e) {
@@ -30,16 +42,45 @@ SNM.bindShop = function () {
   if (!btn) return;
   btn.onclick = async function () {
     try {
+      var name = (document.getElementById("shop-name").value || "").trim();
+      var priceRaw = (document.getElementById("shop-price").value || "").trim();
+      var currency = (document.getElementById("shop-currency") || {}).value || "NGN";
+      var qty = (document.getElementById("shop-qty").value || "").trim();
+      var perishable = !!(document.getElementById("shop-perishable") || {}).checked;
+      var available = !!(document.getElementById("shop-available") || {}).checked;
+
+      if (!name) {
+        SNM.toast("Item name required");
+        return;
+      }
+
       var body = {
-        name: (document.getElementById("shop-name").value || "").trim(),
-        price: parseFloat(document.getElementById("shop-price").value) || 0,
-        qty: parseFloat(document.getElementById("shop-qty").value) || 0,
-        perishable: !!(document.getElementById("shop-perishable") || {}).checked,
-        available: !!(document.getElementById("shop-available") || {}).checked
+        name: name,
+        available: available,
+        perishable: perishable,
+        quantity: qty || null,
+        description: ""
       };
-      if (!body.name) return SNM.toast("Item name required");
+
+      if (priceRaw !== "") {
+        var price = parseFloat(priceRaw);
+        if (isNaN(price)) {
+          SNM.toast("Price must be a number");
+          return;
+        }
+        if (!currency) {
+          SNM.toast("Select currency when setting a price");
+          return;
+        }
+        body.price = price;
+        body.currency = currency;
+      }
+
       await SNM.api("/products", { method: "POST", body: body });
       SNM.toast("Listed");
+      document.getElementById("shop-name").value = "";
+      document.getElementById("shop-price").value = "";
+      document.getElementById("shop-qty").value = "";
       SNM.loadShop();
     } catch (e) {
       SNM.toast(e.message || "Add failed");
