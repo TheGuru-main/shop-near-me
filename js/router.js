@@ -1,149 +1,201 @@
 window.SNM = window.SNM || {};
 
-SNM.showScreen = function (id) {
-  document.querySelectorAll(".screen").forEach(function (s) {
-    s.classList.remove("active");
-  });
-  var el = document.getElementById(id);
-  if (el) el.classList.add("active");
-  try {
-    if (id && id !== "splash") history.replaceState(null, "", "#" + id);
-  } catch (e) {}
-  var menu = document.getElementById("menuSheet");
-  if (menu) menu.classList.add("hidden");
-};
-
-SNM.applyRoleChrome = function () {
-  var role = SNM.getRole() || "buyer";
-  document.body.classList.remove(
-    "role-buyer", "role-merchant", "role-service_provider",
-    "role-driver", "role-emergency"
-  );
-  document.body.classList.add("role-" + role);
-
-  var seller = role === "merchant" || role === "service_provider" || role === "driver";
-  document.querySelectorAll(".nav-buyer").forEach(function (n) {
-    n.classList.toggle("hidden", seller);
-  });
-  document.querySelectorAll(".nav-seller").forEach(function (n) {
-    n.classList.toggle("hidden", !seller);
-  });
-  SNM.renderBottomNav("home");
-};
-
-SNM.renderBottomNav = function (active) {
-  var role = SNM.getRole() || "buyer";
-  var seller = role === "merchant" || role === "service_provider" || role === "driver";
-  var tabs = seller ? SNM.SELLER_TABS : SNM.BUYER_TABS;
-  var html = tabs.map(function (t) {
-    return (
-      '<button type="button" data-nav="' + t.id + '" class="' +
-      (t.id === active ? "active" : "") + '">' +
-      '<i class="fa ' + t.icon + '"></i>' + t.label +
-      "</button>"
-    );
-  }).join("");
-
-  document.querySelectorAll(seller ? ".nav-seller" : ".nav-buyer").forEach(function (nav) {
-    nav.innerHTML = html;
-  });
-};
-
-SNM.go = function (id) {
-  if (id === "profile") {
-    var u = SNM.getUser() || {};
-    var body = document.getElementById("profileBody");
-    if (body) {
-      body.innerHTML =
-        "<p><strong>" + (u.name || "") + "</strong></p>" +
-        "<p class='muted'>" + (u.role || "") + "</p>" +
-        "<p class='muted'>" + (u.phone || "") + "</p>" +
-        "<p class='muted'>" + (u.primary_location || "") + "</p>" +
-        "<p class='muted'>" + [u.community, u.city, u.country].filter(Boolean).join(", ") + "</p>";
-    }
-    var sheet = document.getElementById("profileSheet");
-    if (sheet) sheet.classList.add("open");
-    return;
+(function () {
+  function $(id) {
+    return document.getElementById(id);
   }
-  SNM.showScreen(id);
-  SNM.renderBottomNav(id === "shop" ? "shop" : id === "search" ? "search" : id === "messages" ? "messages" : id === "news" ? "news" : "home");
-  if (id === "home" && typeof SNM.refreshHome === "function") SNM.refreshHome();
-  if (id === "search" && typeof SNM.bindSearch === "function") { /* ready */ }
-  if (id === "news" && typeof SNM.loadNews === "function") SNM.loadNews();
-  if (id === "shop" && typeof SNM.loadShop === "function") SNM.loadShop();
-  if (id === "messages" && typeof SNM.loadMessages === "function") SNM.loadMessages();
-  if (id === "fairly-used" && typeof SNM.loadFairlyUsed === "function") SNM.loadFairlyUsed();
-  if (id === "banqueue" && typeof SNM.loadBanqueue === "function") SNM.loadBanqueue();
-  if (id === "emergency" && typeof SNM.loadEmergency === "function") SNM.loadEmergency();
-  if (id === "premium" && typeof SNM.loadPremium === "function") SNM.loadPremium();
-  if (id === "documents" && typeof SNM.loadDocuments === "function") SNM.loadDocuments();
-  if (id === "rules" && typeof SNM.loadRules === "function") SNM.loadRules();
-};
 
-SNM.startSplash = function () {
-  var splash = document.getElementById("splash");
-  setTimeout(function () {
-    if (splash) splash.classList.add("hidden");
-    if (SNM.getToken() && SNM.getUser()) {
-      if (typeof SNM.onAuthed === "function") SNM.onAuthed();
-      else SNM.go("home");
-    } else {
-      SNM.showScreen("role-select");
-    }
-  }, 2200);
-};
-
-SNM.bindRouter = function () {
-  document.body.addEventListener("click", function (e) {
-    var btn = e.target.closest("[data-nav]");
-    if (btn) {
-      e.preventDefault();
-      SNM.go(btn.getAttribute("data-nav"));
+  SNM.showScreen = function (id) {
+    if (!id) return;
+    document.querySelectorAll(".screen").forEach(function (s) {
+      s.classList.remove("active");
+    });
+    var target = $(id);
+    if (!target) {
+      console.warn("showScreen: missing #" + id);
       return;
     }
-    var a = e.target.closest("a[href^='#']");
-    if (a && a.getAttribute("href").length > 1) {
-      var id = a.getAttribute("href").slice(1);
-      if (document.getElementById(id)) {
-        e.preventDefault();
-        SNM.go(id);
-      }
-    }
-  });
+    target.classList.add("active");
 
-  var menuBtn = document.getElementById("btnMenu");
-  var menu = document.getElementById("menuSheet");
-  if (menuBtn && menu) {
-    menuBtn.onclick = function () {
-      menu.classList.toggle("hidden");
-    };
-  }
-  if (menu) {
-    menu.addEventListener("click", function (e) {
-      var b = e.target.closest("[data-menu]");
-      if (!b) return;
-      var act = b.getAttribute("data-menu");
-      menu.classList.add("hidden");
-      if (act === "logout") {
-        SNM.clearSession();
+    try {
+      if (location.hash !== "#" + id) {
+        history.replaceState(null, "", "#" + id);
+      }
+    } catch (e) {}
+
+    // Enter hooks
+    if (id === "home" && typeof SNM.refreshHome === "function") {
+      SNM.refreshHome();
+    }
+    if (id === "search" && typeof SNM.bindSearch === "function") {
+      /* results stay until user searches */ 
+    }
+    if (id === "news" && typeof SNM.loadNews === "function") {
+      SNM.loadNews();
+    }
+    if (id === "messages") {
+      if (typeof SNM.onMessagesEnter === "function") SNM.onMessagesEnter();
+      else if (typeof SNM.loadMessages === "function") SNM.loadMessages();
+    }
+    if (id === "fairly-used" && typeof SNM.loadFairlyUsed === "function") {
+      SNM.loadFairlyUsed();
+    }
+    if (id === "shop" && typeof SNM.loadShop === "function") {
+      SNM.loadShop();
+    }
+    if (id === "banqueue" && typeof SNM.loadBanqueue === "function") {
+      SNM.loadBanqueue();
+    }
+    if (id === "emergency" && typeof SNM.loadEmergency === "function") {
+      SNM.loadEmergency();
+    }
+    if (id === "documents" && typeof SNM.loadDocuments === "function") {
+      SNM.loadDocuments();
+    }
+    if (id === "premium" && typeof SNM.loadPremium === "function") {
+      SNM.loadPremium();
+    }
+    if (id === "profile" && typeof SNM.fillProfile === "function") {
+      SNM.fillProfile();
+    }
+
+    if (typeof SNM.renderBottomNav === "function") {
+      SNM.renderBottomNav(id);
+    }
+
+    var menu = $("menuSheet");
+    if (menu) menu.classList.add("hidden");
+  };
+
+  SNM.go = function (id) {
+    SNM.showScreen(id);
+  };
+
+  SNM.startSplash = function () {
+    var splash = $("splash");
+    var done = function () {
+      if (splash) splash.classList.add("hidden");
+      if (typeof SNM.getToken === "function" && SNM.getToken() && SNM.getUser && SNM.getUser()) {
+        if (typeof SNM.onAuthed === "function") SNM.onAuthed();
+        else SNM.showScreen("home");
+      } else {
         SNM.showScreen("role-select");
+      }
+    };
+    if (splash) setTimeout(done, 2200);
+    else done();
+  };
+
+  function navItemsForRole(role) {
+    if (role === "buyer") {
+      return [
+        { id: "home", label: "Home", icon: "fa-home" },
+        { id: "search", label: "Search", icon: "fa-search" },
+        { id: "fairly-used", label: "Used", icon: "fa-tags" },
+        { id: "messages", label: "Msg", icon: "fa-comments" },
+        { id: "news", label: "News", icon: "fa-newspaper" },
+        { id: "profile", label: "Profile", icon: "fa-user" }
+      ];
+    }
+    return [
+      { id: "home", label: "Home", icon: "fa-home" },
+      { id: "search", label: "Search", icon: "fa-search" },
+      { id: "shop", label: "Shop", icon: "fa-store" },
+      { id: "messages", label: "Msg", icon: "fa-comments" },
+      { id: "news", label: "News", icon: "fa-newspaper" },
+      { id: "profile", label: "Profile", icon: "fa-user" }
+    ];
+  }
+
+  SNM.renderBottomNav = function (active) {
+    var user = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+    var role = user.role || (typeof SNM.getRole === "function" && SNM.getRole()) || "buyer";
+    var items = navItemsForRole(role);
+
+    document.body.classList.remove(
+      "role-buyer",
+      "role-merchant",
+      "role-service_provider",
+      "role-driver",
+      "role-emergency"
+    );
+    document.body.classList.add("role-" + String(role).replace(/\s+/g, "_"));
+
+    var html = items
+      .map(function (it) {
+        var cls = it.id === active ? "active" : "";
+        return (
+          '<button type="button" class="' +
+          cls +
+          '" data-nav="' +
+          it.id +
+          '"><i class="fa ' +
+          it.icon +
+          '"></i><span>' +
+          it.label +
+          "</span></button>"
+        );
+      })
+      .join("");
+
+    document.querySelectorAll(".bottom-nav").forEach(function (nav) {
+      var isBuyerNav = nav.classList.contains("nav-buyer");
+      var isSellerNav = nav.classList.contains("nav-seller");
+      if (role === "buyer") {
+        if (isSellerNav) {
+          nav.classList.add("hidden");
+          return;
+        }
+        if (isBuyerNav) nav.classList.remove("hidden");
+      } else {
+        if (isBuyerNav) {
+          nav.classList.add("hidden");
+          return;
+        }
+        if (isSellerNav) nav.classList.remove("hidden");
+      }
+      nav.innerHTML = html;
+    });
+  };
+
+  SNM.bindRouter = function () {
+    // Back links: <button class="back-link" data-back="home">
+    document.body.addEventListener("click", function (e) {
+      var back = e.target.closest("[data-back]");
+      if (back) {
+        e.preventDefault();
+        var to = back.getAttribute("data-back");
+        if (to) SNM.showScreen(to);
         return;
       }
-      SNM.go(act);
+
+      var nav = e.target.closest("[data-nav]");
+      if (nav) {
+        e.preventDefault();
+        var id = nav.getAttribute("data-nav");
+        if (id) SNM.showScreen(id);
+        return;
+      }
+
+      var menuBtn = e.target.closest("[data-menu]");
+      if (menuBtn) {
+        e.preventDefault();
+        var act = menuBtn.getAttribute("data-menu");
+        var menu = $("menuSheet");
+        if (menu) menu.classList.add("hidden");
+        if (act === "logout") {
+          if (typeof SNM.clearSession === "function") SNM.clearSession();
+          SNM.showScreen("role-select");
+          return;
+        }
+        if (act) SNM.showScreen(act);
+        return;
+      }
     });
-  }
 
-  var closeProf = document.getElementById("btnCloseProfile");
-  var logoutProf = document.getElementById("btnLogoutProfile");
-  if (closeProf) closeProf.onclick = function () {
-    document.getElementById("profileSheet").classList.remove("open");
+    window.addEventListener("hashchange", function () {
+      var id = (location.hash || "").replace(/^#/, "");
+      if (id) SNM.showScreen(id);
+    });
   };
-  if (logoutProf) logoutProf.onclick = function () {
-    SNM.clearSession();
-    document.getElementById("profileSheet").classList.remove("open");
-    SNM.showScreen("role-select");
-  };
-
-  var searchTop = document.getElementById("btnSearchTop");
-  if (searchTop) searchTop.onclick = function () { SNM.go("search"); };
-};
+})();
