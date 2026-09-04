@@ -1,96 +1,103 @@
 window.SNM = window.SNM || {};
 
-SNM.loadFairlyUsed = async function () {
-  var feed = document.getElementById("fairlyUsedFeed");
-  if (!feed) return;
-  feed.innerHTML = "<p class='muted'>Loading market…</p>";
-  try {
-    var data = await SNM.api("/fairly-used");
-    var rows = (data && (data.results || data.posts || data.items)) || [];
-    if (!Array.isArray(rows) || !rows.length) {
-      feed.innerHTML = "<p class='muted'>No posts yet — be the first.</p>";
-      return;
-    }
-    feed.innerHTML = rows
-      .map(function (row) {
-        var p = row.post || row;
-        var author = row.author || {};
-        var id = p.id || "";
-        var price =
-          p.price != null
-            ? (p.currency ? p.currency + " " : "") + p.price
-            : "";
-        var place = author.primary_location || author.city || "";
-        return (
-          '<div class="product-card">' +
-          '<div class="title">' +
-          (p.title || "Item") +
-          (price ? " · " + price : "") +
-          "</div>" +
-          (p.body
-            ? '<div class="line">' + p.body + "</div>"
-            : "") +
-          (author.name
-            ? '<div class="line"><strong>Seller:</strong> ' +
-              author.name +
-              (author.role ? " (" + author.role + ")" : "") +
-              "</div>"
-            : "") +
-          (place
-            ? '<div class="line"><strong>Location:</strong> ' +
-              place +
-              "</div>"
-            : "") +
-          '<div class="btn-row">' +
-          '<button type="button" class="btn small secondary" data-fu="comment" data-id="' +
-          id +
-          '">Comment</button>' +
-          '<button type="button" class="btn small secondary" data-fu="share" data-id="' +
-          id +
-          '">Share</button>' +
-          '<button type="button" class="btn small" data-fu="msg" data-id="' +
-          id +
-          '" data-author="' +
-          (author.id || "") +
-          '">Message seller</button>' +
-          "</div></div>"
-        );
-      })
-      .join("");
-  } catch (e) {
-    feed.innerHTML =
-      "<p class='muted'>" + (e.message || "Market unavailable") + "</p>";
+(function () {
+  function el(id) {
+    return document.getElementById(id);
   }
-};
 
-SNM.bindFairlyUsed = function () {
-  var btn = document.getElementById("btnFuPost");
-  if (btn) {
-    btn.onclick = async function () {
-      try {
-        var title = (document.getElementById("fu-title").value || "").trim();
-        var note = (document.getElementById("fu-note").value || "").trim();
-        var priceRaw = (
-          document.getElementById("fu-price").value || ""
-        ).trim();
-        var body = { title: title, body: note };
-        if (priceRaw !== "") {
-          body.price = parseFloat(priceRaw);
-          body.currency = "NGN";
-        }
-        if (!title && !note) {
-          SNM.toast("Add a title or note");
+  function esc(s) {
+    return String(s || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  SNM.loadFairlyUsed = async function () {
+    var feed = el("fuFeed") || el("fairlyUsedFeed") || el("fuList");
+    if (!feed) return;
+    feed.innerHTML = '<p class="muted">Loading market…</p>';
+    try {
+      var data = await SNM.api("/fairly-used").catch(function () {
+        return SNM.api("/fairly-used/posts");
+      });
+      var items = data.items || data.results || data.posts || (Array.isArray(data) ? data : []);
+      items = items.slice().sort(function (a, b) {
+        var ta = Date.parse(a.created_at || 0) || 0;
+        var tb = Date.parse(b.created_at || 0) || 0;
+        return tb - ta;
+      });
+      if (!items.length) {
+        feed.innerHTML = '<div class="empty-state">No fairly used posts yet.</div>';
+        return;
+      }
+      feed.innerHTML = items
+        .map(function (p) {
+          var row = {
+            id: p.id,
+            name: p.title || p.name || "Fairly used item",
+            description: p.body || p.description || p.note || "",
+            price: p.price,
+            currency: p.currency || "NGN",
+            merchant_name: (p.owner && p.owner.name) || p.seller_name || p.owner_name,
+            merchant_phone: (p.owner && p.owner.phone) || p.seller_phone || p.phone,
+            primary_location: p.primary_location || (p.owner && p.owner.primary_location),
+            lat: p.lat,
+            lng: p.lng,
+            created_at: p.created_at
+          };
+          return SNM.cardHtml(row);
+        })
+        .join("");
+    } catch (err) {
+      feed.innerHTML =
+        '<div class="empty-state">' +
+        esc((err && (err.message || err.detail)) || "Could not load posts") +
+        "</div>";
+    }
+  };
+
+  SNM.bindFairlyUsed = function () {
+    var btn = el("btnFuPost") || el("btnFairlyPost");
+    if (btn) {
+      btn.onclick = async function () {
+        var title = (el("fu-title") || el("fuTitle") || {}).value || "";
+        var body = (el("fu-body") || el("fuBody") || {}).value || "";
+        var price = (el("fu-price") || el("fuPrice") || {}).value || "";
+        title = String(title).trim();
+        if (!title) {
+          if (typeof SNM.toast === "function") SNM.toast("Add a title");
           return;
         }
-        await SNM.api("/fairly-used", { method: "POST", body: body });
-        SNM.toast("Posted");
-        document.getElementById("fu-title").value = "";
-        document.getElementById("fu-note").value = "";
-        document.getElementById("fu-price").value = "";
-        SNM.loadFairlyUsed();
-      } catch (e) {
-        SNM.toast(e.message || "Post failed");
-      }
-    };
-  }
-};
+        try {
+          await SNM.api("/fairly-used/posts", {
+            method: "POST",
+            body: {
+              title: title,
+              body: String(body).trim(),
+              price: price === "" ? null : Number(price),
+              currency: "NGN"
+            }
+          }).catch(function () {
+            return SNM.api("/fairly-used", {
+              method: "POST",
+              body: {
+                title: title,
+                body: String(body).trim(),
+                price: price === "" ? null : Number(price)
+              }
+            });
+          });
+          if (el("fu-title")) el("fu-title").value = "";
+          if (el("fu-body")) el("fu-body").value = "";
+          if (el("fu-price")) el("fu-price").value = "";
+          await SNM.loadFairlyUsed();
+        } catch (err) {
+          if (typeof SNM.toast === "function") {
+            SNM.toast((err && (err.message || err.detail)) || "Post failed");
+          }
+        }
+      };
+    }
+    if (typeof SNM.bindCardActions === "function") SNM.bindCardActions(document);
+  };
+})();

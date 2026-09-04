@@ -1,98 +1,97 @@
 window.SNM = window.SNM || {};
 
-var _map = null;
-var _marker = null;
-
-SNM.renderUserMap = function () {
-  var el = document.getElementById("gsgMap");
-  if (!el || typeof L === "undefined") return;
-  var u = SNM.getUser() || {};
-  var lat = parseFloat(u.lat);
-  var lng = parseFloat(u.lng);
-  if (isNaN(lat) || isNaN(lng)) {
-    el.innerHTML =
-      "<div style='padding:1rem;text-align:center;color:#166534'>No pin yet — enable GPS on register/login</div>";
-    return;
+(function () {
+  function el(id) {
+    return document.getElementById(id);
   }
-  if (!_map) {
-    el.innerHTML = "";
-    _map = L.map(el).setView([lat, lng], 14);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+
+  SNM.renderUserMap = function () {
+    var box = el("gsgMap");
+    if (!box || !window.L) return;
+
+    var user = typeof SNM.getUser === "function" ? SNM.getUser() || {} : {};
+    var lat = Number(user.lat);
+    var lng = Number(user.lng);
+    if (!isFinite(lat) || !isFinite(lng)) {
+      box.innerHTML = '<p class="muted" style="padding:1rem">Location pin unavailable — enable GPS at signup/search.</p>';
+      return;
+    }
+
+    if (SNM._homeMap) {
+      try {
+        SNM._homeMap.remove();
+      } catch (e) {}
+      SNM._homeMap = null;
+    }
+
+    box.innerHTML = "";
+    SNM._homeMap = window.L.map(box).setView([lat, lng], 15);
+    window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
       attribution: "© OSM"
-    }).addTo(_map);
-    _marker = L.marker([lat, lng]).addTo(_map);
-  } else {
-    _map.setView([lat, lng], 14);
-    if (_marker) _marker.setLatLng([lat, lng]);
-    else _marker = L.marker([lat, lng]).addTo(_map);
+    }).addTo(SNM._homeMap);
+    window.L.marker([lat, lng]).addTo(SNM._homeMap).bindPopup(user.name || "You");
     setTimeout(function () {
-      _map.invalidateSize();
-    }, 200);
-  }
-};
+      if (SNM._homeMap) SNM._homeMap.invalidateSize();
+    }, 100);
+  };
 
-SNM.refreshHome = function () {
-  if (typeof SNM.applyRoleChrome === "function") SNM.applyRoleChrome();
-  SNM.renderUserMap();
-  var feed = document.getElementById("homeFeed");
-  if (!feed) return;
-  feed.innerHTML = "<p class='muted'>Loading…</p>";
-  var u = SNM.getUser() || {};
-  var q = SNM.qs({
-    q: "",
-    lat: u.lat,
-    lng: u.lng,
-    max_km: SNM.DEFAULT_MAX_KM,
-    limit: 40
-  });
-  SNM.api("/search/products" + q)
-    .then(function (data) {
-      var rows = (data && data.results) || data || [];
-      if (!Array.isArray(rows)) rows = [];
-      if (!rows.length) {
-        feed.innerHTML =
-          "<p class='muted'>No nearby listings yet. Try Search or Fairly used.</p>";
-        return;
-      }
-      if (typeof SNM.cardHtml === "function") {
-        feed.innerHTML = rows.map(SNM.cardHtml).join("");
+  SNM.refreshHome = async function () {
+    var feed = el("homeFeed");
+    if (!feed) return;
+    feed.innerHTML = '<p class="muted">Loading nearby…</p>';
+
+    var user = typeof SNM.getUser === "function" ? SNM.getUser() || {} : {};
+    var params = {
+      q: "",
+      max_km: SNM.DEFAULT_MAX_KM != null ? SNM.DEFAULT_MAX_KM : 2000
+    };
+    if (user.lat != null) params.lat = user.lat;
+    if (user.lng != null) params.lng = user.lng;
+    if (user.community) params.community = user.community;
+
+    try {
+      var qs = Object.keys(params)
+        .map(function (k) {
+          return encodeURIComponent(k) + "=" + encodeURIComponent(params[k]);
+        })
+        .join("&");
+      var data = await SNM.api("/search/products?" + qs);
+      var results = data.results || data.items || [];
+      results = results.slice().sort(function (a, b) {
+        var ta = Date.parse(a.created_at || 0) || 0;
+        var tb = Date.parse(b.created_at || 0) || 0;
+        return tb - ta;
+      });
+      if (!results.length) {
+        feed.innerHTML = '<div class="empty-state">No nearby listings yet. Try search.</div>';
       } else {
-        feed.innerHTML = rows
-          .map(function (r) {
-            return (
-              '<div class="product-card"><div class="title">' +
-              (r.item || r.name || "Item") +
-              "</div></div>"
-            );
-          })
-          .join("");
+        feed.innerHTML = results.map(function (r) {
+          return SNM.cardHtml(r);
+        }).join("");
       }
-    })
-    .catch(function (e) {
-      feed.innerHTML =
-        "<p class='error'>" + (e.message || "Feed error") + "</p>";
-    });
-};
+    } catch (err) {
+      feed.innerHTML = '<div class="empty-state">Feed unavailable</div>';
+    }
 
-SNM.bindHome = function () {
-  var btn = document.getElementById("btnRefreshFeed");
-  if (btn) {
-    btn.onclick = function () {
+    SNM.renderUserMap();
+  };
+
+  SNM.bindHome = function () {
+    var refresh = el("btnRefreshFeed");
+    if (refresh) refresh.onclick = function () {
       SNM.refreshHome();
     };
-  }
-  var exp = document.getElementById("btnExpandMap");
-  if (exp) {
-    exp.onclick = function () {
-      var m = document.getElementById("gsgMap");
-      if (!m) return;
-      m.style.height = m.style.height === "280px" ? "160px" : "280px";
-      if (_map) {
-        setTimeout(function () {
-          _map.invalidateSize();
-        }, 200);
-      }
-    };
-  }
-};
+    var expand = el("btnExpandMap");
+    if (expand) {
+      expand.onclick = function () {
+        var stub = el("homeMapStub");
+        if (stub) stub.classList.toggle("expanded");
+        if (SNM._homeMap) setTimeout(function () {
+          SNM._homeMap.invalidateSize();
+        }, 100);
+      };
+    }
+    if (typeof SNM.bindCardActions === "function") SNM.bindCardActions(document);
+  };
+})();
