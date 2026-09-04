@@ -10,10 +10,12 @@ SNM.renderUserMap = function () {
   var lat = parseFloat(u.lat);
   var lng = parseFloat(u.lng);
   if (isNaN(lat) || isNaN(lng)) {
-    el.innerHTML = "<div style='padding:1rem;text-align:center;color:#166534'>No pin yet — enable GPS on register/login</div>";
+    el.innerHTML =
+      "<div style='padding:1rem;text-align:center;color:#166534'>No pin yet — enable GPS on register/login</div>";
     return;
   }
   if (!_map) {
+    el.innerHTML = "";
     _map = L.map(el).setView([lat, lng], 14);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
@@ -24,12 +26,14 @@ SNM.renderUserMap = function () {
     _map.setView([lat, lng], 14);
     if (_marker) _marker.setLatLng([lat, lng]);
     else _marker = L.marker([lat, lng]).addTo(_map);
-    setTimeout(function () { _map.invalidateSize(); }, 200);
+    setTimeout(function () {
+      _map.invalidateSize();
+    }, 200);
   }
 };
 
 SNM.refreshHome = function () {
-  SNM.applyRoleChrome();
+  if (typeof SNM.applyRoleChrome === "function") SNM.applyRoleChrome();
   SNM.renderUserMap();
   var feed = document.getElementById("homeFeed");
   if (!feed) return;
@@ -42,40 +46,53 @@ SNM.refreshHome = function () {
     max_km: SNM.DEFAULT_MAX_KM,
     limit: 40
   });
-  SNM.api("/search/products" + q).then(function (data) {
-    var rows = (data && data.results) || data || [];
-    if (!Array.isArray(rows)) rows = [];
-    if (!rows.length) {
-      feed.innerHTML = "<p class='muted'>No nearby listings yet. Try Search or Fairly used.</p>";
-      return;
-    }
-    feed.innerHTML = rows.map(function (r) {
-      var title = r.item || r.name || r.title || "Item";
-      var merch = r.merchant || r.owner_name || r.business_name || "";
-      var price = r.price != null ? r.price : "";
-      var km = r.km != null ? Number(r.km).toFixed(1) + " km" : "";
-      var place = r.primary_location || r.community || "";
-      return (
-        '<div class="product-card">' +
-        '<div class="title">' + title + (price !== "" ? " · " + price : "") + "</div>" +
-        '<div class="meta">' + [merch, place, km].filter(Boolean).join(" · ") + "</div>" +
-        "</div>"
-      );
-    }).join("");
-  }).catch(function (e) {
-    feed.innerHTML = "<p class='error'>" + (e.message || "Feed error") + "</p>";
-  });
+  SNM.api("/search/products" + q)
+    .then(function (data) {
+      var rows = (data && data.results) || data || [];
+      if (!Array.isArray(rows)) rows = [];
+      if (!rows.length) {
+        feed.innerHTML =
+          "<p class='muted'>No nearby listings yet. Try Search or Fairly used.</p>";
+        return;
+      }
+      if (typeof SNM.cardHtml === "function") {
+        feed.innerHTML = rows.map(SNM.cardHtml).join("");
+      } else {
+        feed.innerHTML = rows
+          .map(function (r) {
+            return (
+              '<div class="product-card"><div class="title">' +
+              (r.item || r.name || "Item") +
+              "</div></div>"
+            );
+          })
+          .join("");
+      }
+    })
+    .catch(function (e) {
+      feed.innerHTML =
+        "<p class='error'>" + (e.message || "Feed error") + "</p>";
+    });
 };
 
 SNM.bindHome = function () {
   var btn = document.getElementById("btnRefreshFeed");
-  if (btn) btn.onclick = function () { SNM.refreshHome(); };
+  if (btn) {
+    btn.onclick = function () {
+      SNM.refreshHome();
+    };
+  }
   var exp = document.getElementById("btnExpandMap");
-  if (exp) exp.onclick = function () {
-    var m = document.getElementById("gsgMap");
-    if (m) {
+  if (exp) {
+    exp.onclick = function () {
+      var m = document.getElementById("gsgMap");
+      if (!m) return;
       m.style.height = m.style.height === "280px" ? "160px" : "280px";
-      if (_map) setTimeout(function () { _map.invalidateSize(); }, 200);
-    }
-  };
+      if (_map) {
+        setTimeout(function () {
+          _map.invalidateSize();
+        }, 200);
+      }
+    };
+  }
 };

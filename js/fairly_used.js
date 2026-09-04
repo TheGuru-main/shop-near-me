@@ -5,9 +5,8 @@ SNM.loadFairlyUsed = async function () {
   if (!feed) return;
   feed.innerHTML = "<p class='muted'>Loading market…</p>";
   try {
-    /* Backend: GET /fairly-used */
     var data = await SNM.api("/fairly-used");
-    var rows = data.results || data.posts || data.items || [];
+    var rows = (data && (data.results || data.posts || data.items)) || [];
     if (!Array.isArray(rows) || !rows.length) {
       feed.innerHTML = "<p class='muted'>No posts yet — be the first.</p>";
       return;
@@ -21,16 +20,27 @@ SNM.loadFairlyUsed = async function () {
           p.price != null
             ? (p.currency ? p.currency + " " : "") + p.price
             : "";
+        var place = author.primary_location || author.city || "";
         return (
           '<div class="product-card">' +
           '<div class="title">' +
           (p.title || "Item") +
           (price ? " · " + price : "") +
           "</div>" +
-          '<div class="meta">' +
-          (p.body || p.note || "") +
-          (author.name ? " · " + author.name : "") +
-          "</div>" +
+          (p.body
+            ? '<div class="line">' + p.body + "</div>"
+            : "") +
+          (author.name
+            ? '<div class="line"><strong>Seller:</strong> ' +
+              author.name +
+              (author.role ? " (" + author.role + ")" : "") +
+              "</div>"
+            : "") +
+          (place
+            ? '<div class="line"><strong>Location:</strong> ' +
+              place +
+              "</div>"
+            : "") +
           '<div class="btn-row">' +
           '<button type="button" class="btn small secondary" data-fu="comment" data-id="' +
           id +
@@ -55,16 +65,15 @@ SNM.loadFairlyUsed = async function () {
 
 SNM.bindFairlyUsed = function () {
   var btn = document.getElementById("btnFuPost");
-  if (btn)
+  if (btn) {
     btn.onclick = async function () {
       try {
         var title = (document.getElementById("fu-title").value || "").trim();
         var note = (document.getElementById("fu-note").value || "").trim();
-        var priceRaw = (document.getElementById("fu-price").value || "").trim();
-        var body = {
-          title: title,
-          body: note
-        };
+        var priceRaw = (
+          document.getElementById("fu-price").value || ""
+        ).trim();
+        var body = { title: title, body: note };
         if (priceRaw !== "") {
           body.price = parseFloat(priceRaw);
           body.currency = "NGN";
@@ -73,7 +82,6 @@ SNM.bindFairlyUsed = function () {
           SNM.toast("Add a title or note");
           return;
         }
-        /* Backend: POST /fairly-used */
         await SNM.api("/fairly-used", { method: "POST", body: body });
         SNM.toast("Posted");
         document.getElementById("fu-title").value = "";
@@ -84,4 +92,5 @@ SNM.bindFairlyUsed = function () {
         SNM.toast(e.message || "Post failed");
       }
     };
+  }
 };

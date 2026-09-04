@@ -1,59 +1,60 @@
 window.SNM = window.SNM || {};
 SNM._activeThread = null;
 
+function _threadId(t) {
+  var th = (t && t.thread) || t || {};
+  return th.id || t.id;
+}
+
+function _peerLabel(t) {
+  var th = (t && t.thread) || t || {};
+  return (
+    th.peer_name ||
+    th.title ||
+    (t.last_message && (t.last_message.body || "").slice(0, 28)) ||
+    "Chat"
+  );
+}
+
 SNM.loadMessages = async function () {
   var rail = document.getElementById("contactRail");
   var list = document.getElementById("threadList");
   var panel = document.getElementById("threadView");
   if (panel) panel.classList.add("hidden");
   if (list) list.classList.remove("hidden");
-
   if (rail) rail.innerHTML = "<p class='muted'>Loading…</p>";
 
   try {
-    /* Backend: GET /messages/inbox */
     var data = await SNM.api("/messages/inbox");
-    var threads = data.threads || [];
-
-    function peerLabel(t) {
-      var th = t.thread || t;
-      return (
-        th.peer_name ||
-        th.title ||
-        (t.last_message && (t.last_message.body || "").slice(0, 24)) ||
-        "Chat"
-      );
-    }
-
-    function threadId(t) {
-      var th = t.thread || t;
-      return th.id || t.id;
-    }
+    var threads = (data && data.threads) || [];
 
     if (rail) {
       if (!threads.length) {
         rail.innerHTML =
-          "<span class='muted'>No chats yet — message a seller from search or fairly used.</span>";
+          "<span class='muted'>No chats yet. Use Direct message with +phone.</span>";
       } else {
-        rail.innerHTML = threads.slice(0, 20).map(function (t) {
-          var id = threadId(t);
-          var name = peerLabel(t);
-          var preview =
-            (t.last_message && t.last_message.body) || "Open";
-          return (
-            '<button type="button" class="contact-chip" data-thread="' +
-            id +
-            '" data-title="' +
-            String(name).replace(/"/g, "") +
-            '">' +
-            '<div class="avatar">💬</div><div>' +
-            name +
-            "</div>" +
-            '<div class="status">' +
-            String(preview).slice(0, 40) +
-            "</div></button>"
-          );
-        }).join("");
+        rail.innerHTML = threads
+          .slice(0, 24)
+          .map(function (t) {
+            var id = _threadId(t);
+            var name = _peerLabel(t);
+            var preview =
+              (t.last_message && t.last_message.body) || "Open";
+            return (
+              '<button type="button" class="contact-chip" data-thread="' +
+              id +
+              '" data-title="' +
+              String(name).replace(/"/g, "") +
+              '">' +
+              '<div class="avatar">💬</div><div>' +
+              name +
+              "</div>" +
+              '<div class="status">' +
+              String(preview).slice(0, 40) +
+              "</div></button>"
+            );
+          })
+          .join("");
         rail.querySelectorAll(".contact-chip").forEach(function (chip) {
           chip.onclick = function () {
             rail.querySelectorAll(".contact-chip").forEach(function (c) {
@@ -73,24 +74,26 @@ SNM.loadMessages = async function () {
       if (!threads.length) {
         list.innerHTML = "<p class='muted'>Inbox empty.</p>";
       } else {
-        list.innerHTML = threads.map(function (t) {
-          var id = threadId(t);
-          var name = peerLabel(t);
-          var preview =
-            (t.last_message && t.last_message.body) || "";
-          return (
-            '<button type="button" class="product-card" data-thread="' +
-            id +
-            '" data-title="' +
-            String(name).replace(/"/g, "") +
-            '"><div class="title">' +
-            name +
-            "</div>" +
-            '<div class="meta">' +
-            preview +
-            "</div></button>"
-          );
-        }).join("");
+        list.innerHTML = threads
+          .map(function (t) {
+            var id = _threadId(t);
+            var name = _peerLabel(t);
+            var preview =
+              (t.last_message && t.last_message.body) || "";
+            return (
+              '<button type="button" class="product-card" data-thread="' +
+              id +
+              '" data-title="' +
+              String(name).replace(/"/g, "") +
+              '"><div class="title">' +
+              name +
+              "</div>" +
+              '<div class="meta">' +
+              preview +
+              "</div></button>"
+            );
+          })
+          .join("");
         list.querySelectorAll("[data-thread]").forEach(function (b) {
           b.onclick = function () {
             SNM.openThread(
@@ -102,9 +105,10 @@ SNM.loadMessages = async function () {
       }
     }
   } catch (e) {
-    if (list)
+    if (list) {
       list.innerHTML =
         "<p class='muted'>Messages: " + (e.message || "unavailable") + "</p>";
+    }
     if (rail) rail.innerHTML = "";
   }
 };
@@ -124,7 +128,7 @@ SNM.openThread = async function (id, title) {
     var data = await SNM.api(
       "/messages/threads/" + encodeURIComponent(id)
     );
-    var rows = data.messages || [];
+    var rows = (data && data.messages) || [];
     var me = (SNM.getUser() || {}).id;
     if (!rows.length) {
       msgs.innerHTML = "<p class='muted'>No messages yet.</p>";
@@ -145,27 +149,30 @@ SNM.openThread = async function (id, title) {
       .join("");
     msgs.scrollTop = msgs.scrollHeight;
   } catch (e) {
-    if (msgs)
+    if (msgs) {
       msgs.innerHTML =
         "<p class='error'>" + (e.message || "Load failed") + "</p>";
+    }
   }
 };
 
 SNM.bindMessages = function () {
   var back = document.getElementById("btnBackThreads");
-  if (back)
+  if (back) {
     back.onclick = function () {
-      document.getElementById("threadView").classList.add("hidden");
-      document.getElementById("threadList").classList.remove("hidden");
+      var tv = document.getElementById("threadView");
+      var tl = document.getElementById("threadList");
+      if (tv) tv.classList.add("hidden");
+      if (tl) tl.classList.remove("hidden");
     };
+  }
 
   var send = document.getElementById("btnSendMsg");
-  if (send)
+  if (send) {
     send.onclick = async function () {
       var body = (document.getElementById("msgBody").value || "").trim();
       if (!body || !SNM._activeThread) return;
       try {
-        /* Backend: POST /messages/threads/{thread_id} */
         await SNM.api(
           "/messages/threads/" + encodeURIComponent(SNM._activeThread),
           { method: "POST", body: { body: body } }
@@ -179,4 +186,43 @@ SNM.bindMessages = function () {
         SNM.toast(e.message || "Send failed");
       }
     };
+  }
+
+  var dmBtn = document.getElementById("btnDmStart");
+  if (dmBtn) {
+    dmBtn.onclick = async function () {
+      var err = document.getElementById("dmError");
+      if (err) err.textContent = "";
+      var phone = (document.getElementById("dm-phone").value || "").trim();
+      var text =
+        (document.getElementById("dm-body").value || "").trim() || "Hello";
+      if (!phone || phone.charAt(0) !== "+") {
+        if (err) {
+          err.textContent = "Phone must start with + and country code";
+        }
+        return;
+      }
+      try {
+        var found = await SNM.api(
+          "/messages/lookup" + SNM.qs({ phone: phone })
+        );
+        var started = await SNM.api("/messages/threads", {
+          method: "POST",
+          body: {
+            to_user_id: found.id,
+            body: text,
+            context_type: "direct"
+          }
+        });
+        var tid =
+          (started.thread && started.thread.id) || started.thread_id;
+        var bodyEl = document.getElementById("dm-body");
+        if (bodyEl) bodyEl.value = "";
+        await SNM.loadMessages();
+        if (tid) SNM.openThread(tid, found.name || phone);
+      } catch (e) {
+        if (err) err.textContent = e.message || "Could not start chat";
+      }
+    };
+  }
 };

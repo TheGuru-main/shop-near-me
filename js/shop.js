@@ -5,35 +5,40 @@ SNM.loadShop = async function () {
   if (!list) return;
   list.innerHTML = "<p class='muted'>Loading catalogue…</p>";
   try {
-    /* Backend: GET /products/me  — NOT /mine */
     var data = await SNM.api("/products/me");
     var rows = Array.isArray(data) ? data : (data.items || data.results || []);
     if (!rows.length) {
-      list.innerHTML = "<p class='muted'>No listings yet. Add your first item above.</p>";
+      list.innerHTML =
+        "<p class='muted'>No listings yet. Add your first item above.</p>";
       return;
     }
-    list.innerHTML = rows.map(function (p) {
-      var cur = p.currency || "";
-      var price =
-        p.price != null && p.price !== ""
-          ? (cur ? cur + " " : "") + p.price
-          : "";
-      var qty = p.quantity != null ? p.quantity : p.qty;
-      return (
-        '<div class="product-card">' +
-        '<div class="title">' +
-        (p.name || "") +
-        (price ? " · " + price : "") +
-        "</div>" +
-        '<div class="meta">qty ' +
-        (qty != null && qty !== "" ? qty : "—") +
-        (p.available === false ? " · unavailable" : " · available") +
-        (p.perishable ? " · perishable" : "") +
-        "</div></div>"
-      );
-    }).join("");
+    list.innerHTML = rows
+      .map(function (p) {
+        var cur = p.currency || "";
+        var price =
+          p.price != null && p.price !== ""
+            ? (cur ? cur + " " : "") + p.price
+            : "";
+        var qty = p.quantity != null ? p.quantity : p.qty;
+        return (
+          '<div class="product-card">' +
+          '<div class="title">' +
+          (p.name || "") +
+          (price ? " · " + price : "") +
+          "</div>" +
+          '<div class="line"><strong>Qty:</strong> ' +
+          (qty != null && qty !== "" ? qty : "—") +
+          "</div>" +
+          '<div class="meta">' +
+          (p.available === false ? "unavailable" : "available") +
+          (p.perishable ? " · perishable" : "") +
+          "</div></div>"
+        );
+      })
+      .join("");
   } catch (e) {
-    list.innerHTML = "<p class='muted'>Catalogue: " + (e.message || "unavailable") + "</p>";
+    list.innerHTML =
+      "<p class='muted'>Catalogue: " + (e.message || "unavailable") + "</p>";
   }
 };
 
@@ -44,10 +49,13 @@ SNM.bindShop = function () {
     try {
       var name = (document.getElementById("shop-name").value || "").trim();
       var priceRaw = (document.getElementById("shop-price").value || "").trim();
-      var currency = (document.getElementById("shop-currency") || {}).value || "NGN";
+      var currency =
+        (document.getElementById("shop-currency") || {}).value || "NGN";
       var qty = (document.getElementById("shop-qty").value || "").trim();
-      var perishable = !!(document.getElementById("shop-perishable") || {}).checked;
-      var available = !!(document.getElementById("shop-available") || {}).checked;
+      var perishable = !!(document.getElementById("shop-perishable") || {})
+        .checked;
+      var available = !!(document.getElementById("shop-available") || {})
+        .checked;
 
       if (!name) {
         SNM.toast("Item name required");

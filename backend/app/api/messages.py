@@ -199,6 +199,33 @@ async def send_in_thread(
     db.refresh(msg)
     return MessagePublic.model_validate(msg).model_dump(mode="json")
 
+@router.get("/lookup")
+@limiter.limit("30/minute")
+async def lookup_by_phone(
+    request: Request,
+    phone: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.services.phone import normalize_e164
+    try:
+        p = normalize_e164(phone)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid phone")
+    other = (
+        db.query(User)
+        .filter(User.phone == p, User.deleted_at.is_(None))
+        .first()
+    )
+    if not other:
+        raise HTTPException(status_code=404, detail="No user with that phone")
+    return {
+        "id": str(other.id),
+        "name": other.name,
+        "phone": other.phone,
+        "role": other.role,
+        "primary_location": other.primary_location,
+    }
 
 @router.delete("/{message_id}")
 @limiter.limit("30/minute")
@@ -217,3 +244,4 @@ async def delete_message(
     db.add(msg)
     db.commit()
     return {"id": str(message_id), "deleted": True}
+
