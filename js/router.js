@@ -1,201 +1,208 @@
 window.SNM = window.SNM || {};
 
-(function () {
-  function $(id) {
-    return document.getElementById(id);
+SNM.showScreen = function (id) {
+  if (!id) return;
+  document.querySelectorAll(".screen").forEach(function (s) {
+    s.classList.remove("active");
+  });
+  var el = document.getElementById(id);
+  if (el) el.classList.add("active");
+
+  try {
+    if (location.hash !== "#" + id) location.hash = id;
+  } catch (e) {}
+
+  SNM.renderBottomNav(id);
+  SNM._onEnter(id);
+};
+
+SNM._onEnter = function (id) {
+  if (id === "home" && typeof SNM.onHomeEnter === "function") SNM.onHomeEnter();
+  if (id === "search" && typeof SNM.onSearchEnter === "function") SNM.onSearchEnter();
+  if (id === "news" && typeof SNM.loadNews === "function") SNM.loadNews();
+  if (id === "shop" && typeof SNM.onShopEnter === "function") SNM.onShopEnter();
+  if (id === "messages" && typeof SNM.loadMessages === "function") SNM.loadMessages();
+  if (id === "fairly-used" && typeof SNM.onFairlyUsedEnter === "function") SNM.onFairlyUsedEnter();
+  if (id === "banqueue" && typeof SNM.onBanqueueEnter === "function") SNM.onBanqueueEnter();
+  if (id === "emergency" && typeof SNM.onEmergencyEnter === "function") SNM.onEmergencyEnter();
+  if (id === "documents" && typeof SNM.onDocumentsEnter === "function") SNM.onDocumentsEnter();
+  if (id === "premium" && typeof SNM.onPremiumEnter === "function") SNM.onPremiumEnter();
+  if (id === "rules" && typeof SNM.onRulesEnter === "function") SNM.onRulesEnter();
+  if (id === "checkout-assist" && typeof SNM.loadCheckoutAssist === "function") {
+    SNM.loadCheckoutAssist();
   }
+};
 
-  SNM.showScreen = function (id) {
-    if (!id) return;
-    document.querySelectorAll(".screen").forEach(function (s) {
-      s.classList.remove("active");
-    });
-    var target = $(id);
-    if (!target) {
-      console.warn("showScreen: missing #" + id);
-      return;
-    }
-    target.classList.add("active");
-
-    try {
-      if (location.hash !== "#" + id) {
-        history.replaceState(null, "", "#" + id);
-      }
-    } catch (e) {}
-
-    // Enter hooks
-    if (id === "home" && typeof SNM.refreshHome === "function") {
-      SNM.refreshHome();
-    }
-    if (id === "search" && typeof SNM.bindSearch === "function") {
-      /* results stay until user searches */ 
-    }
-    if (id === "news" && typeof SNM.loadNews === "function") {
-      SNM.loadNews();
-    }
-    if (id === "messages") {
-      if (typeof SNM.onMessagesEnter === "function") SNM.onMessagesEnter();
-      else if (typeof SNM.loadMessages === "function") SNM.loadMessages();
-    }
-    if (id === "fairly-used" && typeof SNM.loadFairlyUsed === "function") {
-      SNM.loadFairlyUsed();
-    }
-    if (id === "shop" && typeof SNM.loadShop === "function") {
-      SNM.loadShop();
-    }
-    if (id === "banqueue" && typeof SNM.loadBanqueue === "function") {
-      SNM.loadBanqueue();
-    }
-    if (id === "emergency" && typeof SNM.loadEmergency === "function") {
-      SNM.loadEmergency();
-    }
-    if (id === "documents" && typeof SNM.loadDocuments === "function") {
-      SNM.loadDocuments();
-    }
-    if (id === "premium" && typeof SNM.loadPremium === "function") {
-      SNM.loadPremium();
-    }
-    if (id === "profile" && typeof SNM.fillProfile === "function") {
-      SNM.fillProfile();
-    }
-
-    if (typeof SNM.renderBottomNav === "function") {
-      SNM.renderBottomNav(id);
-    }
-
-    var menu = $("menuSheet");
-    if (menu) menu.classList.add("hidden");
-  };
-
-  SNM.go = function (id) {
-    SNM.showScreen(id);
-  };
-
-  SNM.startSplash = function () {
-    var splash = $("splash");
-    var done = function () {
-      if (splash) splash.classList.add("hidden");
-      if (typeof SNM.getToken === "function" && SNM.getToken() && SNM.getUser && SNM.getUser()) {
-        if (typeof SNM.onAuthed === "function") SNM.onAuthed();
-        else SNM.showScreen("home");
-      } else {
-        SNM.showScreen("role-select");
-      }
-    };
-    if (splash) setTimeout(done, 2200);
-    else done();
-  };
-
-  function navItemsForRole(role) {
-    if (role === "buyer") {
-      return [
-        { id: "home", label: "Home", icon: "fa-home" },
-        { id: "search", label: "Search", icon: "fa-search" },
-        { id: "fairly-used", label: "Used", icon: "fa-tags" },
-        { id: "messages", label: "Msg", icon: "fa-comments" },
-        { id: "news", label: "News", icon: "fa-newspaper" },
-        { id: "profile", label: "Profile", icon: "fa-user" }
-      ];
-    }
+SNM.navItemsForRole = function (role) {
+  role = role || "buyer";
+  if (role === "buyer") {
     return [
-      { id: "home", label: "Home", icon: "fa-home" },
-      { id: "search", label: "Search", icon: "fa-search" },
-      { id: "shop", label: "Shop", icon: "fa-store" },
-      { id: "messages", label: "Msg", icon: "fa-comments" },
-      { id: "news", label: "News", icon: "fa-newspaper" },
-      { id: "profile", label: "Profile", icon: "fa-user" }
+      { id: "home", label: "Home", icon: "🏠" },
+      { id: "search", label: "Search", icon: "🔍" },
+      { id: "saved", label: "Saved", icon: "⭐" },
+      { id: "messages", label: "Msg", icon: "💬" },
+      { id: "news", label: "News", icon: "📰" },
+      { id: "profile", label: "Profile", icon: "👤" }
     ];
   }
+  return [
+    { id: "home", label: "Home", icon: "🏠" },
+    { id: "search", label: "Search", icon: "🔍" },
+    { id: "shop", label: "Shop", icon: "🏪" },
+    { id: "messages", label: "Msg", icon: "💬" },
+    { id: "news", label: "News", icon: "📰" },
+    { id: "profile", label: "Profile", icon: "👤" }
+  ];
+};
 
-  SNM.renderBottomNav = function (active) {
-    var user = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
-    var role = user.role || (typeof SNM.getRole === "function" && SNM.getRole()) || "buyer";
-    var items = navItemsForRole(role);
+SNM.renderBottomNav = function (active) {
+  var user = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+  var role = user.role || "buyer";
+  var items = SNM.navItemsForRole(role);
+  var html = items
+    .map(function (it) {
+      var isActive = it.id === active || (it.id === "profile" && active === "profile");
+      return (
+        '<button type="button" class="' +
+        (isActive ? "active" : "") +
+        '" data-nav="' +
+        it.id +
+        '"><span class="nav-ico">' +
+        it.icon +
+        "</span><span>" +
+        it.label +
+        "</span></button>"
+      );
+    })
+    .join("");
+  document.querySelectorAll(".bottom-nav").forEach(function (nav) {
+    nav.innerHTML = html;
+  });
+};
 
-    document.body.classList.remove(
-      "role-buyer",
-      "role-merchant",
-      "role-service_provider",
-      "role-driver",
-      "role-emergency"
-    );
-    document.body.classList.add("role-" + String(role).replace(/\s+/g, "_"));
+SNM.openProfile = function () {
+  var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+  var body = document.getElementById("profileBody");
+  if (body) {
+    body.innerHTML =
+      "<p><strong>" +
+      (typeof SNM.esc === "function" ? SNM.esc(u.name || "") : u.name || "") +
+      "</strong></p>" +
+      "<p class='muted'>" +
+      (u.role || "") +
+      "</p>" +
+      "<p class='muted'>" +
+      (u.phone || "") +
+      "</p>" +
+      "<p class='muted'>" +
+      (u.primary_location || "") +
+      "</p>" +
+      "<p class='muted'>" +
+      [u.community, u.city, u.region, u.country].filter(Boolean).join(" · ") +
+      "</p>";
+  }
+  var sheet = document.getElementById("profileSheet");
+  if (sheet) sheet.classList.add("open");
+};
 
-    var html = items
-      .map(function (it) {
-        var cls = it.id === active ? "active" : "";
-        return (
-          '<button type="button" class="' +
-          cls +
-          '" data-nav="' +
-          it.id +
-          '"><i class="fa ' +
-          it.icon +
-          '"></i><span>' +
-          it.label +
-          "</span></button>"
-        );
-      })
-      .join("");
+SNM.closeProfile = function () {
+  var sheet = document.getElementById("profileSheet");
+  if (sheet) sheet.classList.remove("open");
+};
 
-    document.querySelectorAll(".bottom-nav").forEach(function (nav) {
-      var isBuyerNav = nav.classList.contains("nav-buyer");
-      var isSellerNav = nav.classList.contains("nav-seller");
-      if (role === "buyer") {
-        if (isSellerNav) {
-          nav.classList.add("hidden");
-          return;
-        }
-        if (isBuyerNav) nav.classList.remove("hidden");
-      } else {
-        if (isBuyerNav) {
-          nav.classList.add("hidden");
-          return;
-        }
-        if (isSellerNav) nav.classList.remove("hidden");
-      }
-      nav.innerHTML = html;
-    });
-  };
+SNM.openMenu = function () {
+  var m = document.getElementById("menuSheet");
+  if (m) m.classList.remove("hidden");
+};
 
-  SNM.bindRouter = function () {
-    // Back links: <button class="back-link" data-back="home">
-    document.body.addEventListener("click", function (e) {
-      var back = e.target.closest("[data-back]");
-      if (back) {
-        e.preventDefault();
-        var to = back.getAttribute("data-back");
-        if (to) SNM.showScreen(to);
+SNM.closeMenu = function () {
+  var m = document.getElementById("menuSheet");
+  if (m) m.classList.add("hidden");
+};
+
+SNM.bindRouter = function () {
+  document.body.addEventListener("click", function (e) {
+    var back = e.target.closest("[data-back]");
+    if (back) {
+      e.preventDefault();
+      var to = back.getAttribute("data-back");
+      if (to) SNM.showScreen(to);
+      return;
+    }
+
+    var go = e.target.closest("[data-go]");
+    if (go) {
+      e.preventDefault();
+      var gid = go.getAttribute("data-go");
+      if (gid) SNM.showScreen(gid);
+      return;
+    }
+
+    var nav = e.target.closest("[data-nav]");
+    if (nav) {
+      e.preventDefault();
+      var id = nav.getAttribute("data-nav");
+      if (id === "profile") {
+        SNM.openProfile();
         return;
       }
-
-      var nav = e.target.closest("[data-nav]");
-      if (nav) {
-        e.preventDefault();
-        var id = nav.getAttribute("data-nav");
-        if (id) SNM.showScreen(id);
-        return;
-      }
-
-      var menuBtn = e.target.closest("[data-menu]");
-      if (menuBtn) {
-        e.preventDefault();
-        var act = menuBtn.getAttribute("data-menu");
-        var menu = $("menuSheet");
-        if (menu) menu.classList.add("hidden");
-        if (act === "logout") {
-          if (typeof SNM.clearSession === "function") SNM.clearSession();
-          SNM.showScreen("role-select");
-          return;
-        }
-        if (act) SNM.showScreen(act);
-        return;
-      }
-    });
-
-    window.addEventListener("hashchange", function () {
-      var id = (location.hash || "").replace(/^#/, "");
       if (id) SNM.showScreen(id);
-    });
-  };
-})();
+      return;
+    }
+
+    var menuBtn = e.target.closest("#btnMenu");
+    if (menuBtn) {
+      e.preventDefault();
+      SNM.openMenu();
+      return;
+    }
+
+    var menuItem = e.target.closest("#menuSheet [data-menu]");
+    if (menuItem) {
+      e.preventDefault();
+      var act = menuItem.getAttribute("data-menu");
+      SNM.closeMenu();
+      if (act === "logout") {
+        if (typeof SNM.clearUser === "function") SNM.clearUser();
+        if (typeof SNM.clearToken === "function") SNM.clearToken();
+        try {
+          localStorage.removeItem("snm_token");
+          localStorage.removeItem("snm_user");
+        } catch (err) {}
+        SNM.showScreen("role-select");
+        return;
+      }
+      if (act === "about") SNM.showScreen("about");
+      else if (act === "rules") SNM.showScreen("rules");
+      else if (act === "premium") SNM.showScreen("premium");
+      else if (act === "documents") SNM.showScreen("documents");
+      else if (act === "calculator") SNM.showScreen("calculator");
+      else if (act === "invoice") SNM.showScreen("invoice");
+      else if (act) SNM.showScreen(act);
+      return;
+    }
+
+    var closeProf = e.target.closest("#btnCloseProfile");
+    if (closeProf) {
+      SNM.closeProfile();
+      return;
+    }
+
+    var logoutProf = e.target.closest("#btnLogoutProfile");
+    if (logoutProf) {
+      if (typeof SNM.clearUser === "function") SNM.clearUser();
+      if (typeof SNM.clearToken === "function") SNM.clearToken();
+      try {
+        localStorage.removeItem("snm_token");
+        localStorage.removeItem("snm_user");
+      } catch (err) {}
+      SNM.closeProfile();
+      SNM.showScreen("role-select");
+    }
+  });
+
+  window.addEventListener("hashchange", function () {
+    var id = (location.hash || "").replace(/^#/, "");
+    if (id && document.getElementById(id)) SNM.showScreen(id);
+  });
+};

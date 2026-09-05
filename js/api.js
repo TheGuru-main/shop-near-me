@@ -1,39 +1,33 @@
 window.SNM = window.SNM || {};
 
-SNM.toast = function (msg) {
-  try { alert(String(msg || "")); } catch (e) {}
-};
-
-SNM.api = async function (path, opts) {
-  opts = opts || {};
+SNM.api = async function (path, options) {
+  options = options || {};
   var url = SNM.API_BASE + path;
-  var headers = opts.headers || {};
-  headers["Accept"] = "application/json";
-  if (opts.body && typeof opts.body === "object" && !(opts.body instanceof FormData)) {
-    headers["Content-Type"] = "application/json";
-    opts.body = JSON.stringify(opts.body);
-  }
+  var headers = Object.assign(
+    { Accept: "application/json", "Content-Type": "application/json" },
+    options.headers || {}
+  );
   var token = SNM.getToken && SNM.getToken();
-  if (token) headers["Authorization"] = "Bearer " + token;
+  if (token) headers.Authorization = "Bearer " + token;
 
   var res = await fetch(url, {
-    method: opts.method || "GET",
+    method: options.method || "GET",
     headers: headers,
-    body: opts.body || undefined
+    body: options.body != null ? JSON.stringify(options.body) : undefined
   });
 
   var text = await res.text();
   var data = null;
-  try { data = text ? JSON.parse(text) : null; } catch (e) { data = { raw: text }; }
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch (e) {
+    data = { raw: text };
+  }
 
   if (!res.ok) {
-    var detail = (data && (data.detail || data.message)) || text || res.statusText;
-    if (Array.isArray(detail)) {
-      detail = detail.map(function (d) {
-        return (d.loc ? d.loc.join(".") + ": " : "") + (d.msg || JSON.stringify(d));
-      }).join("; ");
-    }
-    var err = new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
+    var err = new Error(
+      (data && (data.detail || data.message)) || res.statusText || "Request failed"
+    );
     err.status = res.status;
     err.data = data;
     throw err;
@@ -44,21 +38,9 @@ SNM.api = async function (path, opts) {
 SNM.qs = function (obj) {
   var parts = [];
   Object.keys(obj || {}).forEach(function (k) {
-    if (obj[k] === undefined || obj[k] === null || obj[k] === "") return;
-    parts.push(encodeURIComponent(k) + "=" + encodeURIComponent(obj[k]));
+    var v = obj[k];
+    if (v === undefined || v === null || v === "") return;
+    parts.push(encodeURIComponent(k) + "=" + encodeURIComponent(String(v)));
   });
   return parts.length ? "?" + parts.join("&") : "";
-};
-
-SNM.renderAssistant = function (el, assistant) {
-  if (!el) return;
-  if (!assistant || !assistant.message) {
-    el.classList.add("hidden");
-    el.innerHTML = "";
-    return;
-  }
-  el.classList.remove("hidden");
-  el.innerHTML =
-    "<strong>Assistant · " + (assistant.source || "ai") + "</strong>" +
-    "<div>" + String(assistant.message).replace(/</g, "&lt;") + "</div>";
 };

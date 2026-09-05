@@ -1,228 +1,360 @@
 window.SNM = window.SNM || {};
-SNM._activeThread = null;
 
-function _threadId(t) {
-  var th = (t && t.thread) || t || {};
-  return th.id || t.id;
-}
+SNM._threadId = null;
+SNM._threadPeer = null;
 
-function _peerLabel(t) {
-  var th = (t && t.thread) || t || {};
-  return (
-    th.peer_name ||
-    th.title ||
-    (t.last_message && (t.last_message.body || "").slice(0, 28)) ||
-    "Chat"
-  );
-}
-
-SNM.loadMessages = async function () {
-  var rail = document.getElementById("contactRail");
-  var list = document.getElementById("threadList");
-  var panel = document.getElementById("threadView");
-  if (panel) panel.classList.add("hidden");
-  if (list) list.classList.remove("hidden");
-  if (rail) rail.innerHTML = "<p class='muted'>Loading…</p>";
-
-  try {
-    var data = await SNM.api("/messages/inbox");
-    var threads = (data && data.threads) || [];
-
-    if (rail) {
-      if (!threads.length) {
-        rail.innerHTML =
-          "<span class='muted'>No chats yet. Use Direct message with +phone.</span>";
-      } else {
-        rail.innerHTML = threads
-          .slice(0, 24)
-          .map(function (t) {
-            var id = _threadId(t);
-            var name = _peerLabel(t);
-            var preview =
-              (t.last_message && t.last_message.body) || "Open";
-            return (
-              '<button type="button" class="contact-chip" data-thread="' +
-              id +
-              '" data-title="' +
-              String(name).replace(/"/g, "") +
-              '">' +
-              '<div class="avatar">💬</div><div>' +
-              name +
-              "</div>" +
-              '<div class="status">' +
-              String(preview).slice(0, 40) +
-              "</div></button>"
-            );
-          })
-          .join("");
-        rail.querySelectorAll(".contact-chip").forEach(function (chip) {
-          chip.onclick = function () {
-            rail.querySelectorAll(".contact-chip").forEach(function (c) {
-              c.classList.remove("active");
-            });
-            chip.classList.add("active");
-            SNM.openThread(
-              chip.getAttribute("data-thread"),
-              chip.getAttribute("data-title")
-            );
-          };
-        });
-      }
-    }
-
-    if (list) {
-      if (!threads.length) {
-        list.innerHTML = "<p class='muted'>Inbox empty.</p>";
-      } else {
-        list.innerHTML = threads
-          .map(function (t) {
-            var id = _threadId(t);
-            var name = _peerLabel(t);
-            var preview =
-              (t.last_message && t.last_message.body) || "";
-            return (
-              '<button type="button" class="product-card" data-thread="' +
-              id +
-              '" data-title="' +
-              String(name).replace(/"/g, "") +
-              '"><div class="title">' +
-              name +
-              "</div>" +
-              '<div class="meta">' +
-              preview +
-              "</div></button>"
-            );
-          })
-          .join("");
-        list.querySelectorAll("[data-thread]").forEach(function (b) {
-          b.onclick = function () {
-            SNM.openThread(
-              b.getAttribute("data-thread"),
-              b.getAttribute("data-title")
-            );
-          };
-        });
-      }
-    }
-  } catch (e) {
-    if (list) {
-      list.innerHTML =
-        "<p class='muted'>Messages: " + (e.message || "unavailable") + "</p>";
-    }
-    if (rail) rail.innerHTML = "";
-  }
+SNM._msgPaths = {
+  inbox: ["/messages/threads", "/messages/inbox", "/messages"],
+  lookup: ["/messages/lookup", "/messages/user"],
+  open: ["/messages/threads", "/messages/open"],
+  send: ["/messages/send", "/messages"],
+  history: ["/messages/thread", "/messages/history"]
 };
 
-SNM.openThread = async function (id, title) {
-  SNM._activeThread = id;
+SNM._tryGet = async function (paths, qs) {
+  var last = null;
+  for (var i = 0; i < paths.length; i++) {
+    try {
+      return await SNM.api(paths[i] + (qs || ""));
+    } catch (e) {
+      last = e;
+      if (e && e.status && e.status !== 404) throw e;
+    }
+  }
+  if (last) throw last;
+  return null;
+};
+
+SNM._tryPost = async function (paths, body) {
+  var last = null;
+  for (var i = 0; i < paths.length; i++) {
+    try {
+      return await SNM.api(paths[i], { method: "POST", body: body });
+    } catch (e) {
+      last = e;
+      if (e && e.status && e.status !== 404) throw e;
+    }
+  }
+  if (last) throw last;
+  return null;
+};
+
+SNM.renderContactRail = function (items) {
+  var rail = document.getElementById("contactRail");
+  if (!rail) return;
+  items = items || [];
+  if (!items.length) {
+    rail.innerHTML = "";
+    return;
+  }
+  rail.innerHTML = items
+    .slice(0, 20)
+    .map(function (t) {
+      var name = t.name || t.peer_name || t.phone || "Chat";
+      var phone = t.phone || t.peer_phone || "";
+      var id = t.id || t.thread_id || "";
+      return (
+        '<button type="button" class="contact-chip" data-thread-id="' +
+        SNM.esc(id) +
+        '" data-phone="' +
+        SNM.esc(phone) +
+        '">' +
+        SNM.esc(name) +
+        "</button>"
+      );
+    })
+    .join("");
+};
+
+SNM.renderThreadList = function (items) {
+  var list = document.getElementById("threadList");
+  if (!list) return;
+  items = items || [];
+  if (!items.length) {
+    list.innerHTML = "<p class='muted'>No conversations yet. Start with a registered phone (+…).</p>";
+    return;
+  }
+  list.innerHTML = items
+    .map(function (t) {
+      var title = t.name || t.peer_name || t.phone || "Conversation";
+      var preview = t.last_message || t.preview || "";
+      var id = t.id || t.thread_id || "";
+      var phone = t.phone || t.peer_phone || "";
+      return (
+        '<article class="card" data-thread-id="' +
+        SNM.esc(id) +
+        '" data-phone="' +
+        SNM.esc(phone) +
+        '" style="cursor:pointer">' +
+        "<strong>" +
+        SNM.esc(title) +
+        "</strong>" +
+        (preview ? "<p class='muted small'>" + SNM.esc(preview) + "</p>" : "") +
+        "</article>"
+      );
+    })
+    .join("");
+};
+
+SNM.openThreadPanel = function (title) {
   var list = document.getElementById("threadList");
   var panel = document.getElementById("threadView");
-  var msgs = document.getElementById("threadMsgs");
   var tEl = document.getElementById("threadTitle");
   if (list) list.classList.add("hidden");
   if (panel) panel.classList.remove("hidden");
   if (tEl) tEl.textContent = title || "Chat";
-  if (msgs) msgs.innerHTML = "<p class='muted'>Loading…</p>";
+};
 
+SNM.closeThreadPanel = function () {
+  var list = document.getElementById("threadList");
+  var panel = document.getElementById("threadView");
+  if (panel) panel.classList.add("hidden");
+  if (list) list.classList.remove("hidden");
+  SNM._threadId = null;
+  SNM._threadPeer = null;
+};
+
+SNM.renderBubbles = function (messages) {
+  var box = document.getElementById("msgList");
+  if (!box) return;
+  var me = SNM.getUser() || {};
+  var myPhone = me.phone || "";
+  var myId = me.id || "";
+  messages = messages || [];
+  box.innerHTML = messages
+    .map(function (m) {
+      var text = m.body || m.text || m.content || "";
+      var from = m.from_phone || m.sender_phone || m.from || "";
+      var sid = m.sender_id || m.from_id || "";
+      var mine =
+        (from && myPhone && from === myPhone) ||
+        (sid && myId && String(sid) === String(myId)) ||
+        !!m.mine;
+      return (
+        '<div class="msg-bubble ' +
+        (mine ? "me" : "them") +
+        '">' +
+        SNM.esc(text) +
+        "</div>"
+      );
+    })
+    .join("");
+  box.scrollTop = box.scrollHeight;
+};
+
+SNM.loadThreadMessages = async function (threadId) {
+  var box = document.getElementById("msgList");
+  if (box) box.innerHTML = "<p class='muted small'>Loading…</p>";
   try {
-    var data = await SNM.api(
-      "/messages/threads/" + encodeURIComponent(id)
+    var data = await SNM._tryGet(
+      [
+        "/messages/threads/" + encodeURIComponent(threadId),
+        "/messages/thread/" + encodeURIComponent(threadId),
+        "/messages/history"
+      ],
+      SNM.qs({ thread_id: threadId })
     );
-    var rows = (data && data.messages) || [];
-    var me = (SNM.getUser() || {}).id;
-    if (!rows.length) {
-      msgs.innerHTML = "<p class='muted'>No messages yet.</p>";
+    var msgs =
+      (data && (data.messages || data.items || data.results)) ||
+      (Array.isArray(data) ? data : []);
+    SNM.renderBubbles(msgs);
+  } catch (e) {
+    if (box) {
+      box.innerHTML =
+        "<p class='muted small'>Could not load messages.</p>";
+    }
+  }
+};
+
+SNM.openThread = async function (opts) {
+  opts = opts || {};
+  var threadId = opts.threadId || opts.id || null;
+  var phone = (opts.phone || "").trim();
+  var title = opts.title || phone || "Chat";
+
+  SNM._threadPeer = phone;
+  SNM.openThreadPanel(title);
+
+  if (!threadId && phone) {
+    try {
+      var looked = await SNM._tryGet(
+        SNM._msgPaths.lookup,
+        SNM.qs({ phone: phone })
+      );
+      if (looked) {
+        threadId =
+          looked.thread_id ||
+          looked.id ||
+          (looked.thread && looked.thread.id) ||
+          null;
+        title = looked.name || looked.user_name || title;
+        if (looked.registered === false) {
+          alert("That number is not registered on Shop Near Me.");
+          SNM.closeThreadPanel();
+          return;
+        }
+      }
+    } catch (e) {
+      alert("Number not found or not registered.");
+      SNM.closeThreadPanel();
       return;
     }
-    msgs.innerHTML = rows
-      .map(function (m) {
-        var mine =
-          String(m.from_user_id || m.sender_id || "") === String(me);
-        return (
-          '<div class="msg-bubble ' +
-          (mine ? "mine" : "theirs") +
-          '">' +
-          (m.body || "") +
-          "</div>"
-        );
-      })
-      .join("");
-    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  if (!threadId && phone) {
+    try {
+      var opened = await SNM._tryPost(SNM._msgPaths.open, { phone: phone });
+      threadId =
+        (opened && (opened.thread_id || opened.id)) ||
+        (opened && opened.thread && opened.thread.id) ||
+        null;
+    } catch (e) {
+      /* may only need send with phone */
+    }
+  }
+
+  SNM._threadId = threadId;
+  var tEl = document.getElementById("threadTitle");
+  if (tEl) tEl.textContent = title;
+
+  if (threadId) await SNM.loadThreadMessages(threadId);
+  else {
+    var box = document.getElementById("msgList");
+    if (box) {
+      box.innerHTML =
+        "<p class='muted small'>New chat with " +
+        SNM.esc(phone) +
+        ". Send a message.</p>";
+    }
+  }
+};
+
+SNM.startDmByPhone = async function (phone) {
+  phone = (phone || "").trim();
+  if (!phone || phone.charAt(0) !== "+") {
+    alert("Use international phone (+234…).");
+    return;
+  }
+  var input = document.getElementById("dm-phone");
+  if (input) input.value = phone;
+  SNM.showScreen("messages");
+  await SNM.openThread({ phone: phone, title: phone });
+};
+
+SNM.sendMessage = async function () {
+  var input = document.getElementById("msgInput");
+  var text = ((input && input.value) || "").trim();
+  if (!text) return;
+
+  var body = {
+    body: text,
+    text: text,
+    content: text
+  };
+  if (SNM._threadId) body.thread_id = SNM._threadId;
+  if (SNM._threadPeer) body.to_phone = SNM._threadPeer;
+  if (SNM._threadPeer) body.phone = SNM._threadPeer;
+
+  /* optimistic */
+  var box = document.getElementById("msgList");
+  if (box) {
+    var div = document.createElement("div");
+    div.className = "msg-bubble me";
+    div.textContent = text;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+  if (input) input.value = "";
+
+  try {
+    var data = await SNM._tryPost(SNM._msgPaths.send, body);
+    if (data && (data.thread_id || data.id)) {
+      SNM._threadId = data.thread_id || data.id;
+    }
+    if (SNM._threadId) await SNM.loadThreadMessages(SNM._threadId);
   } catch (e) {
-    if (msgs) {
-      msgs.innerHTML =
-        "<p class='error'>" + (e.message || "Load failed") + "</p>";
+    alert(
+      "Send failed: " +
+        ((e && e.message) || "check API / registered phone")
+    );
+  }
+};
+
+SNM.loadMessages = async function () {
+  var list = document.getElementById("threadList");
+  if (list) list.classList.remove("hidden");
+  SNM.closeThreadPanel();
+  if (list) list.innerHTML = "<p class='muted'>Loading inbox…</p>";
+  try {
+    var data = await SNM._tryGet(SNM._msgPaths.inbox, "");
+    var items =
+      (data && (data.threads || data.items || data.results)) ||
+      (Array.isArray(data) ? data : []);
+    SNM.renderContactRail(items);
+    SNM.renderThreadList(items);
+  } catch (e) {
+    if (list) {
+      list.innerHTML =
+        "<p class='muted'>Inbox unavailable. You can still DM by phone.</p>";
     }
   }
 };
 
 SNM.bindMessages = function () {
-  var back = document.getElementById("btnBackThreads");
-  if (back) {
-    back.onclick = function () {
-      var tv = document.getElementById("threadView");
-      var tl = document.getElementById("threadList");
-      if (tv) tv.classList.add("hidden");
-      if (tl) tl.classList.remove("hidden");
-    };
-  }
-
-  var send = document.getElementById("btnSendMsg");
-  if (send) {
-    send.onclick = async function () {
-      var body = (document.getElementById("msgBody").value || "").trim();
-      if (!body || !SNM._activeThread) return;
-      try {
-        await SNM.api(
-          "/messages/threads/" + encodeURIComponent(SNM._activeThread),
-          { method: "POST", body: { body: body } }
-        );
-        document.getElementById("msgBody").value = "";
-        SNM.openThread(
-          SNM._activeThread,
-          document.getElementById("threadTitle").textContent
-        );
-      } catch (e) {
-        SNM.toast(e.message || "Send failed");
-      }
-    };
-  }
-
   var dmBtn = document.getElementById("btnDmStart");
   if (dmBtn) {
     dmBtn.onclick = async function () {
-      var err = document.getElementById("dmError");
-      if (err) err.textContent = "";
-      var phone = (document.getElementById("dm-phone").value || "").trim();
-      var text =
-        (document.getElementById("dm-body").value || "").trim() || "Hello";
-      if (!phone || phone.charAt(0) !== "+") {
-        if (err) {
-          err.textContent = "Phone must start with + and country code";
-        }
-        return;
-      }
-      try {
-        var found = await SNM.api(
-          "/messages/lookup" + SNM.qs({ phone: phone })
-        );
-        var started = await SNM.api("/messages/threads", {
-          method: "POST",
-          body: {
-            to_user_id: found.id,
-            body: text,
-            context_type: "direct"
-          }
-        });
-        var tid =
-          (started.thread && started.thread.id) || started.thread_id;
-        var bodyEl = document.getElementById("dm-body");
-        if (bodyEl) bodyEl.value = "";
-        await SNM.loadMessages();
-        if (tid) SNM.openThread(tid, found.name || phone);
-      } catch (e) {
-        if (err) err.textContent = e.message || "Could not start chat";
-      }
+      var phone = ((document.getElementById("dm-phone") || {}).value || "").trim();
+      await SNM.startDmByPhone(phone);
     };
+  }
+
+  var sendBtn = document.getElementById("btnMsgSend");
+  if (sendBtn) sendBtn.onclick = function () {
+    SNM.sendMessage();
+  };
+
+  var input = document.getElementById("msgInput");
+  if (input) {
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        SNM.sendMessage();
+      }
+    });
+  }
+
+  var back = document.getElementById("btnThreadBack");
+  if (back) {
+    back.onclick = function () {
+      SNM.closeThreadPanel();
+      SNM.loadMessages();
+    };
+  }
+
+  var list = document.getElementById("threadList");
+  if (list) {
+    list.addEventListener("click", function (e) {
+      var card = e.target.closest("[data-thread-id]");
+      if (!card) return;
+      SNM.openThread({
+        threadId: card.getAttribute("data-thread-id"),
+        phone: card.getAttribute("data-phone"),
+        title: (card.querySelector("strong") || {}).textContent
+      });
+    });
+  }
+
+  var rail = document.getElementById("contactRail");
+  if (rail) {
+    rail.addEventListener("click", function (e) {
+      var chip = e.target.closest("[data-thread-id], [data-phone]");
+      if (!chip) return;
+      SNM.openThread({
+        threadId: chip.getAttribute("data-thread-id"),
+        phone: chip.getAttribute("data-phone"),
+        title: chip.textContent
+      });
+    });
   }
 };

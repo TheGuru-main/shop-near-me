@@ -1,169 +1,127 @@
 window.SNM = window.SNM || {};
 
+SNM._fillSelect = function (el, items, placeholder, disabled) {
+  if (!el) return;
+  el.innerHTML = "";
+  var ph = document.createElement("option");
+  ph.value = "";
+  ph.textContent = placeholder || "Select";
+  ph.disabled = true;
+  ph.selected = true;
+  el.appendChild(ph);
+  (items || []).forEach(function (it) {
+    var o = document.createElement("option");
+    o.value = typeof it === "string" ? it : it.name || it;
+    o.textContent = typeof it === "string" ? it : it.name || it;
+    el.appendChild(o);
+  });
+  el.disabled = !!disabled;
+};
+
 SNM.composePhone = function () {
   var dialEl = document.getElementById("reg-dial");
-  var localEl = document.getElementById("reg-phone-local");
+  var localEl = document.getElementById("reg-local");
   var hidden = document.getElementById("reg-phone");
-  var dial = String((dialEl && dialEl.textContent) || "+").replace(/\s+/g, "");
-  if (dial.charAt(0) !== "+") dial = "+" + dial.replace(/\D/g, "");
-  var local = String((localEl && localEl.value) || "").replace(/\D/g, "");
-  while (local.length && local.charAt(0) === "0") local = local.slice(1);
+  if (!localEl || !hidden) return "";
+  var dial = (dialEl && dialEl.textContent) || "";
+  dial = String(dial).trim();
+  if (dial && dial.charAt(0) !== "+") dial = "+" + dial.replace(/\D/g, "");
+  var local = String(localEl.value || "").replace(/\D/g, "");
+  while (local.charAt(0) === "0") local = local.slice(1);
+  localEl.value = local;
   var full = dial + local;
-  if (hidden) hidden.value = full;
+  hidden.value = full;
   return full;
 };
 
-SNM.applyDial = function (dial) {
-  var el = document.getElementById("reg-dial");
-  if (el) el.textContent = dial || "+";
+SNM.applyDialForCountry = function (countryName) {
+  var c = SNM.countryByName(countryName);
+  var dialEl = document.getElementById("reg-dial");
+  if (dialEl) dialEl.textContent = (c && c.dial) || "+";
   SNM.composePhone();
 };
 
-SNM._fillSelect = function (sel, items, placeholder, disabled) {
-  if (!sel) return;
-  sel.innerHTML = "";
-  var o0 = document.createElement("option");
-  o0.value = "";
-  o0.textContent = placeholder || "Select";
-  sel.appendChild(o0);
-  (items || []).forEach(function (it) {
-    var o = document.createElement("option");
-    if (typeof it === "string") {
-      o.value = it;
-      o.textContent = it;
-    } else {
-      o.value = it.name || "";
-      o.textContent = it.name || "";
-      if (it.dial) o.setAttribute("data-dial", it.dial);
-      if (it.iso) o.setAttribute("data-iso", it.iso);
-    }
-    sel.appendChild(o);
-  });
-  sel.disabled = !!disabled;
-};
-
-SNM._resetBelowCountry = function () {
-  SNM._fillSelect(document.getElementById("reg-region"), [], "Select country first", true);
-  SNM._fillSelect(document.getElementById("reg-city"), [], "Select state first", true);
-  SNM._fillSelect(document.getElementById("reg-community"), [], "Select city first", true);
-};
-
-SNM._loadRegionsForCountry = function (countryName) {
-  var tree = (SNM.PLACES_BY_COUNTRY || {})[countryName] || {};
-  var regions = Object.keys(tree);
-  if (!regions.length) regions = ["Other"];
-  SNM._fillSelect(
-    document.getElementById("reg-region"),
-    regions,
-    "Select state / region",
-    false
-  );
-  SNM._fillSelect(document.getElementById("reg-city"), [], "Select state first", true);
-  SNM._fillSelect(document.getElementById("reg-community"), [], "Select city first", true);
-};
-
-SNM._loadCitiesForRegion = function (countryName, regionName) {
-  var tree = (SNM.PLACES_BY_COUNTRY || {})[countryName] || {};
-  var citiesObj = tree[regionName] || {};
-  var cities = Object.keys(citiesObj);
-  if (!cities.length) cities = ["Other"];
-  SNM._fillSelect(document.getElementById("reg-city"), cities, "Select city / town", false);
-  SNM._fillSelect(document.getElementById("reg-community"), [], "Select city first", true);
-};
-
-SNM._loadCommunitiesForCity = function (countryName, regionName, cityName) {
-  var tree = (SNM.PLACES_BY_COUNTRY || {})[countryName] || {};
-  var citiesObj = tree[regionName] || {};
-  var comms = citiesObj[cityName] || [];
-  if (!comms.length) comms = ["Other"];
-  SNM._fillSelect(
-    document.getElementById("reg-community"),
-    comms,
-    "Select community / LGA",
-    false
-  );
-};
-
-SNM.bindCascade = function () {
+SNM.initRegisterCascade = function () {
   var cont = document.getElementById("reg-continent");
   var country = document.getElementById("reg-country");
   var region = document.getElementById("reg-region");
   var city = document.getElementById("reg-city");
   var community = document.getElementById("reg-community");
-  var localPhone = document.getElementById("reg-phone-local");
+  var localPhone = document.getElementById("reg-local");
 
-  if (!cont || !country) return;
+  if (!cont) return;
 
-  /* Continents from countries.js */
-  cont.innerHTML = '<option value="">Select continent</option>';
+  /* Continents from locked config */
+  cont.innerHTML = "";
+  var ph = document.createElement("option");
+  ph.value = "";
+  ph.textContent = "Select continent";
+  ph.disabled = true;
+  ph.selected = true;
+  cont.appendChild(ph);
   (SNM.CONTINENTS || []).forEach(function (c) {
     var o = document.createElement("option");
     o.value = c.id;
-    o.textContent = c.name + (c.code ? " (" + c.code + ")" : "");
+    o.textContent = c.name;
     cont.appendChild(o);
   });
 
   SNM._fillSelect(country, [], "Select continent first", true);
-  SNM._resetBelowCountry();
-  SNM.applyDial("+");
+  SNM._fillSelect(region, [], "Select country first", true);
+  SNM._fillSelect(city, [], "Select state first", true);
+  SNM._fillSelect(community, [], "Select city/LGA first", true);
 
   cont.onchange = function () {
     var id = cont.value;
-    var list = (SNM.COUNTRIES_BY_CONTINENT || {})[id] || [];
-    SNM._fillSelect(
-      country,
-      list,
-      list.length ? "Select country" : "No countries in list",
-      !list.length
-    );
-    SNM._resetBelowCountry();
-    SNM.applyDial("+");
+    var list = (SNM.CASCADE_COUNTRIES && SNM.CASCADE_COUNTRIES[id]) || [];
+    SNM._fillSelect(country, list, list.length ? "Select country" : "No countries listed", !list.length);
+    SNM._fillSelect(region, [], "Select country first", true);
+    SNM._fillSelect(city, [], "Select state first", true);
+    SNM._fillSelect(community, [], "Select city/LGA first", true);
+    var dialEl = document.getElementById("reg-dial");
+    if (dialEl) dialEl.textContent = "+";
   };
 
   country.onchange = function () {
-    var opt = country.options[country.selectedIndex];
-    var dial = (opt && opt.getAttribute("data-dial")) || "+";
-    SNM.applyDial(dial);
-    var cname = country.value;
-    if (!cname) {
-      SNM._resetBelowCountry();
-      return;
-    }
-    SNM._loadRegionsForCountry(cname);
+    var name = country.value;
+    SNM.applyDialForCountry(name);
+    var places = (SNM.CASCADE_PLACES && SNM.CASCADE_PLACES[name]) || { Other: { Other: ["Other"] } };
+    var states = Object.keys(places);
+    if (!states.length) states = ["Other"];
+    SNM._fillSelect(region, states, "Select state / region", false);
+    SNM._fillSelect(city, [], "Select state first", true);
+    SNM._fillSelect(community, [], "Select city/LGA first", true);
   };
 
-  if (region) {
-    region.onchange = function () {
-      var cname = country.value;
-      var rname = region.value;
-      if (!cname || !rname) {
-        SNM._fillSelect(city, [], "Select state first", true);
-        SNM._fillSelect(community, [], "Select city first", true);
-        return;
-      }
-      SNM._loadCitiesForRegion(cname, rname);
-    };
-  }
+  region.onchange = function () {
+    var name = country.value;
+    var places = (SNM.CASCADE_PLACES && SNM.CASCADE_PLACES[name]) || {};
+    var citiesMap = places[region.value] || { Other: ["Other"] };
+    var cityNames = Object.keys(citiesMap);
+    if (!cityNames.length) cityNames = ["Other"];
+    SNM._fillSelect(city, cityNames, "Select city / town / LGA", false);
+    SNM._fillSelect(community, [], "Select city/LGA first", true);
+  };
 
-  if (city) {
-    city.onchange = function () {
-      var cname = country.value;
-      var rname = region.value;
-      var cityName = city.value;
-      if (!cname || !rname || !cityName) {
-        SNM._fillSelect(community, [], "Select city first", true);
-        return;
-      }
-      SNM._loadCommunitiesForCity(cname, rname, cityName);
-    };
-  }
+  city.onchange = function () {
+    var name = country.value;
+    var places = (SNM.CASCADE_PLACES && SNM.CASCADE_PLACES[name]) || {};
+    var citiesMap = places[region.value] || {};
+    var comms = citiesMap[city.value] || ["Other"];
+    if (!comms.length) comms = ["Other"];
+    SNM._fillSelect(community, comms, "Select community", false);
+  };
 
   if (localPhone) {
     localPhone.addEventListener("input", function () {
-      var v = String(localPhone.value || "").replace(/\D/g, "");
-      while (v.length && v.charAt(0) === "0") v = v.slice(1);
-      localPhone.value = v;
       SNM.composePhone();
     });
+  }
+};
+
+SNM.bindCascade = function () {
+  /* Cascade binds when register opens; init also safe at boot */
+  if (document.getElementById("reg-continent")) {
+    SNM.initRegisterCascade();
   }
 };
