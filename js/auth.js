@@ -16,9 +16,31 @@ SNM._geo = function () {
       function () {
         resolve({ lat: null, lng: null });
       },
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 120000 }
     );
   });
+};
+
+SNM._errText = function (err) {
+  if (!err) return "Request failed";
+  if (typeof err === "string") return err;
+  var d = err.data != null ? err.data : err;
+  if (typeof d === "string") return d;
+  if (d && typeof d.detail === "string") return d.detail;
+  if (d && Array.isArray(d.detail)) {
+    return d.detail
+      .map(function (x) {
+        return x.msg || JSON.stringify(x);
+      })
+      .join("; ");
+  }
+  if (d && d.message) return d.message;
+  if (err.message) return err.message;
+  try {
+    return JSON.stringify(d);
+  } catch (e) {
+    return "Request failed";
+  }
 };
 
 SNM._showErr = function (id, msg) {
@@ -29,14 +51,7 @@ SNM._showErr = function (id, msg) {
     el.classList.remove("show");
     return;
   }
-  el.textContent =
-    typeof msg === "string"
-      ? msg
-      : msg.detail
-        ? typeof msg.detail === "string"
-          ? msg.detail
-          : JSON.stringify(msg.detail)
-        : JSON.stringify(msg);
+  el.textContent = SNM._errText(msg);
   el.classList.add("show");
 };
 
@@ -77,21 +92,31 @@ SNM.bindAuth = function () {
   if (btnRegister) {
     btnRegister.onclick = async function () {
       SNM._showErr("regError", "");
-      var role = SNM.getRole() || sessionStorage.getItem("snm_role") || "buyer";
+      var role =
+        SNM.getRole() ||
+        sessionStorage.getItem("snm_role") ||
+        sessionStorage.getItem("snm_reg_role") ||
+        "buyer";
       var name = (document.getElementById("reg-name").value || "").trim();
       var continentEl = document.getElementById("reg-continent");
-      var continentId = continentEl.value;
+      var continentId = continentEl ? continentEl.value : "";
       var continentName = "";
-      if (continentEl.selectedIndex >= 0) {
-        continentName = continentEl.options[continentEl.selectedIndex].textContent;
+      if (continentEl && continentEl.selectedIndex >= 0) {
+        continentName =
+          continentEl.options[continentEl.selectedIndex].textContent;
       }
       var country = (document.getElementById("reg-country").value || "").trim();
       var region = (document.getElementById("reg-region").value || "").trim();
       var city = (document.getElementById("reg-city").value || "").trim();
-      var community = (document.getElementById("reg-community").value || "").trim();
+      var community = (
+        document.getElementById("reg-community").value || ""
+      ).trim();
       var primary = (document.getElementById("reg-primary").value || "").trim();
       var password = document.getElementById("reg-password").value || "";
-      var phone = SNM.composePhone();
+      var phone =
+        typeof SNM.composePhone === "function"
+          ? SNM.composePhone()
+          : (document.getElementById("reg-phone") || {}).value || "";
 
       if (!name) return SNM._showErr("regError", "Enter your full name.");
       if (!continentId) return SNM._showErr("regError", "Select continent.");
@@ -107,20 +132,29 @@ SNM.bindAuth = function () {
         return SNM._showErr("regError", "Password too short.");
       }
 
-      var cmeta = SNM.countryByName(country);
-      if (cmeta && cmeta.localLen) {
-        var local = (document.getElementById("reg-local").value || "").replace(/\D/g, "");
-        while (local.charAt(0) === "0") local = local.slice(1);
-        if (local.length !== cmeta.localLen) {
-          return SNM._showErr(
-            "regError",
-            "Local number length for " + country + " should be " + cmeta.localLen + " digits (no leading 0)."
-          );
+      if (typeof SNM.countryByName === "function") {
+        var cmeta = SNM.countryByName(country);
+        if (cmeta && cmeta.localLen) {
+          var local = (
+            document.getElementById("reg-local").value || ""
+          ).replace(/\D/g, "");
+          while (local.charAt(0) === "0") local = local.slice(1);
+          if (local.length !== cmeta.localLen) {
+            return SNM._showErr(
+              "regError",
+              "Local number for " +
+                country +
+                " should be " +
+                cmeta.localLen +
+                " digits (no leading 0)."
+            );
+          }
         }
       }
 
-     var geo = await SNM._geo();
-        /* Soft fallback — do not block OTP if GPS denied/unavailable */
+      btnRegister.disabled = true;
+      try {
+        var geo = await SNM._geo();
         if (geo.lat == null || geo.lng == null) {
           geo = {
             lat: SNM._lastLat != null ? SNM._lastLat : 4.8156,
@@ -146,7 +180,11 @@ SNM.bindAuth = function () {
           lng: geo.lng
         };
 
-        var data = await SNM.api("/auth/otp/request", { method: "POST", body: body });
+        SNM._showErr("regError", "Requesting OTP… (server may take \~30s cold start)");
+        var data = await SNM.api("/auth/otp/request", {
+          method: "POST",
+          body: body
+        });
         SNM.setPending({
           pending_id: data.pending_id || data.pendingId,
           phone: phone,
@@ -160,9 +198,16 @@ SNM.bindAuth = function () {
             ? "Dev OTP: " + data.otp_dev + " (sandbox)"
             : "Enter the 6-digit code for " + phone;
         }
+        var codeEl = document.getElementById("otp-code");
+        if (data.otp_dev && codeEl) codeEl.value = String(data.otp_dev);
+
+        SNM._showErr("regError", "");
         SNM.showScreen("otp");
       } catch (err) {
-        SNM._showErr("regError", (err && err.data) || err.message || "OTP request failed");
+        SNM._showErr(
+          "regError",
+          SNM._errText(err) || "OTP request failed"
+        );
       }
       btnRegister.disabled = false;
     };
@@ -195,7 +240,7 @@ SNM.bindAuth = function () {
         SNM.showSetupForRole((user && user.role) || pending.role || "buyer");
         SNM.showScreen("setup");
       } catch (err) {
-        SNM._showErr("otpError", (err && err.data) || err.message || "Invalid OTP");
+        SNM._showErr("otpError", SNM._errText(err) || "Invalid OTP");
       }
       btnVerify.disabled = false;
     };
@@ -217,9 +262,11 @@ SNM.bindAuth = function () {
         if (data && data.otp_dev) {
           var hint = document.getElementById("otpHint");
           if (hint) hint.textContent = "Dev OTP: " + data.otp_dev;
+          var codeEl = document.getElementById("otp-code");
+          if (codeEl) codeEl.value = String(data.otp_dev);
         }
       } catch (err) {
-        SNM._showErr("otpError", (err && err.data) || err.message || "Resend failed");
+        SNM._showErr("otpError", SNM._errText(err) || "Resend failed");
       }
     };
   }
@@ -236,6 +283,7 @@ SNM.bindAuth = function () {
       if (!password) return SNM._showErr("loginError", "Enter password.");
       btnLogin.disabled = true;
       try {
+        SNM._showErr("loginError", "Signing in…");
         var data = await SNM.api("/auth/login", {
           method: "POST",
           body: { phone: phone, password: password }
@@ -244,6 +292,7 @@ SNM.bindAuth = function () {
         var user = data.user || data;
         if (token) SNM.setToken(token);
         if (user) SNM.setUser(user);
+        SNM._showErr("loginError", "");
         if (!SNM.setupDone()) {
           SNM.showSetupForRole((user && user.role) || "buyer");
           SNM.showScreen("setup");
@@ -251,7 +300,7 @@ SNM.bindAuth = function () {
           SNM.showScreen("home");
         }
       } catch (err) {
-        SNM._showErr("loginError", (err && err.data) || err.message || "Login failed");
+        SNM._showErr("loginError", SNM._errText(err) || "Login failed");
       }
       btnLogin.disabled = false;
     };
@@ -269,26 +318,39 @@ SNM.bindAuth = function () {
         });
       }
       if (role === "merchant") {
-        extra.business_name = (document.getElementById("setup-biz-name") || {}).value || "";
-        extra.category = (document.getElementById("setup-biz-category") || {}).value || "";
+        extra.business_name =
+          (document.getElementById("setup-biz-name") || {}).value || "";
+        extra.category =
+          (document.getElementById("setup-biz-category") || {}).value || "";
         extra.walkin = !!(document.getElementById("setup-walkin") || {}).checked;
         extra.pod = !!(document.getElementById("setup-pod") || {}).checked;
-        extra.delivery = !!(document.getElementById("setup-delivery") || {}).checked;
-        extra.hours = (document.getElementById("setup-hours") || {}).value || "";
+        extra.delivery = !!(document.getElementById("setup-delivery") || {})
+          .checked;
+        extra.hours =
+          (document.getElementById("setup-hours") || {}).value || "";
       }
       if (role === "service") {
-        extra.service_type = (document.getElementById("setup-service-type") || {}).value || "";
-        extra.home_service = !!(document.getElementById("setup-home-service") || {}).checked;
-        extra.hours = (document.getElementById("setup-service-hours") || {}).value || "";
+        extra.service_type =
+          (document.getElementById("setup-service-type") || {}).value || "";
+        extra.home_service = !!(
+          document.getElementById("setup-home-service") || {}
+        ).checked;
+        extra.hours =
+          (document.getElementById("setup-service-hours") || {}).value || "";
       }
       if (role === "driver") {
-        extra.coverage = (document.getElementById("setup-driver-coverage") || {}).value || "";
-        extra.active = !!(document.getElementById("setup-driver-active") || {}).checked;
+        extra.coverage =
+          (document.getElementById("setup-driver-coverage") || {}).value || "";
+        extra.active = !!(document.getElementById("setup-driver-active") || {})
+          .checked;
       }
       if (role === "emergency") {
-        extra.unit_type = (document.getElementById("setup-emerg-type") || {}).value || "";
-        extra.public_contact = (document.getElementById("setup-emerg-contact") || {}).value || "";
-        extra.active = !!(document.getElementById("setup-emerg-active") || {}).checked;
+        extra.unit_type =
+          (document.getElementById("setup-emerg-type") || {}).value || "";
+        extra.public_contact =
+          (document.getElementById("setup-emerg-contact") || {}).value || "";
+        extra.active = !!(document.getElementById("setup-emerg-active") || {})
+          .checked;
       }
       try {
         localStorage.setItem("snm_setup_meta", JSON.stringify(extra));
