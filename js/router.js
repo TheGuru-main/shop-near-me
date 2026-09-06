@@ -34,6 +34,7 @@ SNM.showScreen = function (id) {
 
   document.querySelectorAll(".screen").forEach(function (s) {
     s.classList.remove("active");
+    s.style.display = "none";
   });
 
   var target = document.getElementById(id);
@@ -41,7 +42,10 @@ SNM.showScreen = function (id) {
     id = "role-select";
     target = document.getElementById("role-select");
   }
-  if (target) target.classList.add("active");
+  if (target) {
+    target.classList.add("active");
+    target.style.display = "flex";
+  }
 
   if (SNM.AUTHED[id]) {
     document.body.classList.add("has-nav");
@@ -70,40 +74,74 @@ SNM.showScreen = function (id) {
   } catch (e) {}
 };
 
+SNM.go = function (id) {
+  SNM.showScreen(id);
+};
+
 SNM.bindRouter = function () {
   if (SNM._routerBound) return;
   SNM._routerBound = true;
 
-  document.addEventListener("click", function (e) {
-    var roleEl = e.target.closest("[data-role]");
-    if (roleEl && roleEl.getAttribute("data-role")) {
-      var role = roleEl.getAttribute("data-role");
-      SNM.selectedRole = role;
-      try { sessionStorage.setItem("snm_reg_role", role); } catch (err) {}
-      var label = document.getElementById("regRoleLabel");
-      if (label) label.textContent = role;
-      if (typeof SNM.toggleRoleExtras === "function") SNM.toggleRoleExtras(role);
-    }
+  document.addEventListener(
+    "click",
+    function (e) {
+      var roleEl = e.target.closest("[data-role]");
+      if (roleEl && roleEl.getAttribute("data-role")) {
+        var role = roleEl.getAttribute("data-role");
+        SNM.selectedRole = role;
+        try {
+          sessionStorage.setItem("snm_reg_role", role);
+        } catch (err) {}
+        var label = document.getElementById("regRoleLabel");
+        if (label) label.textContent = role;
+        if (typeof SNM.toggleRoleExtras === "function") SNM.toggleRoleExtras(role);
+      }
 
-    var a = e.target.closest("a[href^='#']");
-    if (!a) return;
-    var href = a.getAttribute("href") || "";
-    if (href.length < 2) return;
-    e.preventDefault();
+      var a = e.target.closest("a[href^='#']");
+      if (!a) return;
 
-    var newsCat = a.getAttribute("data-news-cat");
-    if (newsCat && typeof SNM.loadNews === "function") {
-      SNM.showScreen("news");
-      SNM.loadNews(newsCat);
-      return;
-    }
+      var href = a.getAttribute("href") || "";
+      if (href.length < 2) return;
 
-    var next = href.slice(1);
-    if (next === "register") {
-      if (typeof SNM.bindCascade === "function") SNM.bindCascade();
-      if (typeof SNM.initRegisterCascade === "function") SNM.initRegisterCascade();
-    }
-    SNM.showScreen(next);
+      e.preventDefault();
+      e.stopPropagation();
+
+      var newsCat = a.getAttribute("data-news-cat");
+      if (newsCat && typeof SNM.loadNews === "function") {
+        SNM.showScreen("news");
+        SNM.loadNews(newsCat);
+        return;
+      }
+
+      var next = href.slice(1);
+
+      if (roleEl && roleEl.getAttribute("data-role") && next === "register") {
+        if (typeof SNM.bindCascade === "function") SNM.bindCascade();
+        if (typeof SNM.initRegisterCascade === "function") SNM.initRegisterCascade();
+        SNM.showScreen("register");
+        return;
+      }
+
+      if (next === "register") {
+        if (typeof SNM.bindCascade === "function") SNM.bindCascade();
+        if (typeof SNM.initRegisterCascade === "function") SNM.initRegisterCascade();
+      }
+
+      SNM.showScreen(next);
+    },
+    true
+  );
+
+  document.querySelectorAll(".back-link").forEach(function (link) {
+    if (link._snmBackWired) return;
+    link._snmBackWired = true;
+    link.addEventListener("click", function (e) {
+      var href = link.getAttribute("href") || "";
+      if (!href || href.charAt(0) !== "#") return;
+      e.preventDefault();
+      e.stopPropagation();
+      SNM.showScreen(href.slice(1));
+    });
   });
 
   window.addEventListener("hashchange", function () {
