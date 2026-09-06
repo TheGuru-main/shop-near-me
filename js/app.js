@@ -4,7 +4,7 @@
       console.error("SNM missing");
       return;
     }
-
+    if (typeof SNM.initParticles === "function") SNM.initParticles();
     try {
       if (typeof SNM.bindRouter === "function") SNM.bindRouter();
       if (typeof SNM.bindAuth === "function") SNM.bindAuth();
