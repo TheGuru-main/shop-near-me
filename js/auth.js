@@ -119,17 +119,16 @@ SNM.bindAuth = function () {
         }
       }
 
-      btnRegister.disabled = true;
-      try {
-        var geo = await SNM._geo();
+     var geo = await SNM._geo();
+        /* Soft fallback — do not block OTP if GPS denied/unavailable */
         if (geo.lat == null || geo.lng == null) {
-          SNM._showErr(
-            "regError",
-            "Location required for registration. Enable GPS and try again."
-          );
-          btnRegister.disabled = false;
-          return;
+          geo = {
+            lat: SNM._lastLat != null ? SNM._lastLat : 4.8156,
+            lng: SNM._lastLng != null ? SNM._lastLng : 7.0498
+          };
         }
+        SNM._lastLat = geo.lat;
+        SNM._lastLng = geo.lng;
 
         var body = {
           name: name,
