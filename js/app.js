@@ -9,6 +9,8 @@
       if (typeof SNM.bindRouter === "function") SNM.bindRouter();
       if (typeof SNM.bindAuth === "function") SNM.bindAuth();
       if (typeof SNM.bindHome === "function") SNM.bindHome();
+      if (typeof SNM.bindFairlyUsed === "function") SNM.bindFairlyUsed();
+      if (typeof SNM.bindShell === "function") SNM.bindShell();
       if (typeof SNM.bindSearch === "function") SNM.bindSearch();
       if (typeof SNM.bindShop === "function") SNM.bindShop();
       if (typeof SNM.bindMessages === "function") SNM.bindMessages();
@@ -86,4 +88,5 @@
   } else {
     boot();
   }
+  if (typeof SNM.renderTabbar === "function") SNM.renderTabbar("home");
 })();

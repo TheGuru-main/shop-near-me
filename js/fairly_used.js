@@ -1,15 +1,43 @@
 window.SNM = window.SNM || {};
 
+SNM._unwrapFairly = function (row) {
+  row = row || {};
+  var post = row.post || row;
+  var author = row.author || row.owner || {};
+  return {
+    id: post.id || post.post_id || row.id || "",
+    title: post.title || post.name || "Fairly used",
+    name: post.title || post.name || "Fairly used",
+    body: post.body || post.note || "",
+    note: post.body || post.note || "",
+    price: post.price,
+    currency: post.currency || "NGN",
+    created_at: post.created_at || "",
+    phone: author.phone || post.phone || row.phone || "",
+    owner_phone: author.phone || post.phone || "",
+    owner_name: author.name || post.owner_name || "",
+    seller_name: author.name || "",
+    primary_location: author.primary_location || "",
+    city: author.city || "",
+    community: author.community || "",
+    lat: author.lat != null ? author.lat : post.lat,
+    lng: author.lng != null ? author.lng : post.lng,
+    kind: "fairly_used"
+  };
+};
+
 SNM.loadFairlyUsed = async function () {
-  var list = document.getElementById("fairlyUsedList") || document.getElementById("fuList");
+  var list =
+    document.getElementById("fuList") ||
+    document.getElementById("fairlyUsedList");
   if (list) list.innerHTML = "<p class='muted'>Loading fairly used…</p>";
   try {
-    var data = await SNM.api("/fairly-used" + (SNM.qs ? SNM.qs({}) : ""));
-    var items =
-      (data && (data.items || data.posts || data.results)) ||
+    var data = await SNM.api("/fairly-used");
+    var raw =
+      (data && (data.results || data.items || data.posts)) ||
       (Array.isArray(data) ? data : []);
-    /* LILO / latest first */
-    items = items.slice().sort(function (a, b) {
+    var items = raw.map(SNM._unwrapFairly);
+    items.sort(function (a, b) {
       return (
         new Date(b.created_at || 0).getTime() -
         new Date(a.created_at || 0).getTime()
@@ -23,9 +51,7 @@ SNM.loadFairlyUsed = async function () {
     if (typeof SNM.cardHtml === "function") {
       list.innerHTML = items
         .map(function (it) {
-          var n = SNM.normalizeListing(it);
-          n.kind = "fairly_used";
-          return SNM.cardHtml(n);
+          return SNM.cardHtml(it);
         })
         .join("");
       if (typeof SNM.bindCardActions === "function") SNM.bindCardActions(list);
@@ -33,15 +59,13 @@ SNM.loadFairlyUsed = async function () {
       list.innerHTML = items
         .map(function (it) {
           return (
-            '<article class="card">' +
-            "<strong>" + SNM.esc(it.title || it.name || "Post") + "</strong>" +
-            "<p class='muted small'>" + SNM.esc(it.body || it.note || "") + "</p>" +
-            '<div class="card-actions">' +
-            '<button type="button" class="btn small" data-act="comment">Comment</button>' +
-            '<button type="button" class="btn small secondary" data-act="share">Share</button>' +
-            '<button type="button" class="btn small" data-act="message" data-phone="' +
-            SNM.esc(it.owner_phone || it.phone || "") +
-            '">Message seller</button>' +
+            '<article class="card"><strong>' +
+            SNM.esc(it.title) +
+            "</strong><p class='muted small'>" +
+            SNM.esc(it.body) +
+            "</p><div class='meta'>" +
+            SNM.esc(it.owner_name || "") +
+            (it.phone ? " · " + SNM.esc(it.phone) : "") +
             "</div></article>"
           );
         })
@@ -51,15 +75,17 @@ SNM.loadFairlyUsed = async function () {
     if (list) {
       list.innerHTML =
         "<p class='muted'>Fairly used unavailable: " +
-        SNM.esc((e && e.message) || "") +
+        SNM.esc((e && e.message) || "error") +
         "</p>";
     }
   }
 };
 
 SNM.createFairlyUsed = async function () {
-  var titleEl = document.getElementById("fu-title") || document.getElementById("fuTitle");
-  var bodyEl = document.getElementById("fu-body") || document.getElementById("fuBody");
+  var titleEl = document.getElementById("fu-title");
+  var bodyEl =
+    document.getElementById("fu-note") ||
+    document.getElementById("fu-body");
   var priceEl = document.getElementById("fu-price");
   var title = ((titleEl && titleEl.value) || "").trim();
   var body = ((bodyEl && bodyEl.value) || "").trim();
@@ -89,10 +115,9 @@ SNM.createFairlyUsed = async function () {
 };
 
 SNM.bindFairlyUsed = function () {
-  var btn =
-    document.getElementById("btnFuPost") ||
-    document.getElementById("btnFairlyUsedPost");
-  if (btn) {
+  var btn = document.getElementById("btnFuPost");
+  if (btn && !btn._snmWired) {
+    btn._snmWired = true;
     btn.onclick = function () {
       SNM.createFairlyUsed();
     };
