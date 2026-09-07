@@ -18,6 +18,9 @@ SNM._detailMap = null;
 SNM._detailItem = null;
 SNM._mapExpanded = false;
 SNM._homeMap = null;
+SNM._geoCache = SNM._geoCache || {};
+
+/* ---------- geo helpers ---------- */
 
 SNM.haversineKm = function (lat1, lon1, lat2, lon2) {
   var r = 6371;
@@ -31,7 +34,32 @@ SNM.haversineKm = function (lat1, lon1, lat2, lon2) {
   return 2 * r * Math.asin(Math.min(1, Math.sqrt(a)));
 };
 
-SNM._geoCache = SNM._geoCache || {};
+SNM.seekerGeo = function () {
+  var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+  var lat =
+    u.lat != null
+      ? Number(u.lat)
+      : SNM._lastLat != null
+        ? Number(SNM._lastLat)
+        : null;
+  var lng =
+    u.lng != null
+      ? Number(u.lng)
+      : SNM._lastLng != null
+        ? Number(SNM._lastLng)
+        : null;
+  if (lat != null && !isNaN(lat)) SNM._lastLat = lat;
+  if (lng != null && !isNaN(lng)) SNM._lastLng = lng;
+  return {
+    lat: lat != null && !isNaN(lat) ? lat : null,
+    lng: lng != null && !isNaN(lng) ? lng : null,
+    community: u.community || "",
+    city: u.city || "",
+    region: u.region || "",
+    country: u.country || "",
+    primary_location: u.primary_location || ""
+  };
+};
 
 SNM.geocodeText = async function (text) {
   text = String(text || "").trim();
@@ -42,7 +70,10 @@ SNM.geocodeText = async function (text) {
       "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" +
       encodeURIComponent(text);
     var res = await fetch(url, {
-      headers: { Accept: "application/json" }
+      headers: {
+        Accept: "application/json",
+        "Accept-Language": "en"
+      }
     });
     if (!res.ok) return null;
     var arr = await res.json();
@@ -56,10 +87,12 @@ SNM.geocodeText = async function (text) {
   }
 };
 
+/* ---------- normalize ---------- */
+
 SNM.normalizeListing = function (raw) {
   raw = raw || {};
+  var src = raw;
 
-  /* Search API: { product, seller, km, ... } */
   if (raw.product && typeof raw.product === "object") {
     var p = raw.product;
     var s = raw.seller || {};
@@ -67,6 +100,7 @@ SNM.normalizeListing = function (raw) {
       id: p.id,
       name: p.name || p.title,
       title: p.name || p.title,
+      body: p.description || p.body || "",
       price: p.price,
       currency: p.currency || "NGN",
       qty: p.qty != null ? p.qty : p.quantity,
@@ -74,20 +108,33 @@ SNM.normalizeListing = function (raw) {
       available: p.available !== false,
       phone: s.uid || s.phone || "",
       owner_name: s.name || "",
-      primary_location: s.primary_location || "",
-      community: s.community || "",
-      city: s.city || "",
-      region: s.region || "",
-      country: s.country || "",
-      lat: s.lat != null ? s.lat : p.lat,
-      lng: s.lng != null ? s.lng : p.lng,
-      km: raw.km != null ? raw.km : raw.distance_km,
-      created_at: p.created_at || "",
-      kind: raw.card_type || "product"
+      primary_location: s.primary_location || p.primary_location || "",
+      community: s.community || p.community || "",
+      city: s.city || p.city || "",
+      region: s.region || p.region || "",
+      country: s.country || p.country || "",
+      lat:
+        s.lat != null
+          ? s.lat
+          : p.lat != null
+            ? p.lat
+            : src.lat != null
+              ? src.lat
+              : null,
+      lng:
+        s.lng != null
+          ? s.lng
+          : p.lng != null
+            ? p.lng
+            : src.lng != null
+              ? src.lng
+              : null,
+      km: src.km != null ? src.km : src.distance_km,
+      kind: src.card_type || "product",
+      created_at: p.created_at || ""
     };
   }
 
-  /* Fairly-used API: { post, author } */
   if (raw.post && typeof raw.post === "object") {
     var post = raw.post;
     var author = raw.author || {};
@@ -103,10 +150,13 @@ SNM.normalizeListing = function (raw) {
       primary_location: author.primary_location || "",
       community: author.community || "",
       city: author.city || "",
-      lat: author.lat,
-      lng: author.lng,
-      created_at: post.created_at || "",
-      kind: "fairly_used"
+      region: author.region || "",
+      country: author.country || "",
+      lat: author.lat != null ? author.lat : post.lat,
+      lng: author.lng != null ? author.lng : post.lng,
+      km: src.km != null ? src.km : src.distance_km,
+      kind: "fairly_used",
+      created_at: post.created_at || ""
     };
   }
 
@@ -118,6 +168,21 @@ SNM.normalizeListing = function (raw) {
     raw.product_id ||
     raw.post_id ||
     "L" + Math.random().toString(36).slice(2, 10);
+
+  var lat =
+    raw.lat != null
+      ? Number(raw.lat)
+      : owner.lat != null
+        ? Number(owner.lat)
+        : null;
+  var lng =
+    raw.lng != null
+      ? Number(raw.lng)
+      : owner.lng != null
+        ? Number(owner.lng)
+        : null;
+  if (lat != null && isNaN(lat)) lat = null;
+  if (lng != null && isNaN(lng)) lng = null;
 
   var item = {
     id: String(id),
@@ -135,7 +200,7 @@ SNM.normalizeListing = function (raw) {
       owner.name ||
       raw.business_name ||
       raw.user_name ||
-    "",
+      "",
     phone:
       raw.phone ||
       raw.owner_phone ||
@@ -151,14 +216,28 @@ SNM.normalizeListing = function (raw) {
     region: raw.region || owner.region || "",
     country: raw.country || owner.country || "",
     km: raw.km != null ? raw.km : raw.distance_km,
-    lat: raw.lat != null ? raw.lat : owner.lat,
-    lng: raw.lng != null ? raw.lng : owner.lng,
+    lat: lat,
+    lng: lng,
     kind: raw.kind || raw.type || "product",
     created_at: raw.created_at || ""
   };
+
+  var me = SNM.seekerGeo();
+  if (
+    (item.km == null || item.km === "") &&
+    me.lat != null &&
+    me.lng != null &&
+    item.lat != null &&
+    item.lng != null
+  ) {
+    item.km = SNM.haversineKm(me.lat, me.lng, item.lat, item.lng);
+  }
+
   SNM._listingsById[item.id] = item;
   return item;
 };
+
+/* ---------- cards ---------- */
 
 SNM.cardHtml = function (item) {
   item = SNM.normalizeListing(item);
@@ -170,7 +249,7 @@ SNM.cardHtml = function (item) {
       ? SNM.escapeHtml(String(item.currency || "NGN") + " " + item.price)
       : "";
   var dist =
-    item.km != null && item.km !== ""
+    item.km != null && item.km !== "" && !isNaN(Number(item.km))
       ? SNM.escapeHtml(Number(item.km).toFixed(1) + " km away")
       : "";
 
@@ -246,11 +325,11 @@ SNM.appendComment = function (listingId, text) {
   list.scrollTop = list.scrollHeight;
 };
 
+/* ---------- detail sheet ---------- */
+
 SNM.ensureDetailSheet = function () {
   var sheet = document.getElementById("listingDetail");
   if (!sheet) return null;
-
-  /* Wire close once */
   if (!sheet._snmWired) {
     sheet._snmWired = true;
     var closeBtn = document.getElementById("btnCloseDetail");
@@ -290,7 +369,7 @@ SNM.toggleMapExpand = function (forceOpen) {
   setTimeout(function () {
     if (SNM._detailMap) {
       try {
-        SNM._detailMap.invalidateSize();
+        SNM._detailMap.invalidateSize(true);
       } catch (e) {}
     }
   }, 280);
@@ -299,13 +378,11 @@ SNM.toggleMapExpand = function (forceOpen) {
 SNM.closeListingDetail = function () {
   var sheet = document.getElementById("listingDetail");
   if (!sheet) return;
-
   SNM._mapExpanded = false;
   sheet.classList.remove("open");
   sheet.setAttribute("aria-hidden", "true");
   sheet.style.display = "none";
   SNM._detailItem = null;
-
   if (SNM._detailMap) {
     try {
       SNM._detailMap.remove();
@@ -326,16 +403,18 @@ SNM.renderDetailMap = async function (item) {
   var mapEl =
     document.getElementById("listingDetailMap") ||
     document.getElementById("detailMap");
-  if (!mapEl || typeof L === "undefined") return;
+  if (!mapEl) return;
 
-  var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
-  var aLat = u.lat != null ? Number(u.lat) : SNM._lastLat;
-  var aLng = u.lng != null ? Number(u.lng) : SNM._lastLng;
-
+  var me = SNM.seekerGeo();
+  var aLat = me.lat;
+  var aLng = me.lng;
   var bLat = item.lat != null ? Number(item.lat) : null;
   var bLng = item.lng != null ? Number(item.lng) : null;
+  if (bLat != null && isNaN(bLat)) bLat = null;
+  if (bLng != null && isNaN(bLng)) bLng = null;
 
-  /* API search cards often omit seller GPS — geocode text place */
+  var meta = document.getElementById("detailRouteMeta");
+
   if (bLat == null || bLng == null) {
     var placeQ = [
       item.primary_location,
@@ -346,14 +425,19 @@ SNM.renderDetailMap = async function (item) {
     ]
       .filter(Boolean)
       .join(", ");
-    var meta = document.getElementById("detailRouteMeta");
     if (meta) meta.textContent = "Resolving seller place for route…";
-    var pt = await SNM.geocodeText(placeQ);
-    if (pt) {
-      bLat = pt.lat;
-      bLng = pt.lng;
-      item.lat = pt.lat;
-      item.lng = pt.lng;
+    if (placeQ) {
+      var pt = await SNM.geocodeText(placeQ);
+      if (pt) {
+        bLat = pt.lat;
+        bLng = pt.lng;
+        item.lat = pt.lat;
+        item.lng = pt.lng;
+        if (SNM._listingsById[item.id]) {
+          SNM._listingsById[item.id].lat = pt.lat;
+          SNM._listingsById[item.id].lng = pt.lng;
+        }
+      }
     }
   }
 
@@ -362,6 +446,18 @@ SNM.renderDetailMap = async function (item) {
   mapEl.style.minHeight = "180px";
   mapEl.style.height = mapEl.style.height || "200px";
   mapEl.innerHTML = "";
+
+  if (typeof L === "undefined") {
+    mapEl.innerHTML =
+      "<p class='soft' style='padding:1rem'>Place: " +
+      SNM.escapeHtml(
+        [item.primary_location, item.community, item.city]
+          .filter(Boolean)
+          .join(" · ") || "—"
+      ) +
+      "</p>";
+    return;
+  }
 
   if (SNM._detailMap) {
     try {
@@ -377,14 +473,19 @@ SNM.renderDetailMap = async function (item) {
         ? [aLat, aLng]
         : [4.8156, 7.0498];
 
-  SNM._detailMap = L.map(mapEl, { zoomControl: true }).setView(center, 14);
+  SNM._detailMap = L.map(mapEl, {
+    zoomControl: true,
+    attributionControl: true
+  }).setView(center, 14);
+
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
     attribution: "© OSM"
   }).addTo(SNM._detailMap);
 
   var bounds = [];
-  if (aLat != null && aLng != null && !isNaN(aLat) && !isNaN(aLng)) {
+
+  if (aLat != null && aLng != null) {
     L.circleMarker([aLat, aLng], {
       radius: 9,
       color: "#14532d",
@@ -396,14 +497,14 @@ SNM.renderDetailMap = async function (item) {
       .bindPopup("You");
     bounds.push([aLat, aLng]);
   }
-  if (bLat != null && bLng != null && !isNaN(bLat) && !isNaN(bLng)) {
+
+  if (bLat != null && bLng != null) {
     L.marker([bLat, bLng])
       .addTo(SNM._detailMap)
       .bindPopup(item.name || item.title || "Seller");
     bounds.push([bLat, bLng]);
   }
 
-  var meta2 = document.getElementById("detailRouteMeta");
   if (bounds.length === 2) {
     var line = L.polyline(bounds, {
       color: "#14532d",
@@ -419,25 +520,24 @@ SNM.renderDetailMap = async function (item) {
       bounds[1][0],
       bounds[1][1]
     );
-    if (meta2) meta2.textContent = "Route · \~" + km.toFixed(1) + " km (straight line)";
-  } else if (meta2) {
-    meta2.textContent =
-      "Need both your GPS and seller place to draw the line.";
+    if (meta) meta.textContent = "Route · \~" + km.toFixed(1) + " km (straight line)";
+  } else if (meta) {
+    meta.textContent =
+      bounds.length === 1
+        ? "Only one pin has coordinates — need both for the line."
+        : "No GPS yet — text location only.";
   }
 
-  setTimeout(function () {
-    try {
-      SNM._detailMap.invalidateSize(true);
-    } catch (e) {}
-  }, 200);
-  setTimeout(function () {
+  function fixSize() {
     try {
       SNM._detailMap.invalidateSize(true);
       if (bounds.length === 2) {
         SNM._detailMap.fitBounds(bounds, { padding: [36, 36] });
       }
     } catch (e) {}
-  }, 500);
+  }
+  setTimeout(fixSize, 150);
+  setTimeout(fixSize, 450);
 };
 
 SNM.openListingDetail = function (item) {
@@ -481,13 +581,13 @@ SNM.openListingDetail = function (item) {
       (place
         ? "<p><strong>Location:</strong> " + SNM.escapeHtml(place) + "</p>"
         : "") +
-      (item.km != null
+      (item.km != null && !isNaN(Number(item.km))
         ? "<p><strong>Distance:</strong> " +
           SNM.escapeHtml(Number(item.km).toFixed(1) + " km") +
           "</p>"
         : "") +
       (item.body ? "<p>" + SNM.escapeHtml(item.body) + "</p>" : "") +
-      '<p class="soft" id="detailRouteMeta">Tap map to expand · route below</p>' +
+      '<p class="soft" id="detailRouteMeta">Route: …</p>' +
       '<button type="button" class="btn block" id="btnDetailMessage" style="margin-top:0.5rem">Message seller</button>';
   }
 
@@ -503,7 +603,6 @@ SNM.openListingDetail = function (item) {
     };
   }
 
-  /* Tap map → expand */
   var mapEl =
     document.getElementById("listingDetailMap") ||
     document.getElementById("detailMap");
@@ -592,185 +691,7 @@ SNM.bindCardActions = function (root) {
         .then(function () {
           SNM.appendComment(id, textc);
           if (input) input.value = "";
-          if (typeof SNM.toast === "function") SNM.toast("Comment sent");
         })
-        .catch(function (err) {
+        .catch(function () {
           SNM.appendComment(id, textc);
-          if (input) input.value = "";
-          if (typeof SNM.toast === "function")
-            SNM.toast(err.message || "Comment saved locally");
-        });
-    }
-  });
-};
-
-SNM.fillHomeHeader = function () {
-  var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
-  var n = document.getElementById("homeName");
-  var r = document.getElementById("homeRole");
-  var p = document.getElementById("homePlace");
-  if (n) n.textContent = u.name || "—";
-  if (r) r.textContent = u.role || "—";
-  if (p) {
-    p.textContent = [u.primary_location, u.community, u.city, u.country]
-      .filter(Boolean)
-      .join(" · ");
-  }
-};
-
-SNM.loadFeed = async function () {
-  var box = document.getElementById("homeFeed");
-  if (!box) return;
-  box.innerHTML = "<p class='soft'>Loading…</p>";
-  try {
-    var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
-    var q = (u.prefs && u.prefs[0]) || "";
-    var data = await SNM.api(
-      "/search/products" +
-        SNM.qs({
-          q: q,
-          community: u.community || "",
-          city: u.city || "",
-          max_km: 2000,
-          limit: 40,
-          lat: u.lat,
-          lng: u.lng
-        })
-    );
-    var rows = data.results || data.items || [];
-    var assistant =
-      data.assistant && (data.assistant.message || data.assistant);
-    box.innerHTML =
-      (assistant
-        ? '<div class="card assistant"><div class="meta">' +
-          SNM.escapeHtml(String(assistant)) +
-          "</div></div>"
-        : "") +
-      (rows.length
-        ? rows
-            .map(function (r) {
-              return SNM.cardHtml(r);
-            })
-            .join("")
-        : "<p class='soft'>No listings near you yet. Try Search or Fairly used.</p>");
-    SNM.bindCardActions(box);
-  } catch (e) {
-    box.innerHTML =
-      "<p class='soft'>" +
-      SNM.escapeHtml(e.message || "Feed unavailable") +
-      "</p>";
-  }
-};
-
-SNM.initHomeMap = function () {
-  var mapEl = document.getElementById("gsgMap");
-  if (!mapEl) return;
-  if (typeof L === "undefined") {
-    mapEl.innerHTML =
-      "<p class='muted' style='padding:1rem'>Map library not loaded.</p>";
-    return;
-  }
-  var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
-  var lat =
-    u.lat != null
-      ? Number(u.lat)
-      : SNM._lastLat != null
-        ? Number(SNM._lastLat)
-        : 4.8156;
-  var lng =
-    u.lng != null
-      ? Number(u.lng)
-      : SNM._lastLng != null
-        ? Number(SNM._lastLng)
-        : 7.0498;
-
-  if (SNM._homeMap) {
-    try {
-      SNM._homeMap.remove();
-    } catch (e) {}
-    SNM._homeMap = null;
-  }
-  mapEl.innerHTML = "";
-  mapEl.style.minHeight = mapEl.style.minHeight || "180px";
-
-  try {
-    SNM._homeMap = L.map(mapEl).setView([lat, lng], 14);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: "© OSM"
-    }).addTo(SNM._homeMap);
-    L.circleMarker([lat, lng], {
-      radius: 9,
-      color: "#14532d",
-      fillColor: "#86efac",
-      fillOpacity: 0.95,
-      weight: 2
-    })
-      .addTo(SNM._homeMap)
-      .bindPopup("You");
-    setTimeout(function () {
-      try {
-        SNM._homeMap.invalidateSize();
-      } catch (e) {}
-    }, 280);
-  } catch (err) {
-    mapEl.innerHTML =
-      "<p class='muted' style='padding:1rem'>Map unavailable.</p>";
-  }
-};
-
-SNM.enterHome = function (navigate) {
-  if (navigate !== false) SNM.showScreen("home");
-  SNM.fillHomeHeader();
-  SNM.loadFeed();
-  SNM.initHomeMap();
-  if (typeof SNM.renderTabbar === "function") SNM.renderTabbar("home");
-};
-
-SNM.fillProfile = function () {
-  var body = document.getElementById("profileBody");
-  var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
-  if (!body) return;
-  body.innerHTML =
-    "<p><strong>" +
-    SNM.escapeHtml(u.name || "") +
-    "</strong></p>" +
-    "<p class='soft'>" +
-    SNM.escapeHtml(u.role || "") +
-    "</p>" +
-    "<p class='soft'>" +
-    SNM.escapeHtml(u.phone || "") +
-    "</p>" +
-    "<p class='soft'>" +
-    SNM.escapeHtml(u.primary_location || "") +
-    "</p>";
-};
-
-SNM.bindHome = function () {
-  SNM.ensureDetailSheet();
-  SNM.bindCardActions(document.body);
-  var refresh = document.getElementById("btnRefreshFeed");
-  if (refresh && !refresh._snmWired) {
-    refresh._snmWired = true;
-    refresh.onclick = function () {
-      SNM.loadFeed();
-    };
-  }
-  var searchTop = document.getElementById("btnSearchTop");
-  if (searchTop && !searchTop._snmWired) {
-    searchTop._snmWired = true;
-    searchTop.onclick = function () {
-      SNM.showScreen("search");
-    };
-  }
-  var perish = document.getElementById("btnPerishables");
-  if (perish && !perish._snmWired) {
-    perish._snmWired = true;
-    perish.onclick = function () {
-      var q = document.getElementById("searchQ");
-      if (q) q.value = "perishable";
-      SNM.showScreen("search");
-      if (typeof SNM.runProducts === "function") SNM.runProducts();
-    };
-  }
-};
+          if (input) input.val
