@@ -168,10 +168,11 @@ SNM.renderTabbar = function (active) {
     tabs = [
       { id: "home", icon: "fa-house", label: "Home" },
       { id: "search", icon: "fa-magnifying-glass", label: "Search" },
+      { id: "shop", icon: "fa-motorcycle", label: "Status" },
       { id: "messages", icon: "fa-comments", label: "Msgs" },
-      { id: "checkout-assist", icon: "fa-truck", label: "Jobs" },
       { id: "news", icon: "fa-newspaper", label: "News" }
     ];
+
   } else if (role === "emergency") {
     tabs = [
       { id: "home", icon: "fa-house", label: "Home" },

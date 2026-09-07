@@ -111,6 +111,9 @@ SNM.normalizeListing = function (raw) {
       raw.business_name ||
       raw.user_name ||
       "",
+    raw: raw.product ? { product: raw.product, seller: raw.seller } : raw||
+
+    "",
     phone:
       raw.phone ||
       raw.owner_phone ||
@@ -306,10 +309,28 @@ SNM.renderDetailMap = function (item) {
   var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
   var aLat = u.lat != null ? Number(u.lat) : SNM._lastLat;
   var aLng = u.lng != null ? Number(u.lng) : SNM._lastLng;
-  var bLat = item.lat != null ? Number(item.lat) : null;
-  var bLng = item.lng != null ? Number(item.lng) : null;
 
-  /* Leaflet needs a sized box before init */
+  /* Pull seller coords from every place the API may put them */
+  var raw = item.raw || {};
+  var seller = raw.seller || raw.owner || {};
+  var prod = raw.product || {};
+  var bLat =
+    item.lat != null
+      ? Number(item.lat)
+      : seller.lat != null
+        ? Number(seller.lat)
+        : prod.lat != null
+          ? Number(prod.lat)
+          : null;
+  var bLng =
+    item.lng != null
+      ? Number(item.lng)
+      : seller.lng != null
+        ? Number(seller.lng)
+        : prod.lng != null
+          ? Number(prod.lng)
+          : null;
+
   mapEl.style.display = "block";
   mapEl.style.width = "100%";
   mapEl.style.minHeight = "180px";
@@ -352,7 +373,9 @@ SNM.renderDetailMap = function (item) {
     attribution: "© OSM"
   }).addTo(SNM._detailMap);
 
-  if (aLat != null && aLng != null) {
+  var bounds = [];
+
+  if (aLat != null && aLng != null && !isNaN(aLat) && !isNaN(aLng)) {
     L.circleMarker([aLat, aLng], {
       radius: 9,
       color: "#14532d",
@@ -362,36 +385,49 @@ SNM.renderDetailMap = function (item) {
     })
       .addTo(SNM._detailMap)
       .bindPopup("You");
+    bounds.push([aLat, aLng]);
   }
 
-  if (bLat != null && bLng != null) {
+  if (bLat != null && bLng != null && !isNaN(bLat) && !isNaN(bLng)) {
     L.marker([bLat, bLng])
       .addTo(SNM._detailMap)
       .bindPopup(item.name || item.title || "Seller");
+    bounds.push([bLat, bLng]);
   }
 
-  if (aLat != null && aLng != null && bLat != null && bLng != null) {
-    var line = L.polyline(
-      [
-        [aLat, aLng],
-        [bLat, bLng]
-      ],
-      { color: "#14532d", weight: 4, opacity: 0.9 }
-    ).addTo(SNM._detailMap);
-    SNM._detailMap.fitBounds(line.getBounds().pad(0.28));
+  var meta = document.getElementById("detailRouteMeta");
+  if (bounds.length === 2) {
+    var line = L.polyline(bounds, {
+      color: "#14532d",
+      weight: 5,
+      opacity: 0.95,
+      dashArray: null
+    }).addTo(SNM._detailMap);
+    try {
+      SNM._detailMap.fitBounds(line.getBounds(), { padding: [36, 36] });
+    } catch (e) {}
+    var km =
+      item.km != null
+        ? Number(item.km)
+        : SNM.haversineKm(bounds[0][0], bounds[0][1], bounds[1][0], bounds[1][1]);
+    if (meta) meta.textContent = "Route · \~" + km.toFixed(1) + " km (straight line)";
+  } else if (meta) {
+    meta.textContent =
+      bounds.length === 1
+        ? "Only one pin has GPS — seller/your location missing coordinates."
+        : "No GPS on listing — text location only.";
   }
 
-  /* Critical: sheet was hidden → map had 0 size */
-  setTimeout(function () {
+  function fixSize() {
     try {
-      SNM._detailMap.invalidateSize();
+      SNM._detailMap.invalidateSize(true);
+      if (bounds.length === 2) {
+        SNM._detailMap.fitBounds(bounds, { padding: [36, 36] });
+      }
     } catch (e) {}
-  }, 120);
-  setTimeout(function () {
-    try {
-      SNM._detailMap.invalidateSize();
-    } catch (e) {}
-  }, 400);
+  }
+  setTimeout(fixSize, 150);
+  setTimeout(fixSize, 450);
 };
 
 SNM.openListingDetail = function (item) {

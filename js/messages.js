@@ -162,59 +162,77 @@ SNM.startDmByPhone = async function (phone) {
   SNM.showScreen("messages");
 
   try {
-    var opened = await SNM.api("/messages/open", {
-      method: "POST",
-      body: { phone: phone, to_phone: phone }
-    });
-    var tid =
-      opened.thread_id ||
-      opened.id ||
-      (opened.thread && opened.thread.id);
-    if (tid) {
-      await SNM.openThread(String(tid), opened.name || phone);
-      return;
-    }
-    if (opened.registered === false) {
-      if (typeof SNM.toast === "function")
-        SNM.toast("Number not registered on Shop Near Me");
-      return;
-    }
-  } catch (e1) {}
-
-  try {
+    /* 1) Resolve phone → user id */
     var looked = await SNM.api(
       "/messages/lookup" + SNM.qs({ phone: phone })
     );
-    if (looked.registered === false) {
+    if (looked && looked.registered === false) {
       if (typeof SNM.toast === "function")
         SNM.toast("Number not registered on Shop Near Me");
+      else alert("Number not registered");
       return;
     }
-    var tid2 = looked.thread_id || looked.id;
-    if (tid2) {
-      await SNM.openThread(String(tid2), looked.name || phone);
-      return;
-    }
-  } catch (e2) {}
 
-  try {
-    var sent = await SNM.api("/messages/send", {
+    var userId =
+      looked.user_id ||
+      looked.id ||
+      (looked.user && looked.user.id) ||
+      looked.to_user_id ||
+      null;
+
+    var tid =
+      looked.thread_id ||
+      (looked.thread && looked.thread.id) ||
+      null;
+
+    /* 2) Existing thread? */
+    if (tid) {
+      await SNM.openThread(String(tid), looked.name || phone);
+      return;
+    }
+
+    if (!userId) {
+      if (typeof SNM.toast === "function")
+        SNM.toast("Could not resolve user for " + phone);
+      else alert("Could not resolve user for " + phone);
+      return;
+    }
+
+    /* 3) Start thread (API requires to_user_id + body) */
+    var created = await SNM.api("/messages/threads", {
       method: "POST",
       body: {
-        to_phone: phone,
-        phone: phone,
+        to_user_id: userId,
         body: "Hello",
-        text: "Hello"
+        context_type: "direct"
       }
     });
-    var tid3 = sent.thread_id || sent.id;
-    if (tid3) await SNM.openThread(String(tid3), phone);
-    else if (typeof SNM.toast === "function")
-      SNM.toast("Message queued for " + phone);
-  } catch (e3) {
-    if (typeof SNM.toast === "function")
-      SNM.toast(e3.message || "DM failed — user must be registered");
-    else alert(e3.message || "DM failed");
+
+    tid =
+      created.thread_id ||
+      created.id ||
+      (created.thread && created.thread.id);
+
+    if (tid) {
+      await SNM.openThread(String(tid), looked.name || phone);
+    } else {
+      if (typeof SNM.toast === "function") SNM.toast("Thread created — open inbox");
+      if (typeof SNM.loadInbox === "function") SNM.loadInbox();
+    }
+  } catch (err) {
+    var msg =
+      (err && err.message) ||
+      (err && err.data && (err.data.detail || err.data.message)) ||
+      "DM failed";
+    if (typeof msg !== "string") {
+      try {
+        msg = JSON.stringify(msg);
+      } catch (e) {
+        msg = "DM failed";
+      }
+    }
+    if (typeof SNM.toast === "function") SNM.toast(msg);
+    else alert(msg);
   }
 };
 

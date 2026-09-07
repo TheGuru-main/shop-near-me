@@ -73,7 +73,14 @@ SNM.clearSession = function () {
 
 SNM.getRole = function () {
   var u = SNM.getUser();
-  return (u && u.role) || sessionStorage.getItem("snm_role") || "buyer";
+  var r =
+    (u && u.role) ||
+    sessionStorage.getItem("snm_role") ||
+    sessionStorage.getItem("snm_reg_role") ||
+    "buyer";
+  r = String(r || "buyer").toLowerCase().trim();
+  if (r === "logistics") r = "driver";
+  return r;
 };
 
 SNM.setRolePick = function (role) {
