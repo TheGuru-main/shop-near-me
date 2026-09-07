@@ -383,12 +383,34 @@
           <button type="button" class="btn block" id="btnShopAdd">Add listing</button>
           <div id="shopList" class="feed-list"></div>
         </div>
+
+
         <!-- Service: hotels, salon, trade -->
         <div id="shop-service" class="shop-panel hidden">
           <h3 class="section-h">Services / hospitality</h3>
           <label class="check-row"><input type="checkbox" id="svc-open" /> Open (heartbeat)</label>
-          <label>Service / room / package name<input id="svc-name" /></label>
-          <label>Rate<input id="svc-rate" inputmode="decimal" /></label>
+
+          <label>Service type
+            <select id="svc-type">
+              <option value="hospitality">Hospitality (hotel / guest house / short-let)</option>
+              <option value="salon">Salon / beauty</option>
+              <option value="trade">Trade (plumber, mechanic, artisan)</option>
+              <option value="healthcare">Clinic / healthcare</option>
+              <option value="other">Other service</option>
+            </select>
+          </label>
+
+          <label>Name (room / package / service)
+            <input id="svc-name" placeholder="e.g. Deluxe double room / Bridal package" />
+          </label>
+
+          <label>Description
+            <textarea id="svc-desc" rows="2" placeholder="Amenities, rules, what’s included"></textarea>
+          </label>
+
+          <label>Rate
+            <input id="svc-rate" inputmode="decimal" placeholder="Amount" />
+          </label>
           <label>Currency
             <select id="svc-currency">
               <option value="NGN">NGN</option>
@@ -396,10 +418,57 @@
               <option value="USD">USD</option>
             </select>
           </label>
-          <label class="check-row"><input type="checkbox" id="svc-available" checked /> Available</label>
+          <label>Rate unit
+            <select id="svc-rate-unit">
+              <option value="per_night">Per night</option>
+              <option value="per_hour">Per hour</option>
+              <option value="per_session">Per session</option>
+              <option value="flat">Flat / package</option>
+            </select>
+          </label>
+
+          <label>Units available (rooms / slots)
+            <input id="svc-qty" inputmode="numeric" placeholder="e.g. 4" />
+          </label>
+
+          <label>Availability mode
+            <select id="svc-avail-mode">
+              <option value="flexible">Flexible (walk-in / as available)</option>
+              <option value="scheduled">Scheduled (set windows)</option>
+            </select>
+          </label>
+
+          <div id="svc-schedule-fields">
+            <label>Available from (date)
+              <input id="svc-from-date" type="date" />
+            </label>
+            <label>Available to (date)
+              <input id="svc-to-date" type="date" />
+            </label>
+            <label>Check-in / start time
+              <input id="svc-from-time" type="time" />
+            </label>
+            <label>Check-out / end time
+              <input id="svc-to-time" type="time" />
+            </label>
+            <label>Days (scheduled)
+              <div class="chip-row" id="svc-days">
+                <label class="check-row"><input type="checkbox" value="Mon" class="svc-day" /> Mon</label>
+                <label class="check-row"><input type="checkbox" value="Tue" class="svc-day" /> Tue</label>
+                <label class="check-row"><input type="checkbox" value="Wed" class="svc-day" /> Wed</label>
+                <label class="check-row"><input type="checkbox" value="Thu" class="svc-day" /> Thu</label>
+                <label class="check-row"><input type="checkbox" value="Fri" class="svc-day" /> Fri</label>
+                <label class="check-row"><input type="checkbox" value="Sat" class="svc-day" /> Sat</label>
+                <label class="check-row"><input type="checkbox" value="Sun" class="svc-day" /> Sun</label>
+              </div>
+            </label>
+          </div>
+
+          <label class="check-row"><input type="checkbox" id="svc-available" checked /> Available now</label>
           <button type="button" class="btn block" id="btnSvcAdd">Add service</button>
           <div id="svcList" class="feed-list"></div>
         </div>
+
         <!-- Driver -->
         <div id="shop-driver" class="shop-panel hidden">
           <h3 class="section-h">Driver status</h3>

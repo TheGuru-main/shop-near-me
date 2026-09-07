@@ -31,6 +31,31 @@ SNM.haversineKm = function (lat1, lon1, lat2, lon2) {
   return 2 * r * Math.asin(Math.min(1, Math.sqrt(a)));
 };
 
+SNM._geoCache = SNM._geoCache || {};
+
+SNM.geocodeText = async function (text) {
+  text = String(text || "").trim();
+  if (!text) return null;
+  if (SNM._geoCache[text]) return SNM._geoCache[text];
+  try {
+    var url =
+      "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" +
+      encodeURIComponent(text);
+    var res = await fetch(url, {
+      headers: { Accept: "application/json" }
+    });
+    if (!res.ok) return null;
+    var arr = await res.json();
+    if (!arr || !arr[0]) return null;
+    var pt = { lat: parseFloat(arr[0].lat), lng: parseFloat(arr[0].lon) };
+    if (isNaN(pt.lat) || isNaN(pt.lng)) return null;
+    SNM._geoCache[text] = pt;
+    return pt;
+  } catch (e) {
+    return null;
+  }
+};
+
 SNM.normalizeListing = function (raw) {
   raw = raw || {};
 
@@ -110,9 +135,6 @@ SNM.normalizeListing = function (raw) {
       owner.name ||
       raw.business_name ||
       raw.user_name ||
-      "",
-    raw: raw.product ? { product: raw.product, seller: raw.seller } : raw||
-
     "",
     phone:
       raw.phone ||
@@ -300,54 +322,46 @@ SNM.closeListingDetail = function () {
   }
 };
 
-SNM.renderDetailMap = function (item) {
+SNM.renderDetailMap = async function (item) {
   var mapEl =
     document.getElementById("listingDetailMap") ||
     document.getElementById("detailMap");
-  if (!mapEl) return;
+  if (!mapEl || typeof L === "undefined") return;
 
   var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
   var aLat = u.lat != null ? Number(u.lat) : SNM._lastLat;
   var aLng = u.lng != null ? Number(u.lng) : SNM._lastLng;
 
-  /* Pull seller coords from every place the API may put them */
-  var raw = item.raw || {};
-  var seller = raw.seller || raw.owner || {};
-  var prod = raw.product || {};
-  var bLat =
-    item.lat != null
-      ? Number(item.lat)
-      : seller.lat != null
-        ? Number(seller.lat)
-        : prod.lat != null
-          ? Number(prod.lat)
-          : null;
-  var bLng =
-    item.lng != null
-      ? Number(item.lng)
-      : seller.lng != null
-        ? Number(seller.lng)
-        : prod.lng != null
-          ? Number(prod.lng)
-          : null;
+  var bLat = item.lat != null ? Number(item.lat) : null;
+  var bLng = item.lng != null ? Number(item.lng) : null;
+
+  /* API search cards often omit seller GPS — geocode text place */
+  if (bLat == null || bLng == null) {
+    var placeQ = [
+      item.primary_location,
+      item.community,
+      item.city,
+      item.region,
+      item.country || "Nigeria"
+    ]
+      .filter(Boolean)
+      .join(", ");
+    var meta = document.getElementById("detailRouteMeta");
+    if (meta) meta.textContent = "Resolving seller place for route…";
+    var pt = await SNM.geocodeText(placeQ);
+    if (pt) {
+      bLat = pt.lat;
+      bLng = pt.lng;
+      item.lat = pt.lat;
+      item.lng = pt.lng;
+    }
+  }
 
   mapEl.style.display = "block";
   mapEl.style.width = "100%";
   mapEl.style.minHeight = "180px";
   mapEl.style.height = mapEl.style.height || "200px";
   mapEl.innerHTML = "";
-
-  if (typeof L === "undefined") {
-    mapEl.innerHTML =
-      "<p class='soft' style='padding:1rem'>Place: " +
-      SNM.escapeHtml(
-        [item.primary_location, item.community, item.city]
-          .filter(Boolean)
-          .join(" · ") || "—"
-      ) +
-      "</p>";
-    return;
-  }
 
   if (SNM._detailMap) {
     try {
@@ -363,18 +377,13 @@ SNM.renderDetailMap = function (item) {
         ? [aLat, aLng]
         : [4.8156, 7.0498];
 
-  SNM._detailMap = L.map(mapEl, {
-    zoomControl: true,
-    attributionControl: true
-  }).setView(center, 14);
-
+  SNM._detailMap = L.map(mapEl, { zoomControl: true }).setView(center, 14);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
     attribution: "© OSM"
   }).addTo(SNM._detailMap);
 
   var bounds = [];
-
   if (aLat != null && aLng != null && !isNaN(aLat) && !isNaN(aLng)) {
     L.circleMarker([aLat, aLng], {
       radius: 9,
@@ -387,7 +396,6 @@ SNM.renderDetailMap = function (item) {
       .bindPopup("You");
     bounds.push([aLat, aLng]);
   }
-
   if (bLat != null && bLng != null && !isNaN(bLat) && !isNaN(bLng)) {
     L.marker([bLat, bLng])
       .addTo(SNM._detailMap)
@@ -395,39 +403,41 @@ SNM.renderDetailMap = function (item) {
     bounds.push([bLat, bLng]);
   }
 
-  var meta = document.getElementById("detailRouteMeta");
+  var meta2 = document.getElementById("detailRouteMeta");
   if (bounds.length === 2) {
     var line = L.polyline(bounds, {
       color: "#14532d",
       weight: 5,
-      opacity: 0.95,
-      dashArray: null
+      opacity: 0.95
     }).addTo(SNM._detailMap);
     try {
       SNM._detailMap.fitBounds(line.getBounds(), { padding: [36, 36] });
     } catch (e) {}
-    var km =
-      item.km != null
-        ? Number(item.km)
-        : SNM.haversineKm(bounds[0][0], bounds[0][1], bounds[1][0], bounds[1][1]);
-    if (meta) meta.textContent = "Route · \~" + km.toFixed(1) + " km (straight line)";
-  } else if (meta) {
-    meta.textContent =
-      bounds.length === 1
-        ? "Only one pin has GPS — seller/your location missing coordinates."
-        : "No GPS on listing — text location only.";
+    var km = SNM.haversineKm(
+      bounds[0][0],
+      bounds[0][1],
+      bounds[1][0],
+      bounds[1][1]
+    );
+    if (meta2) meta2.textContent = "Route · \~" + km.toFixed(1) + " km (straight line)";
+  } else if (meta2) {
+    meta2.textContent =
+      "Need both your GPS and seller place to draw the line.";
   }
 
-  function fixSize() {
+  setTimeout(function () {
+    try {
+      SNM._detailMap.invalidateSize(true);
+    } catch (e) {}
+  }, 200);
+  setTimeout(function () {
     try {
       SNM._detailMap.invalidateSize(true);
       if (bounds.length === 2) {
         SNM._detailMap.fitBounds(bounds, { padding: [36, 36] });
       }
     } catch (e) {}
-  }
-  setTimeout(fixSize, 150);
-  setTimeout(fixSize, 450);
+  }, 500);
 };
 
 SNM.openListingDetail = function (item) {

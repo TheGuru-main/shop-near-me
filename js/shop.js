@@ -88,35 +88,27 @@ SNM.loadShop = async function () {
 };
 
 SNM.addShopItem = async function () {
-  var nameEl = document.getElementById("shop-item-name") || document.getElementById("prod-name");
-  var priceEl = document.getElementById("shop-item-price") || document.getElementById("prod-price");
-  var qtyEl = document.getElementById("shop-item-qty") || document.getElementById("prod-qty");
-  var curEl = document.getElementById("shop-item-currency") || document.getElementById("prod-currency");
-  var perEl = document.getElementById("shop-item-perishable");
+  var nameEl = document.getElementById("shop-name");
+  var priceEl = document.getElementById("shop-price");
+  var qtyEl = document.getElementById("shop-qty");
+  var curEl = document.getElementById("shop-currency");
+  var perEl = document.getElementById("shop-perishable");
+  var availEl = document.getElementById("shop-available");
 
   var name = ((nameEl && nameEl.value) || "").trim();
   var priceRaw = ((priceEl && priceEl.value) || "").trim();
-  var qtyRaw = ((qtyEl && qtyEl.value) || "").trim();
-  var currency = ((curEl && curEl.value) || "NGN").trim() || "NGN";
-  var perishable = !!(perEl && perEl.checked);
-
-  if (!name) {
-    alert("Enter item / service name.");
-    return;
-  }
-  if (!priceRaw) {
-    alert("Enter price amount (currency selected separately).");
-    return;
-  }
+  if (!name) return alert("Enter item name.");
+  if (!priceRaw) return alert("Enter price.");
 
   var body = {
     name: name,
     price: parseFloat(priceRaw) || 0,
-    qty: qtyRaw,
-    quantity: qtyRaw,
-    currency: currency,
-    perishable: perishable,
-    available: true
+    quantity: qtyEl && qtyEl.value ? parseFloat(qtyEl.value) || null : null,
+    currency: ((curEl && curEl.value) || "NGN").trim(),
+    perishable: !!(perEl && perEl.checked),
+    available: !availEl || !!availEl.checked,
+    business_type: "merchant",
+    category: "retail"
   };
 
   try {
@@ -130,40 +122,148 @@ SNM.addShopItem = async function () {
   }
 };
 
-SNM.setPresence = async function (flags) {
-  flags = flags || {};
+SNM.addServiceItem = async function () {
+  var name = ((document.getElementById("svc-name") || {}).value || "").trim();
+  var rate = ((document.getElementById("svc-rate") || {}).value || "").trim();
+  var currency = ((document.getElementById("svc-currency") || {}).value || "NGN").trim();
+  var unit = ((document.getElementById("svc-rate-unit") || {}).value || "per_night").trim();
+  var type = ((document.getElementById("svc-type") || {}).value || "hospitality").trim();
+  var desc = ((document.getElementById("svc-desc") || {}).value || "").trim();
+  var qtyRaw = ((document.getElementById("svc-qty") || {}).value || "").trim();
+  var mode = ((document.getElementById("svc-avail-mode") || {}).value || "flexible").trim();
+  var available = !!((document.getElementById("svc-available") || {}).checked);
+
+  if (!name) return alert("Enter service / room / package name.");
+  if (!rate) return alert("Enter rate.");
+
+  var days = [];
+  document.querySelectorAll(".svc-day:checked").forEach(function (cb) {
+    days.push(cb.value);
+  });
+
+  var schedule = {
+    mode: mode,
+    rate_unit: unit,
+    from_date: ((document.getElementById("svc-from-date") || {}).value || "") || null,
+    to_date: ((document.getElementById("svc-to-date") || {}).value || "") || null,
+    from_time: ((document.getElementById("svc-from-time") || {}).value || "") || null,
+    to_time: ((document.getElementById("svc-to-time") || {}).value || "") || null,
+    days: days
+  };
+
+  /* Encode schedule into description so backend ProductCreate accepts it */
+  var description = desc;
+  description +=
+    (description ? "\n" : "") +
+    "[availability:" +
+    mode +
+    "] [rate_unit:" +
+    unit +
+    "]";
+  if (mode === "scheduled") {
+    description +=
+      " [from:" +
+      (schedule.from_date || "") +
+      " " +
+      (schedule.from_time || "") +
+      "] [to:" +
+      (schedule.to_date || "") +
+      " " +
+      (schedule.to_time || "") +
+      "] [days:" +
+      days.join(",") +
+      "]";
+  }
+
+  var body = {
+    name: name,
+    price: parseFloat(rate) || 0,
+    currency: currency,
+    quantity: qtyRaw ? parseFloat(qtyRaw) || null : null,
+    available: available,
+    perishable: false,
+    business_type: "service",
+    category: type,
+    description: description
+  };
+
   try {
-    await SNM.api("/presence", {
-      method: "POST",
-      body: {
-        active: flags.active,
-        available: flags.available,
-        heartbeat: flags.heartbeat,
-        shop_open: flags.shop_open
-      }
+    await SNM.api("/products", { method: "POST", body: body });
+    ["svc-name", "svc-rate", "svc-desc", "svc-qty"].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.value = "";
     });
-    return true;
-  } catch (e) {
-    try {
-      await SNM.api("/presence/update", { method: "POST", body: flags });
-      return true;
-    } catch (e2) {
-      alert("Status update failed: " + ((e2 && e2.message) || ""));
-      return false;
+    await SNM.loadShop();
+    var list = document.getElementById("svcList");
+    if (list && typeof SNM.renderShopList === "function") {
+      /* loadShop fills shopList — also mirror into svcList */
+      var el = document.getElementById("shopList");
+      if (el && list) list.innerHTML = el.innerHTML;
     }
+  } catch (e) {
+    alert("Add service failed: " + ((e && e.message) || "check API"));
   }
 };
 
 SNM.bindShop = function () {
-  var addBtn =
-    document.getElementById("btnShopAdd") ||
-    document.getElementById("btnAddProduct") ||
-    document.getElementById("btnCatalogueAdd");
-  if (addBtn) {
+  var addBtn = document.getElementById("btnShopAdd");
+  if (addBtn && !addBtn._snmWired) {
+    addBtn._snmWired = true;
     addBtn.onclick = function () {
       SNM.addShopItem();
     };
   }
+
+  var svcBtn = document.getElementById("btnSvcAdd");
+  if (svcBtn && !svcBtn._snmWired) {
+    svcBtn._snmWired = true;
+    svcBtn.onclick = function () {
+      SNM.addServiceItem();
+    };
+  }
+
+  var svcOpen = document.getElementById("svc-open");
+  if (svcOpen && !svcOpen._snmWired) {
+    svcOpen._snmWired = true;
+    svcOpen.onchange = function () {
+      SNM.setPresence({
+        shop_open: !!svcOpen.checked,
+        heartbeat: !!svcOpen.checked,
+        active: !!svcOpen.checked
+      });
+    };
+  }
+
+  var shopOpen = document.getElementById("shop-open");
+  if (shopOpen && !shopOpen._snmWired) {
+    shopOpen._snmWired = true;
+    shopOpen.onchange = function () {
+      SNM.setPresence({
+        shop_open: !!shopOpen.checked,
+        heartbeat: !!shopOpen.checked
+      });
+    };
+  }
+
+  var drvSave = document.getElementById("btnDrvSave");
+  if (drvSave && !drvSave._snmWired) {
+    drvSave._snmWired = true;
+    drvSave.onclick = function () {
+      var active = !!((document.getElementById("drv-active") || {}).checked);
+      SNM.setPresence({ active: active, heartbeat: active, available: active });
+    };
+  }
+
+  var emgSave = document.getElementById("btnEmgSave");
+  if (emgSave && !emgSave._snmWired) {
+    emgSave._snmWired = true;
+    emgSave.onclick = function () {
+      var active = !!((document.getElementById("emg-active") || {}).checked);
+      SNM.setPresence({ active: active, heartbeat: active, available: active });
+    };
+  }
+};
+
 
   var hb =
     document.getElementById("toggleHeartbeat") ||
@@ -204,4 +304,7 @@ SNM.bindShop = function () {
 
 SNM.onShopEnter = function () {
   SNM.loadShop();
+var svcList = document.getElementById("svcList");
+var mainList = document.getElementById("shopList");
+if (svcList && mainList) svcList.innerHTML = mainList.innerHTML;
 };
