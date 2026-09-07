@@ -81,9 +81,14 @@ SNM.loadShop = async function () {
         el.innerHTML =
           "<p class='muted'>Catalogue unavailable: " +
           SNM.esc((e2 && e2.message) || "error") +
-          "</p>";
+         "</p>";
       }
     }
+
+var svcList = document.getElementById("svcList");
+var mainList = document.getElementById("shopList");
+if (svcList && mainList) svcList.innerHTML = mainList.innerHTML;
+
   }
 };
 
@@ -304,7 +309,4 @@ SNM.bindShop = function () {
 
 SNM.onShopEnter = function () {
   SNM.loadShop();
-var svcList = document.getElementById("svcList");
-var mainList = document.getElementById("shopList");
-if (svcList && mainList) svcList.innerHTML = mainList.innerHTML;
 };
