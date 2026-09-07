@@ -1,9 +1,23 @@
 window.SNM = window.SNM || {};
 
+/* Compatible with cards.js SNM.esc */
+SNM.escapeHtml =
+  SNM.escapeHtml ||
+  SNM.esc ||
+  function (s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  };
+SNM.esc = SNM.esc || SNM.escapeHtml;
+
 SNM._listingsById = SNM._listingsById || {};
 SNM._detailMap = null;
 SNM._detailItem = null;
 SNM._mapExpanded = false;
+SNM._homeMap = null;
 
 SNM.haversineKm = function (lat1, lon1, lat2, lon2) {
   var r = 6371;
@@ -19,15 +33,71 @@ SNM.haversineKm = function (lat1, lon1, lat2, lon2) {
 
 SNM.normalizeListing = function (raw) {
   raw = raw || {};
+
+  /* Search API: { product, seller, km, ... } */
+  if (raw.product && typeof raw.product === "object") {
+    var p = raw.product;
+    var s = raw.seller || {};
+    raw = {
+      id: p.id,
+      name: p.name || p.title,
+      title: p.name || p.title,
+      price: p.price,
+      currency: p.currency || "NGN",
+      qty: p.qty != null ? p.qty : p.quantity,
+      perishable: !!p.perishable,
+      available: p.available !== false,
+      phone: s.uid || s.phone || "",
+      owner_name: s.name || "",
+      primary_location: s.primary_location || "",
+      community: s.community || "",
+      city: s.city || "",
+      region: s.region || "",
+      country: s.country || "",
+      lat: s.lat != null ? s.lat : p.lat,
+      lng: s.lng != null ? s.lng : p.lng,
+      km: raw.km != null ? raw.km : raw.distance_km,
+      created_at: p.created_at || "",
+      kind: raw.card_type || "product"
+    };
+  }
+
+  /* Fairly-used API: { post, author } */
+  if (raw.post && typeof raw.post === "object") {
+    var post = raw.post;
+    var author = raw.author || {};
+    raw = {
+      id: post.id,
+      name: post.title || post.name,
+      title: post.title || post.name,
+      body: post.body || post.note || "",
+      price: post.price,
+      currency: post.currency || "NGN",
+      phone: author.phone || "",
+      owner_name: author.name || "",
+      primary_location: author.primary_location || "",
+      community: author.community || "",
+      city: author.city || "",
+      lat: author.lat,
+      lng: author.lng,
+      created_at: post.created_at || "",
+      kind: "fairly_used"
+    };
+  }
+
   var owner = raw.owner || raw.merchant || raw.seller || {};
+  if (typeof owner !== "object" || owner == null) owner = {};
+
   var id =
     raw.id ||
     raw.product_id ||
     raw.post_id ||
     "L" + Math.random().toString(36).slice(2, 10);
+
   var item = {
     id: String(id),
     name: raw.name || raw.title || raw.item_name || raw.business_name || "Item",
+    title: raw.title || raw.name || "Item",
     body: raw.body || raw.note || raw.description || raw.category || "",
     price: raw.price != null ? raw.price : raw.amount,
     currency: raw.currency || "NGN",
@@ -47,6 +117,7 @@ SNM.normalizeListing = function (raw) {
       raw.merchant_phone ||
       raw.seller_phone ||
       owner.phone ||
+      owner.uid ||
       "",
     primary_location:
       raw.primary_location || owner.primary_location || raw.address || "",
@@ -157,6 +228,7 @@ SNM.ensureDetailSheet = function () {
   sheet = document.createElement("div");
   sheet.id = "listingDetail";
   sheet.className = "detail-sheet hidden";
+  sheet.setAttribute("aria-hidden", "true");
   sheet.innerHTML =
     '<div class="detail-sheet-inner" id="detailSheetInner">' +
     '<div class="detail-head">' +
@@ -197,20 +269,6 @@ SNM.ensureDetailSheet = function () {
       e.stopPropagation();
       SNM.toggleMapExpand();
     };
-  }
-
-  var mapEl = document.getElementById("detailMap");
-  if (mapEl) {
-    mapEl.addEventListener("click", function (e) {
-      if (
-        e.target === mapEl ||
-        e.target.classList.contains("leaflet-container") ||
-        e.target.classList.contains("leaflet-pane") ||
-        e.target.tagName === "IMG"
-      ) {
-        SNM.toggleMapExpand(true);
-      }
-    });
   }
 
   return sheet;
@@ -260,6 +318,7 @@ SNM.closeListingDetail = function () {
   sheet.classList.add("hidden");
   sheet.classList.remove("open");
   sheet.style.display = "none";
+  sheet.setAttribute("aria-hidden", "true");
   SNM._detailItem = null;
 
   if (SNM._detailMap) {
@@ -291,7 +350,7 @@ SNM.renderDetailMap = function (item) {
           .join(" · ")
       ) +
       "</p>";
-    if (meta) meta.textContent = "Add Leaflet in index.html for map line.";
+    if (meta) meta.textContent = "Add Leaflet for map line.";
     return;
   }
 
@@ -408,6 +467,7 @@ SNM.openListingDetail = function (item) {
   sheet.classList.remove("hidden");
   sheet.classList.add("open");
   sheet.style.display = "flex";
+  sheet.setAttribute("aria-hidden", "false");
 
   var msgBtn = document.getElementById("btnDetailMessage");
   if (msgBtn) {
@@ -573,10 +633,68 @@ SNM.loadFeed = async function () {
   }
 };
 
+SNM.initHomeMap = function () {
+  var mapEl = document.getElementById("gsgMap");
+  if (!mapEl) return;
+  if (typeof L === "undefined") {
+    mapEl.innerHTML =
+      "<p class='muted' style='padding:1rem'>Map library not loaded.</p>";
+    return;
+  }
+  var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+  var lat =
+    u.lat != null
+      ? Number(u.lat)
+      : SNM._lastLat != null
+        ? Number(SNM._lastLat)
+        : 4.8156;
+  var lng =
+    u.lng != null
+      ? Number(u.lng)
+      : SNM._lastLng != null
+        ? Number(SNM._lastLng)
+        : 7.0498;
+
+  if (SNM._homeMap) {
+    try {
+      SNM._homeMap.remove();
+    } catch (e) {}
+    SNM._homeMap = null;
+  }
+  mapEl.innerHTML = "";
+  mapEl.style.minHeight = mapEl.style.minHeight || "180px";
+
+  try {
+    SNM._homeMap = L.map(mapEl).setView([lat, lng], 14);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "© OSM"
+    }).addTo(SNM._homeMap);
+    L.circleMarker([lat, lng], {
+      radius: 9,
+      color: "#14532d",
+      fillColor: "#86efac",
+      fillOpacity: 0.95,
+      weight: 2
+    })
+      .addTo(SNM._homeMap)
+      .bindPopup("You");
+    setTimeout(function () {
+      try {
+        SNM._homeMap.invalidateSize();
+      } catch (e) {}
+    }, 280);
+  } catch (err) {
+    mapEl.innerHTML =
+      "<p class='muted' style='padding:1rem'>Map unavailable.</p>";
+  }
+};
+
 SNM.enterHome = function (navigate) {
   if (navigate !== false) SNM.showScreen("home");
   SNM.fillHomeHeader();
   SNM.loadFeed();
+  SNM.initHomeMap();
   if (typeof SNM.renderTabbar === "function") SNM.renderTabbar("home");
 };
 
@@ -607,6 +725,23 @@ SNM.bindHome = function () {
     refresh._snmWired = true;
     refresh.onclick = function () {
       SNM.loadFeed();
+    };
+  }
+  var searchTop = document.getElementById("btnSearchTop");
+  if (searchTop && !searchTop._snmWired) {
+    searchTop._snmWired = true;
+    searchTop.onclick = function () {
+      SNM.showScreen("search");
+    };
+  }
+  var perish = document.getElementById("btnPerishables");
+  if (perish && !perish._snmWired) {
+    perish._snmWired = true;
+    perish.onclick = function () {
+      var q = document.getElementById("searchQ");
+      if (q) q.value = "perishable";
+      SNM.showScreen("search");
+      if (typeof SNM.runProducts === "function") SNM.runProducts();
     };
   }
 };
