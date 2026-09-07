@@ -90,3 +90,9 @@
   }
   if (typeof SNM.renderTabbar === "function") SNM.renderTabbar("home");
 })();
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("./sw.js").catch(function () {});
+  });
+}
