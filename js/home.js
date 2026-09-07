@@ -223,77 +223,45 @@ SNM.appendComment = function (listingId, text) {
 
 SNM.ensureDetailSheet = function () {
   var sheet = document.getElementById("listingDetail");
-  if (sheet) return sheet;
+  if (!sheet) return null;
 
-  sheet = document.createElement("div");
-  sheet.id = "listingDetail";
-  sheet.className = "detail-sheet hidden";
-  sheet.setAttribute("aria-hidden", "true");
-  sheet.innerHTML =
-    '<div class="detail-sheet-inner" id="detailSheetInner">' +
-    '<div class="detail-head">' +
-    '<strong id="detailTitle">Listing</strong>' +
-    '<button type="button" class="icon-pill" id="btnCloseDetail" aria-label="Close">✕</button>' +
-    "</div>" +
-    '<div id="detailMapWrap" class="detail-map-wrap">' +
-    '<div id="detailMap" class="detail-map"></div>' +
-    '<button type="button" class="map-expand-btn" id="btnExpandMap" title="Expand map">⛶ Expand map</button>' +
-    "</div>" +
-    '<div id="detailBody" class="detail-body"></div>' +
-    '<div class="detail-actions">' +
-    '<button type="button" class="btn primary" id="btnDetailMessage">Message seller</button>' +
-    '<button type="button" class="btn secondary" id="btnCloseDetailBottom">Close</button>' +
-    "</div></div>";
-
-  document.body.appendChild(sheet);
-
-  function doClose(e) {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
+  /* Wire close once */
+  if (!sheet._snmWired) {
+    sheet._snmWired = true;
+    var closeBtn = document.getElementById("btnCloseDetail");
+    if (closeBtn) {
+      closeBtn.onclick = function (e) {
+        if (e) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        SNM.closeListingDetail();
+      };
     }
-    SNM.closeListingDetail();
+    sheet.addEventListener("click", function (e) {
+      if (e.target === sheet) SNM.closeListingDetail();
+    });
   }
-
-  document.getElementById("btnCloseDetail").onclick = doClose;
-  document.getElementById("btnCloseDetailBottom").onclick = doClose;
-
-  sheet.addEventListener("click", function (e) {
-    if (e.target === sheet) SNM.closeListingDetail();
-  });
-
-  var expandBtn = document.getElementById("btnExpandMap");
-  if (expandBtn) {
-    expandBtn.onclick = function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      SNM.toggleMapExpand();
-    };
-  }
-
   return sheet;
 };
 
 SNM.toggleMapExpand = function (forceOpen) {
-  var wrap = document.getElementById("detailMapWrap");
-  var inner = document.getElementById("detailSheetInner");
-  var btn = document.getElementById("btnExpandMap");
-  if (!wrap) return;
-
+  var mapEl =
+    document.getElementById("listingDetailMap") ||
+    document.getElementById("detailMap");
+  if (!mapEl) return;
   var open =
     forceOpen === true ? true : forceOpen === false ? false : !SNM._mapExpanded;
   SNM._mapExpanded = open;
-
   if (open) {
-    wrap.classList.add("map-expanded");
-    if (inner) inner.classList.add("map-mode");
-    if (btn) btn.textContent = "✕ Close map";
+    mapEl.classList.add("map-expanded");
+    mapEl.style.height = "55vh";
+    mapEl.style.minHeight = "55vh";
   } else {
-    wrap.classList.remove("map-expanded");
-    if (inner) inner.classList.remove("map-mode");
-    if (btn) btn.textContent = "⛶ Expand map";
+    mapEl.classList.remove("map-expanded");
+    mapEl.style.height = "";
+    mapEl.style.minHeight = "180px";
   }
-
   setTimeout(function () {
     if (SNM._detailMap) {
       try {
@@ -308,17 +276,9 @@ SNM.closeListingDetail = function () {
   if (!sheet) return;
 
   SNM._mapExpanded = false;
-  var wrap = document.getElementById("detailMapWrap");
-  var inner = document.getElementById("detailSheetInner");
-  var btn = document.getElementById("btnExpandMap");
-  if (wrap) wrap.classList.remove("map-expanded");
-  if (inner) inner.classList.remove("map-mode");
-  if (btn) btn.textContent = "⛶ Expand map";
-
-  sheet.classList.add("hidden");
   sheet.classList.remove("open");
-  sheet.style.display = "none";
   sheet.setAttribute("aria-hidden", "true");
+  sheet.style.display = "none";
   SNM._detailItem = null;
 
   if (SNM._detailMap) {
@@ -327,19 +287,34 @@ SNM.closeListingDetail = function () {
     } catch (e) {}
     SNM._detailMap = null;
   }
-  var mapEl = document.getElementById("detailMap");
-  if (mapEl) mapEl.innerHTML = "";
+  var mapEl =
+    document.getElementById("listingDetailMap") ||
+    document.getElementById("detailMap");
+  if (mapEl) {
+    mapEl.innerHTML = "";
+    mapEl.classList.remove("map-expanded");
+    mapEl.style.height = "";
+  }
 };
 
 SNM.renderDetailMap = function (item) {
-  var mapEl = document.getElementById("detailMap");
+  var mapEl =
+    document.getElementById("listingDetailMap") ||
+    document.getElementById("detailMap");
   if (!mapEl) return;
-  var meta = document.getElementById("detailRouteMeta");
+
   var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
   var aLat = u.lat != null ? Number(u.lat) : SNM._lastLat;
   var aLng = u.lng != null ? Number(u.lng) : SNM._lastLng;
   var bLat = item.lat != null ? Number(item.lat) : null;
   var bLng = item.lng != null ? Number(item.lng) : null;
+
+  /* Leaflet needs a sized box before init */
+  mapEl.style.display = "block";
+  mapEl.style.width = "100%";
+  mapEl.style.minHeight = "180px";
+  mapEl.style.height = mapEl.style.height || "200px";
+  mapEl.innerHTML = "";
 
   if (typeof L === "undefined") {
     mapEl.innerHTML =
@@ -347,14 +322,12 @@ SNM.renderDetailMap = function (item) {
       SNM.escapeHtml(
         [item.primary_location, item.community, item.city]
           .filter(Boolean)
-          .join(" · ")
+          .join(" · ") || "—"
       ) +
       "</p>";
-    if (meta) meta.textContent = "Add Leaflet for map line.";
     return;
   }
 
-  mapEl.innerHTML = "";
   if (SNM._detailMap) {
     try {
       SNM._detailMap.remove();
@@ -367,7 +340,7 @@ SNM.renderDetailMap = function (item) {
       ? [bLat, bLng]
       : aLat != null && aLng != null
         ? [aLat, aLng]
-        : [4.85, 7.05];
+        : [4.8156, 7.0498];
 
   SNM._detailMap = L.map(mapEl, {
     zoomControl: true,
@@ -390,11 +363,13 @@ SNM.renderDetailMap = function (item) {
       .addTo(SNM._detailMap)
       .bindPopup("You");
   }
+
   if (bLat != null && bLng != null) {
     L.marker([bLat, bLng])
       .addTo(SNM._detailMap)
-      .bindPopup(item.name || "Seller");
+      .bindPopup(item.name || item.title || "Seller");
   }
+
   if (aLat != null && aLng != null && bLat != null && bLng != null) {
     var line = L.polyline(
       [
@@ -404,28 +379,31 @@ SNM.renderDetailMap = function (item) {
       { color: "#14532d", weight: 4, opacity: 0.9 }
     ).addTo(SNM._detailMap);
     SNM._detailMap.fitBounds(line.getBounds().pad(0.28));
-    var km =
-      item.km != null
-        ? Number(item.km)
-        : SNM.haversineKm(aLat, aLng, bLat, bLng);
-    if (meta) meta.textContent = "Straight line · \~" + km.toFixed(1) + " km";
-  } else if (meta) {
-    meta.textContent = "Seller GPS missing — text location only.";
   }
 
+  /* Critical: sheet was hidden → map had 0 size */
   setTimeout(function () {
     try {
       SNM._detailMap.invalidateSize();
     } catch (e) {}
-  }, 300);
+  }, 120);
+  setTimeout(function () {
+    try {
+      SNM._detailMap.invalidateSize();
+    } catch (e) {}
+  }, 400);
 };
 
 SNM.openListingDetail = function (item) {
   item = SNM.normalizeListing(item);
   SNM._detailItem = item;
+
   var sheet = SNM.ensureDetailSheet();
-  var title = document.getElementById("detailTitle");
-  var body = document.getElementById("detailBody");
+  if (!sheet) return;
+
+  var body =
+    document.getElementById("listingDetailBody") ||
+    document.getElementById("detailBody");
   var place = [
     item.primary_location,
     item.community,
@@ -436,9 +414,11 @@ SNM.openListingDetail = function (item) {
     .filter(Boolean)
     .join(" · ");
 
-  if (title) title.textContent = item.name || "Listing";
   if (body) {
     body.innerHTML =
+      "<h3 style='margin:0 0 0.5rem'>" +
+      SNM.escapeHtml(item.name || item.title || "Listing") +
+      "</h3>" +
       (item.price != null
         ? "<p><strong>Price:</strong> " +
           SNM.escapeHtml(String(item.currency || "NGN") + " " + item.price) +
@@ -461,13 +441,13 @@ SNM.openListingDetail = function (item) {
           "</p>"
         : "") +
       (item.body ? "<p>" + SNM.escapeHtml(item.body) + "</p>" : "") +
-      '<p class="soft" id="detailRouteMeta">Route: …</p>';
+      '<p class="soft" id="detailRouteMeta">Tap map to expand · route below</p>' +
+      '<button type="button" class="btn block" id="btnDetailMessage" style="margin-top:0.5rem">Message seller</button>';
   }
 
-  sheet.classList.remove("hidden");
   sheet.classList.add("open");
-  sheet.style.display = "flex";
   sheet.setAttribute("aria-hidden", "false");
+  sheet.style.display = "block";
 
   var msgBtn = document.getElementById("btnDetailMessage");
   if (msgBtn) {
@@ -477,13 +457,16 @@ SNM.openListingDetail = function (item) {
     };
   }
 
-  SNM._mapExpanded = false;
-  var wrap = document.getElementById("detailMapWrap");
-  var inner = document.getElementById("detailSheetInner");
-  var expBtn = document.getElementById("btnExpandMap");
-  if (wrap) wrap.classList.remove("map-expanded");
-  if (inner) inner.classList.remove("map-mode");
-  if (expBtn) expBtn.textContent = "⛶ Expand map";
+  /* Tap map → expand */
+  var mapEl =
+    document.getElementById("listingDetailMap") ||
+    document.getElementById("detailMap");
+  if (mapEl && !mapEl._snmTap) {
+    mapEl._snmTap = true;
+    mapEl.addEventListener("click", function () {
+      SNM.toggleMapExpand(true);
+    });
+  }
 
   SNM.renderDetailMap(item);
 };
