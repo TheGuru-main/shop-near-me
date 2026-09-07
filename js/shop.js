@@ -3,8 +3,13 @@ window.SNM = window.SNM || {};
 SNM._shopItems = [];
 
 SNM.showShopPanels = function () {
-  var user = SNM.getUser() || {};
-  var role = user.role || "buyer";
+  var user = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+  var role =
+    (user && user.role) ||
+    (typeof SNM.getRole === "function" && SNM.getRole()) ||
+    "buyer";
+  role = String(role).toLowerCase().trim();
+
   var panels = {
     merchant: document.getElementById("shop-merchant"),
     service: document.getElementById("shop-service"),
@@ -12,83 +17,99 @@ SNM.showShopPanels = function () {
     emergency: document.getElementById("shop-emergency"),
     buyer: document.getElementById("shop-buyer")
   };
+
   Object.keys(panels).forEach(function (k) {
     if (panels[k]) panels[k].classList.add("hidden");
   });
-  if (role === "merchant" && panels.merchant) panels.merchant.classList.remove("hidden");
-  else if (role === "service" && panels.service) panels.service.classList.remove("hidden");
-  else if (role === "driver" && panels.driver) panels.driver.classList.remove("hidden");
-  else if (role === "emergency" && panels.emergency) panels.emergency.classList.remove("hidden");
-  else if (panels.buyer) panels.buyer.classList.remove("hidden");
+
+  if (role === "merchant" && panels.merchant) {
+    panels.merchant.classList.remove("hidden");
+  } else if (role === "service" && panels.service) {
+    panels.service.classList.remove("hidden");
+  } else if (role === "driver" && panels.driver) {
+    panels.driver.classList.remove("hidden");
+  } else if (role === "emergency" && panels.emergency) {
+    panels.emergency.classList.remove("hidden");
+  } else if (panels.buyer) {
+    panels.buyer.classList.remove("hidden");
+  }
 };
 
 SNM.renderShopList = function (items) {
-  var el = document.getElementById("shopList") || document.getElementById("catalogueList");
-  if (!el) return;
   items = items || [];
   SNM._shopItems = items;
-  if (!items.length) {
-    el.innerHTML = "<p class='muted'>No catalogue items yet. Add one above.</p>";
-    return;
-  }
-  /* latest first */
+
   items = items.slice().sort(function (a, b) {
     var ta = new Date(a.created_at || a.addedAt || 0).getTime();
     var tb = new Date(b.created_at || b.addedAt || 0).getTime();
     return tb - ta;
   });
-  if (typeof SNM.cardHtml === "function") {
-    el.innerHTML = items.map(function (it) {
-      return SNM.cardHtml(SNM.normalizeListing(it));
-    }).join("");
-    if (typeof SNM.bindCardActions === "function") SNM.bindCardActions(el);
-  } else {
-    el.innerHTML = items
-      .map(function (it) {
-        return (
-          '<article class="card">' +
-          "<strong>" + SNM.esc(it.name || it.title || "Item") + "</strong>" +
-          "<p class='muted small'>" +
-          SNM.esc(String(it.price != null ? it.price : "")) +
-          " · qty " + SNM.esc(String(it.qty != null ? it.qty : it.quantity || "")) +
-          (it.currency ? " · " + SNM.esc(it.currency) : "") +
-          "</p></article>"
-        );
-      })
-      .join("");
+
+  function paint(el) {
+    if (!el) return;
+    if (!items.length) {
+      el.innerHTML =
+        "<p class='muted'>No catalogue items yet. Add one above.</p>";
+      return;
+    }
+    if (typeof SNM.cardHtml === "function") {
+      el.innerHTML = items
+        .map(function (it) {
+          return SNM.cardHtml(
+            typeof SNM.normalizeListing === "function"
+              ? SNM.normalizeListing(it)
+              : it
+          );
+        })
+        .join("");
+      if (typeof SNM.bindCardActions === "function") SNM.bindCardActions(el);
+    } else {
+      el.innerHTML = items
+        .map(function (it) {
+          return (
+            '<article class="card"><strong>' +
+            SNM.esc(it.name || it.title || "Item") +
+            "</strong><p class='muted small'>" +
+            SNM.esc(String(it.price != null ? it.price : "")) +
+            (it.currency ? " · " + SNM.esc(it.currency) : "") +
+            "</p></article>"
+          );
+        })
+        .join("");
+    }
   }
+
+  paint(document.getElementById("shopList") || document.getElementById("catalogueList"));
+  paint(document.getElementById("svcList"));
 };
 
 SNM.loadShop = async function () {
   SNM.showShopPanels();
-  var el = document.getElementById("shopList") || document.getElementById("catalogueList");
+  var el =
+    document.getElementById("shopList") ||
+    document.getElementById("catalogueList");
+  var svcList = document.getElementById("svcList");
   if (el) el.innerHTML = "<p class='muted'>Loading catalogue…</p>";
+  if (svcList) svcList.innerHTML = "<p class='muted'>Loading…</p>";
+
   try {
-    var data = await SNM.api("/products/mine" + (SNM.qs ? SNM.qs({}) : ""));
+    /* Correct path: GET /products/me */
+    var data = await SNM.api("/products/me");
     var items =
       (data && (data.items || data.products || data.results)) ||
       (Array.isArray(data) ? data : []);
     SNM.renderShopList(items);
   } catch (e) {
-    try {
-      var data2 = await SNM.api("/products" + (SNM.qs ? SNM.qs({ mine: true }) : "?mine=true"));
-      var items2 =
-        (data2 && (data2.items || data2.products || data2.results)) ||
-        (Array.isArray(data2) ? data2 : []);
-      SNM.renderShopList(items2);
-    } catch (e2) {
-      if (el) {
-        el.innerHTML =
-          "<p class='muted'>Catalogue unavailable: " +
-          SNM.esc((e2 && e2.message) || "error") +
-         "</p>";
-      }
+    if (el) {
+      el.innerHTML =
+        "<p class='muted'>Catalogue unavailable: " +
+        SNM.esc((e && e.message) || "error") +
+        "</p>";
     }
-
-var svcList = document.getElementById("svcList");
-var mainList = document.getElementById("shopList");
-if (svcList && mainList) svcList.innerHTML = mainList.innerHTML;
-
+    if (svcList) {
+      svcList.innerHTML =
+        "<p class='muted'>" + SNM.esc((e && e.message) || "error") + "</p>";
+    }
   }
 };
 
@@ -130,12 +151,20 @@ SNM.addShopItem = async function () {
 SNM.addServiceItem = async function () {
   var name = ((document.getElementById("svc-name") || {}).value || "").trim();
   var rate = ((document.getElementById("svc-rate") || {}).value || "").trim();
-  var currency = ((document.getElementById("svc-currency") || {}).value || "NGN").trim();
-  var unit = ((document.getElementById("svc-rate-unit") || {}).value || "per_night").trim();
-  var type = ((document.getElementById("svc-type") || {}).value || "hospitality").trim();
+  var currency = (
+    (document.getElementById("svc-currency") || {}).value || "NGN"
+  ).trim();
+  var unit = (
+    (document.getElementById("svc-rate-unit") || {}).value || "per_night"
+  ).trim();
+  var type = (
+    (document.getElementById("svc-type") || {}).value || "hospitality"
+  ).trim();
   var desc = ((document.getElementById("svc-desc") || {}).value || "").trim();
   var qtyRaw = ((document.getElementById("svc-qty") || {}).value || "").trim();
-  var mode = ((document.getElementById("svc-avail-mode") || {}).value || "flexible").trim();
+  var mode = (
+    (document.getElementById("svc-avail-mode") || {}).value || "flexible"
+  ).trim();
   var available = !!((document.getElementById("svc-available") || {}).checked);
 
   if (!name) return alert("Enter service / room / package name.");
@@ -146,17 +175,11 @@ SNM.addServiceItem = async function () {
     days.push(cb.value);
   });
 
-  var schedule = {
-    mode: mode,
-    rate_unit: unit,
-    from_date: ((document.getElementById("svc-from-date") || {}).value || "") || null,
-    to_date: ((document.getElementById("svc-to-date") || {}).value || "") || null,
-    from_time: ((document.getElementById("svc-from-time") || {}).value || "") || null,
-    to_time: ((document.getElementById("svc-to-time") || {}).value || "") || null,
-    days: days
-  };
+  var fromDate = (document.getElementById("svc-from-date") || {}).value || "";
+  var toDate = (document.getElementById("svc-to-date") || {}).value || "";
+  var fromTime = (document.getElementById("svc-from-time") || {}).value || "";
+  var toTime = (document.getElementById("svc-to-time") || {}).value || "";
 
-  /* Encode schedule into description so backend ProductCreate accepts it */
   var description = desc;
   description +=
     (description ? "\n" : "") +
@@ -168,13 +191,13 @@ SNM.addServiceItem = async function () {
   if (mode === "scheduled") {
     description +=
       " [from:" +
-      (schedule.from_date || "") +
+      fromDate +
       " " +
-      (schedule.from_time || "") +
+      fromTime +
       "] [to:" +
-      (schedule.to_date || "") +
+      toDate +
       " " +
-      (schedule.to_time || "") +
+      toTime +
       "] [days:" +
       days.join(",") +
       "]";
@@ -199,37 +222,65 @@ SNM.addServiceItem = async function () {
       if (el) el.value = "";
     });
     await SNM.loadShop();
-    var list = document.getElementById("svcList");
-    if (list && typeof SNM.renderShopList === "function") {
-      /* loadShop fills shopList — also mirror into svcList */
-      var el = document.getElementById("shopList");
-      if (el && list) list.innerHTML = el.innerHTML;
-    }
   } catch (e) {
     alert("Add service failed: " + ((e && e.message) || "check API"));
   }
 };
 
+SNM.setPresence = async function (flags) {
+  flags = flags || {};
+  try {
+    await SNM.api("/presence", {
+      method: "POST",
+      body: {
+        active: !!flags.active,
+        available: !!flags.available,
+        heartbeat: !!flags.heartbeat,
+        shop_open: !!flags.shop_open
+      }
+    });
+    return true;
+  } catch (e) {
+    try {
+      await SNM.api("/presence/update", { method: "POST", body: flags });
+      return true;
+    } catch (e2) {
+      alert("Status update failed: " + ((e2 && e2.message) || ""));
+      return false;
+    }
+  }
+};
+
 SNM.bindShop = function () {
+  if (SNM._shopBound) return;
+  SNM._shopBound = true;
+
   var addBtn = document.getElementById("btnShopAdd");
-  if (addBtn && !addBtn._snmWired) {
-    addBtn._snmWired = true;
+  if (addBtn) {
     addBtn.onclick = function () {
       SNM.addShopItem();
     };
   }
 
   var svcBtn = document.getElementById("btnSvcAdd");
-  if (svcBtn && !svcBtn._snmWired) {
-    svcBtn._snmWired = true;
+  if (svcBtn) {
     svcBtn.onclick = function () {
       SNM.addServiceItem();
     };
   }
 
+  var shopOpen = document.getElementById("shop-open");
+  if (shopOpen) {
+    shopOpen.onchange = function () {
+      SNM.setPresence({
+        shop_open: !!shopOpen.checked,
+        heartbeat: !!shopOpen.checked
+      });
+    };
+  }
+
   var svcOpen = document.getElementById("svc-open");
-  if (svcOpen && !svcOpen._snmWired) {
-    svcOpen._snmWired = true;
+  if (svcOpen) {
     svcOpen.onchange = function () {
       SNM.setPresence({
         shop_open: !!svcOpen.checked,
@@ -239,70 +290,27 @@ SNM.bindShop = function () {
     };
   }
 
-  var shopOpen = document.getElementById("shop-open");
-  if (shopOpen && !shopOpen._snmWired) {
-    shopOpen._snmWired = true;
-    shopOpen.onchange = function () {
+  var drvSave = document.getElementById("btnDrvSave");
+  if (drvSave) {
+    drvSave.onclick = function () {
+      var active = !!((document.getElementById("drv-active") || {}).checked);
       SNM.setPresence({
-        shop_open: !!shopOpen.checked,
-        heartbeat: !!shopOpen.checked
+        active: active,
+        heartbeat: active,
+        available: active
       });
     };
   }
 
-  var drvSave = document.getElementById("btnDrvSave");
-  if (drvSave && !drvSave._snmWired) {
-    drvSave._snmWired = true;
-    drvSave.onclick = function () {
-      var active = !!((document.getElementById("drv-active") || {}).checked);
-      SNM.setPresence({ active: active, heartbeat: active, available: active });
-    };
-  }
-
   var emgSave = document.getElementById("btnEmgSave");
-  if (emgSave && !emgSave._snmWired) {
-    emgSave._snmWired = true;
+  if (emgSave) {
     emgSave.onclick = function () {
       var active = !!((document.getElementById("emg-active") || {}).checked);
-      SNM.setPresence({ active: active, heartbeat: active, available: active });
-    };
-  }
-};
-
-
-  var hb =
-    document.getElementById("toggleHeartbeat") ||
-    document.getElementById("shop-heartbeat");
-  if (hb) {
-    hb.onchange = function () {
-      SNM.setPresence({ heartbeat: !!hb.checked, active: !!hb.checked });
-    };
-  }
-
-  var act =
-    document.getElementById("toggleActive") ||
-    document.getElementById("shop-active");
-  if (act) {
-    act.onchange = function () {
-      SNM.setPresence({ active: !!act.checked });
-    };
-  }
-
-  var av =
-    document.getElementById("toggleAvailable") ||
-    document.getElementById("shop-available");
-  if (av) {
-    av.onchange = function () {
-      SNM.setPresence({ available: !!av.checked });
-    };
-  }
-
-  var open =
-    document.getElementById("toggleShopOpen") ||
-    document.getElementById("shop-open");
-  if (open) {
-    open.onchange = function () {
-      SNM.setPresence({ shop_open: !!open.checked, heartbeat: !!open.checked });
+      SNM.setPresence({
+        active: active,
+        heartbeat: active,
+        available: active
+      });
     };
   }
 };
@@ -310,3 +318,6 @@ SNM.bindShop = function () {
 SNM.onShopEnter = function () {
   SNM.loadShop();
 };
+
+/* Also reload when router opens shop */
+SNM.loadMyProducts = SNM.loadShop;
