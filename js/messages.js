@@ -41,8 +41,12 @@ SNM.loadInbox = async function () {
   SNM.closeThread();
   box.innerHTML = "<p class='soft'>Loading inbox…</p>";
   try {
-    var data = await SNM.api("/messages/threads");
-    var rows = data.items || data.threads || data || [];
+    var data = await SNM.api("/messages/inbox");
+    var rows =
+    data.items ||
+    data.threads ||
+    data.results ||
+    (Array.isArray(data) ? data : []);
     if (!Array.isArray(rows)) rows = [];
     if (!rows.length) {
       box.innerHTML =

@@ -118,12 +118,29 @@ SNM.bindRouter = function () {
         return;
       }
 
-      /* data-back */
+  /* data-back — smart: stay logged in when possible */
       var backEl = e.target.closest("[data-back]");
       if (backEl) {
         e.preventDefault();
         e.stopPropagation();
-        SNM.showScreen(backEl.getAttribute("data-back"));
+        var dest = backEl.getAttribute("data-back") || "home";
+        var hasToken =
+          typeof SNM.getToken === "function" && !!SNM.getToken();
+
+        /* Rules / about opened while authed → home, not role-select */
+        if (
+          hasToken &&
+          (dest === "role-select" || dest === "login" || dest === "register")
+        ) {
+          var screen =
+            (backEl.closest(".screen") &&
+              backEl.closest(".screen").getAttribute("data-screen")) ||
+            "";
+          if (screen === "rules" || screen === "about") {
+            dest = "home";
+          }
+        }
+        SNM.showScreen(dest);
         return;
       }
 
