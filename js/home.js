@@ -159,11 +159,7 @@ SNM.normalizeListing = function (raw) {
       created_at: post.created_at || ""
     };
   }
-  var stamped = SNM.parseGeoStamp && SNM.parseGeoStamp(item.body || "");
-if (stamped) {
-  if (item.lat == null) item.lat = stamped.lat;
-  if (item.lng == null) item.lng = stamped.lng;
-}
+
   var owner = raw.owner || raw.merchant || raw.seller || {};
   if (typeof owner !== "object" || owner == null) owner = {};
 
@@ -235,6 +231,15 @@ if (stamped) {
     item.lng != null
   ) {
     item.km = SNM.haversineKm(me.lat, me.lng, item.lat, item.lng);
+  }
+
+var stamped =
+    typeof SNM.parseGeoStamp === "function"
+      ? SNM.parseGeoStamp(item.body || raw.body || "")
+      : null;
+  if (stamped) {
+    if (item.lat == null) item.lat = stamped.lat;
+    if (item.lng == null) item.lng = stamped.lng;
   }
 
   SNM._listingsById[item.id] = item;
