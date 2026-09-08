@@ -14,5 +14,4 @@ backend/data/companion_train.jsonl
 
 # OS / editor
 .DS_Store
-*.swp
-*\~
+
