@@ -293,6 +293,8 @@ async def search_products(
                     "available": product.available,
                     "image_url": getattr(product, "image_url", None),
                     "start_row": getattr(product, "start_row", None),
+                    "lat": float(owner.lat) if owner.lat is not None else None,
+                    "lng": float(owner.lng) if owner.lng is not None else None,
                 },
                 "seller": {
                     "uid": ident["uid"],
@@ -305,6 +307,8 @@ async def search_products(
                     "region": owner.region,
                     "country": owner.country,
                     "live": owner.live,
+                    "lat": float(owner.lat) if owner.lat is not None else None,
+                    "lng": float(owner.lng) if owner.lng is not None else None,
                     "start_row": ident["start_row"],
                     "L": ident.get("L"),
                     "S": ident.get("S"),
