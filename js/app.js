@@ -96,3 +96,46 @@ if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js").catch(function () {});
   });
 }
+
+
+SNM._deferredPrompt = null;
+
+window.addEventListener("beforeinstallprompt", function (e) {
+  e.preventDefault();
+  SNM._deferredPrompt = e;
+  var btn = document.getElementById("btnInstallApp");
+  if (btn) btn.classList.remove("hidden");
+});
+
+window.addEventListener("appinstalled", function () {
+  SNM._deferredPrompt = null;
+  var btn = document.getElementById("btnInstallApp");
+  if (btn) btn.classList.add("hidden");
+});
+
+SNM.promptInstall = function () {
+  var btn = document.getElementById("btnInstallApp");
+  if (SNM._deferredPrompt) {
+    SNM._deferredPrompt.prompt();
+    SNM._deferredPrompt.userChoice.then(function () {
+      SNM._deferredPrompt = null;
+      if (btn) btn.classList.add("hidden");
+    });
+    return;
+  }
+  /* Fallback instructions */
+  var ua = navigator.userAgent || "";
+  if (/iPhone|iPad|iPod/i.test(ua)) {
+    alert("On iPhone: tap Share → Add to Home Screen");
+  } else {
+    alert("In Chrome: tap the ⋮ menu (top right) → Install app / Add to Home screen");
+  }
+};
+
+document.addEventListener("click", function (e) {
+  var t = e.target.closest("#btnInstallApp");
+  if (t) {
+    e.preventDefault();
+    SNM.promptInstall();
+  }
+});
