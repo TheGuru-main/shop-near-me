@@ -43,10 +43,10 @@ SNM.loadInbox = async function () {
   try {
     var data = await SNM.api("/messages/inbox");
     var rows =
-    data.items ||
-    data.threads ||
-    data.results ||
-    (Array.isArray(data) ? data : []);
+      data.items ||
+      data.threads ||
+      data.results ||
+      (Array.isArray(data) ? data : []);
     if (!Array.isArray(rows)) rows = [];
     if (!rows.length) {
       box.innerHTML =
@@ -56,36 +56,42 @@ SNM.loadInbox = async function () {
     box.innerHTML = rows
       .map(function (t) {
         var id = t.id || t.thread_id;
-        var title = t.title || t.peer_name || t.name || t.phone || "Thread";
+        var title =
+          t.title || t.peer_name || t.name || t.phone || t.peer_phone || "Thread";
         var phone = t.phone || t.peer_phone || "";
-        var preview = t.last_message || t.preview || "";
+        var preview = t.last_message || t.preview || t.last_body || "";
         return (
           '<div class="card" data-thread="' +
           SNM.escapeHtml(String(id)) +
           '" data-phone="' +
-          SNM.escapeHtml(phone) +
+          SNM.escapeHtml(String(phone)) +
           '" style="cursor:pointer">' +
-          '<div class="title">' +
-          SNM.escapeHtml(title) +
-          "</div>" +
+          "<strong>" +
+          SNM.escapeHtml(String(title)) +
+          "</strong>" +
           (preview
-            ? '<div class="meta">' + SNM.escapeHtml(preview) + "</div>"
+            ? "<p class='soft'>" +
+              SNM.escapeHtml(String(preview).slice(0, 120)) +
+              "</p>"
             : "") +
           "</div>"
         );
       })
       .join("");
+
     box.querySelectorAll("[data-thread]").forEach(function (el) {
       el.onclick = function () {
-        var t =
-          (el.querySelector(".title") && el.querySelector(".title").textContent) ||
-          "Thread";
-        SNM.openThread(el.getAttribute("data-thread"), t);
+        SNM.openThread(
+          el.getAttribute("data-thread"),
+          (el.querySelector("strong") || {}).textContent || "Thread"
+        );
       };
     });
   } catch (e) {
     box.innerHTML =
-      "<p class='soft'>" + SNM.escapeHtml(e.message || "Inbox error") + "</p>";
+      "<p class='soft'>" +
+      SNM.escapeHtml((e && e.message) || "Inbox error") +
+      "</p>";
   }
 };
 
@@ -120,6 +126,7 @@ SNM.openThread = async function (id, title) {
       "/messages/threads/" + encodeURIComponent(id)
     );
     var msgs = data.messages || data.items || [];
+    if (!Array.isArray(msgs)) msgs = [];
     var me = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
     if (box) {
       box.innerHTML = msgs.length
@@ -146,7 +153,9 @@ SNM.openThread = async function (id, title) {
   } catch (e) {
     if (box) {
       box.innerHTML =
-        "<p class='soft'>" + SNM.escapeHtml(e.message) + "</p>";
+        "<p class='soft'>" +
+        SNM.escapeHtml(e.message || "Thread error") +
+        "</p>";
     }
   }
 };
@@ -163,10 +172,9 @@ SNM.startDmByPhone = async function (phone) {
 
   var dmInput = document.getElementById("dm-phone");
   if (dmInput) dmInput.value = phone;
-  SNM.showScreen("messages");
+  if (typeof SNM.showScreen === "function") SNM.showScreen("messages");
 
   try {
-    /* 1) Resolve phone → user id */
     var looked = await SNM.api(
       "/messages/lookup" + SNM.qs({ phone: phone })
     );
@@ -189,7 +197,6 @@ SNM.startDmByPhone = async function (phone) {
       (looked.thread && looked.thread.id) ||
       null;
 
-    /* 2) Existing thread? */
     if (tid) {
       await SNM.openThread(String(tid), looked.name || phone);
       return;
@@ -202,12 +209,11 @@ SNM.startDmByPhone = async function (phone) {
       return;
     }
 
-    /* 3) Start thread (API requires to_user_id + body) */
     var created = await SNM.api("/messages/threads", {
       method: "POST",
       body: {
         to_user_id: userId,
-        body: "Hello",
+        body: "Hi",
         context_type: "direct"
       }
     });
@@ -219,9 +225,8 @@ SNM.startDmByPhone = async function (phone) {
 
     if (tid) {
       await SNM.openThread(String(tid), looked.name || phone);
-    } else {
-      if (typeof SNM.toast === "function") SNM.toast("Thread created — open inbox");
-      if (typeof SNM.loadInbox === "function") SNM.loadInbox();
+    } else if (typeof SNM.loadInbox === "function") {
+      await SNM.loadInbox();
     }
   } catch (err) {
     var msg =
@@ -241,21 +246,27 @@ SNM.startDmByPhone = async function (phone) {
 };
 
 SNM.bindMessages = function () {
-  function wireClose(el) {
-    if (!el || el._snmCloseWired) return;
-    el._snmCloseWired = true;
-    el.addEventListener("click", function (e) {
-      e.preventDefault();
-      e.stopPropagation();
+  if (SNM._messagesBound) return;
+  SNM._messagesBound = true;
+
+  function wireClose(btn) {
+    if (!btn || btn._snmCloseWired) return;
+    btn._snmCloseWired = true;
+    btn.onclick = function (e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
       SNM.closeThread();
-    });
+    };
   }
 
   wireClose(document.getElementById("btnCloseThread"));
   wireClose(document.getElementById("btnThreadBack"));
-
   document
-    .querySelectorAll("#threadView .back-link, #threadView [data-act='close-thread']")
+    .querySelectorAll(
+      "#threadView .back-link, #threadView [data-act='close-thread']"
+    )
     .forEach(wireClose);
 
   var send =
@@ -291,21 +302,9 @@ SNM.bindMessages = function () {
           });
         }
         if (input) input.value = "";
-        var box =
-          document.getElementById("threadMessages") ||
-          document.getElementById("msgList");
-        if (box) {
-          var empty = box.querySelector("p.soft");
-          if (empty) empty.remove();
-          var bubble = document.createElement("div");
-          bubble.className = "msg-bubble me";
-          bubble.textContent = text;
-          box.appendChild(bubble);
-          box.scrollTop = box.scrollHeight;
-        }
         if (SNM._threadId) {
           var titleEl = document.getElementById("threadTitle");
-          SNM.openThread(
+          await SNM.openThread(
             SNM._threadId,
             titleEl ? titleEl.textContent : "Thread"
           );
@@ -328,4 +327,8 @@ SNM.bindMessages = function () {
       SNM.startDmByPhone(phone);
     };
   }
+};
+
+SNM.onMessagesEnter = function () {
+  SNM.loadInbox();
 };

@@ -126,16 +126,23 @@ SNM.addShopItem = async function () {
   if (!name) return alert("Enter item name.");
   if (!priceRaw) return alert("Enter price.");
 
-  var body = {
-    name: name,
-    price: parseFloat(priceRaw) || 0,
-    quantity: qtyEl && qtyEl.value ? parseFloat(qtyEl.value) || null : null,
-    currency: ((curEl && curEl.value) || "NGN").trim(),
-    perishable: !!(perEl && perEl.checked),
-    available: !availEl || !!availEl.checked,
-    business_type: "merchant",
-    category: "retail"
-  };
+  var g = SNM.posterGeo();
+var desc = SNM.geoStamp(""); /* or existing description field */
+
+var body = {
+  name: name,
+  price: parseFloat(priceRaw) || 0,
+  quantity: qtyEl && qtyEl.value ? parseFloat(qtyEl.value) || null : null,
+  currency: ((curEl && curEl.value) || "NGN").trim(),
+  perishable: !!(perEl && perEl.checked),
+  available: !availEl || !!availEl.checked,
+  business_type: "merchant",
+  category: "retail",
+  description: desc
+};
+/* extra fields — ignored if API rejects; stamp still in description */
+if (g.lat != null) body.lat = g.lat;
+if (g.lng != null) body.lng = g.lng;
 
   try {
     await SNM.api("/products", { method: "POST", body: body });
@@ -262,6 +269,25 @@ SNM.bindShop = function () {
     };
   }
 
+
+var g = SNM.posterGeo();
+var desc = SNM.geoStamp(""); 
+
+var body = {
+  name: name,
+  price: parseFloat(priceRaw) || 0,
+  quantity: qtyEl && qtyEl.value ? parseFloat(qtyEl.value) || null : null,
+  currency: ((curEl && curEl.value) || "NGN").trim(),
+  perishable: !!(perEl && perEl.checked),
+  available: !availEl || !!availEl.checked,
+  business_type: "merchant",
+  category: "retail",
+  description: desc
+};
+/* extra fields — ignored if API rejects; stamp still in description */
+if (g.lat != null) body.lat = g.lat;
+if (g.lng != null) body.lng = g.lng;
+
   var svcBtn = document.getElementById("btnSvcAdd");
   if (svcBtn) {
     svcBtn.onclick = function () {
@@ -306,12 +332,84 @@ SNM.bindShop = function () {
   if (emgSave) {
     emgSave.onclick = function () {
       var active = !!((document.getElementById("emg-active") || {}).checked);
+<<<<<<< HEAD
       SNM.setPresence({
         active: active,
         heartbeat: active,
         available: active
       });
+=======
+      SNM.setPresence({ active: active, heartbeat: active, available: active });
     };
+  }
+};
+
+
+  var hb =
+    document.getElementById("toggleHeartbeat") ||
+    document.getElementById("shop-heartbeat");
+  if (hb) {
+    hb.onchange = function () {
+      SNM.setPresence({ heartbeat: !!hb.checked, active: !!hb.checked });
+    };
+  }
+
+var description = SNM.geoStamp(desc + (description extras you already add));
+kl
+body.description = description;
+var g = SNM.posterGeo();
+if (g.lat != null) body.lat = g.lat;
+if (g.lng != null) body.lng = g.lng;
+
+  var act =
+    document.getElementById("toggleActive") ||
+    document.getElementById("shop-active");
+  if (act) {
+    act.onchange = function () {
+      SNM.setPresence({ active: !!act.checked });
+    };
+  }
+
+  var av =
+    document.getElementById("toggleAvailable") ||
+    document.getElementById("shop-available");
+  if (av) {
+    av.onchange = function () {
+      SNM.setPresence({ available: !!av.checked });
+    };
+  }
+
+  var open =
+    document.getElementById("toggleShopOpen") ||
+    document.getElementById("shop-open");
+  if (open) {
+    open.onchange = function () {
+      SNM.setPresence({ shop_open: !!open.checked, heartbeat: !!open.checked });
+>>>>>>> a2cb266 (Ship: geo stamp on posts, presence heartbeat, messages fix, PWA icons/SW)
+    };
+  }
+};
+
+SNM.setPresence = async function (flags) {
+  flags = flags || {};
+  var body = {
+    active: !!flags.active,
+    available: !!flags.available,
+    heartbeat: !!flags.heartbeat,
+    shop_open: !!flags.shop_open,
+    live: !!(flags.active || flags.heartbeat || flags.shop_open)
+  };
+  try {
+    await SNM.api("/presence/heartbeat", { method: "POST", body: body });
+    return true;
+  } catch (e1) {
+    try {
+      await SNM.api("/presence/live", { method: "POST", body: body });
+      return true;
+    } catch (e2) {
+      alert("Status update failed: " + ((e2 && e2.message) || e1.message || ""));
+      return false;
+    }
   }
 };
 
@@ -319,5 +417,8 @@ SNM.onShopEnter = function () {
   SNM.loadShop();
 };
 
+<<<<<<< HEAD
 /* Also reload when router opens shop */
 SNM.loadMyProducts = SNM.loadShop;
+=======
+>>>>>>> a2cb266 (Ship: geo stamp on posts, presence heartbeat, messages fix, PWA icons/SW)

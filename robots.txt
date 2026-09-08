@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://shop-near-me-apiv1-0-0-1b.onrender.com/sitemap.xml

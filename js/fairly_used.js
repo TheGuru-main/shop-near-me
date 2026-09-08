@@ -90,6 +90,18 @@ SNM.createFairlyUsed = async function () {
   var title = ((titleEl && titleEl.value) || "").trim();
   var body = ((bodyEl && bodyEl.value) || "").trim();
   var price = ((priceEl && priceEl.value) || "").trim();
+var g = SNM.posterGeo();
+var bodyText = SNM.geoStamp(noteOrBody);
+
+await SNM.api("/fairly-used", {
+  method: "POST",
+  body: {
+    title: title,
+    body: bodyText,
+    price: price,
+    currency: currency || "NGN"
+  }
+});
   if (!title) {
     alert("Add a title.");
     return;

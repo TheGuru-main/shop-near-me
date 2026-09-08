@@ -5,4 +5,8 @@
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
+<<<<<<< HEAD
 </urlset>
+=======
+</urlset>
+>>>>>>> a2cb266 (Ship: geo stamp on posts, presence heartbeat, messages fix, PWA icons/SW)

@@ -9,6 +9,7 @@
       if (typeof SNM.bindRouter === "function") SNM.bindRouter();
       if (typeof SNM.bindAuth === "function") SNM.bindAuth();
       if (typeof SNM.bindHome === "function") SNM.bindHome();
+      if (typeof SNM.initPresenceForRole === "function") SNM.initPresenceForRole();
       if (typeof SNM.bindFairlyUsed === "function") SNM.bindFairlyUsed();
       if (typeof SNM.bindShell === "function") SNM.bindShell();
       if (typeof SNM.bindSearch === "function") SNM.bindSearch();

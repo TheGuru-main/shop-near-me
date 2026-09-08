@@ -227,6 +227,9 @@ body {
   min-height: 4rem;
 }
 
+[data-hb-marker].hb-live { color: #22c55e; font-weight: 600; }
+[data-hb-marker].hb-off { color: #9ca3af; }
+
 .panel .footer-link {
   color: #14532d;
   background: #ecfdf5;
