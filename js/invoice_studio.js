@@ -45,10 +45,34 @@ SNM.issueStudioInvoice = async function () {
   }
 };
 
+SNM.openInvoiceStudio = function (kind) {
+  var sel = document.getElementById("inv-kind");
+  if (sel && kind) sel.value = kind;
+  if (typeof SNM.showScreen === "function") SNM.showScreen("invoice");
+};
+
 SNM.bindInvoiceStudio = function () {
-  var btn = document.getElementById("btnInvIssue");
-  if (btn) {
-    btn.onclick = function () {
+  if (SNM._invoiceBound) return;
+  SNM._invoiceBound = true;
+
+  var map = [
+    ["btnCreateReceipt", "receipt"],
+    ["btnCreateEinvoice", "e_invoice"],
+    ["btnCreateEinvoicePp", "e_invoice_pp"],
+    ["btnInvIssue", null]
+  ];
+  map.forEach(function (pair) {
+    var el = document.getElementById(pair[0]);
+    if (!el) return;
+    el.onclick = function () {
+      if (pair[1]) SNM.openInvoiceStudio(pair[1]);
+      else SNM.issueStudioInvoice();
+    };
+  });
+
+  var issue = document.getElementById("btnInvIssue");
+  if (issue) {
+    issue.onclick = function () {
       SNM.issueStudioInvoice();
     };
   }

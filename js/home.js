@@ -283,10 +283,8 @@ SNM.cardHtml = function (item) {
       : '<span class="badge-stock in">In stock ✓</span>';
 
   var img = item.image_url
-    ? '<img class="card-thumb" src="' +
-      SNM.escapeHtml(item.image_url) +
-      '" alt="" loading="lazy" />'
-    : "";
+  ? '<img class="card-thumb" src="' + SNM.escapeHtml(item.image_url) + '" alt="" />'
+  : "";
 
   var live =
     item.live || item.seller_live

@@ -24,7 +24,10 @@
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://shop-near-me-apiv1-0-0-1b.onrender.com/" />
   <meta property="og:image" content="https://shop-near-me-apiv1-0-0-1b.onrender.com/icons/icon-512.png" />
-
+  <style>
+    .img-preview { margin: 8px 0; }
+    .img-preview img { max-width: 100%; max-height: 160px; border-radius: 12px; object-fit: cover; }
+  </style>
   <link rel="stylesheet" href="css/style.css" />
 
 </head>
@@ -47,22 +50,16 @@
 
     <section id="role-select" class="screen" data-screen="role-select">
       <header class="top-bar">
-<<<<<<< HEAD
 
         <span class="brand-sm">🏪 Welcome To Shop Near Me</span>
-=======
-        <span class="brand-sm">🏪Welcome  Shop Near Me</span>
->>>>>>> a2cb266 (Ship: geo stamp on posts, presence heartbeat, messages fix, PWA icons/SW)
         <button type="button" class="icon-btn" data-go="rules" title="Rules">?</button>
       </header>
 
       <div class="container stack">
-<<<<<<< HEAD
-   
-        <h1 class="screen-title">Sell your products, offer services, and purchase items, utilities, get efficient services from providers closest to you <br><br> How Are You Using Shop Near Me?</h1>
-=======
-        <h1 class="screen-title">How are you using Shop Near Me?</h1>
->>>>>>> a2cb266 (Ship: geo stamp on posts, presence heartbeat, messages fix, PWA icons/SW)
+        <h1 class="screen-title">WELCOME... <br> <br><p class="tagline">
+  Sell your products, offer services, and purchase items and utilities from providers closest to you.
+</p>
+<p class="sub-tagline">How are you using Shop Near Me?</p></h1>
         <div class="role-stack" id="roleStack">
           <button type="button" class="role-btn" data-role="buyer">
             <i class="fa-solid fa-cart-shopping"></i> Buyer
@@ -409,6 +406,11 @@
           <label>Quantity<input id="shop-qty" placeholder="e.g. 12 or 12kg" /></label>
           <label class="check-row"><input type="checkbox" id="shop-perishable" /> Perishable</label>
           <label class="check-row"><input type="checkbox" id="shop-available" checked /> Available</label>
+          <label>Item photo (optional)
+          <input id="shop-item-image" type="file" accept="image/*" capture="environment" />
+          </label>
+          <p class="muted small">Take the product photo or choose from gallery.</p>
+          <div id="shop-item-preview" class="img-preview hidden"></div>
           <button type="button" class="btn block" id="btnShopAdd">Add listing</button>
           <div id="shopList" class="feed-list"></div>
         </div>
@@ -494,6 +496,10 @@
           </div>
 
           <label class="check-row"><input type="checkbox" id="svc-available" checked /> Available now</label>
+           <label>Service photo (optional)
+            <input id="svc-item-image" type="file" accept="image/*" capture="environment" />
+          </label>
+          <div id="svc-item-preview" class="img-preview hidden"></div>          
           <button type="button" class="btn block" id="btnSvcAdd">Add service</button>
           <div id="svcList" class="feed-list"></div>
         </div>
@@ -591,6 +597,10 @@
           <label>Title<input id="fu-title" /></label>
           <label>Note<textarea id="fu-note" rows="2"></textarea></label>
           <label>Price (optional)<input id="fu-price" inputmode="decimal" /></label>
+             <label>Item photo (optional)
+            <input id="fu-item-image" type="file" accept="image/*" capture="environment" />
+          </label>
+          <div id="fu-item-preview" class="img-preview hidden"></div>
           <button type="button" class="btn block" id="btnFuPost">Post</button>
         </div>
         <div id="fuList" class="feed-list"></div>

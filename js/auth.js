@@ -69,22 +69,30 @@ SNM.showSetupForRole = function (role) {
   });
 
   if (role === "buyer") {
-    var box = document.getElementById("buyerPrefs");
-    if (box && !box.dataset.ready) {
-      box.innerHTML = (SNM.BUYER_PREFS || [])
-        .map(function (p) {
-          return (
-            '<label class="check-row"><input type="checkbox" class="pref-cb" value="' +
-            p +
-            '"/> ' +
-            p +
-            "</label>"
-          );
-        })
-        .join("");
-      box.dataset.ready = "1";
+    if (typeof SNM.renderBuyerPrefs === "function") {
+      SNM.renderBuyerPrefs();
+    } else {
+      var box = document.getElementById("buyerPrefs");
+      if (box && !box.dataset.ready) {
+        var list = SNM.BUYER_PREF_CATS || SNM.BUYER_PREFS || [];
+        box.innerHTML = list
+          .map(function (p) {
+            return (
+              '<button type="button" class="chip">' + p + "</button>"
+            );
+          })
+          .join("");
+        box.dataset.ready = "1";
+        box.querySelectorAll(".chip").forEach(function (b) {
+          b.onclick = function () {
+            b.classList.toggle("active");
+          };
+        });
+      }
     }
   }
+
+  if (typeof SNM.initSetupScreens === "function") SNM.initSetupScreens();
 };
 
 SNM.bindAuth = function () {
@@ -129,27 +137,7 @@ SNM.bindAuth = function () {
         return SNM._showErr("regError", "Phone must be international (+…).");
       }
       if (!password || password.length < 4) {
-        return SNM._showErr("regError", "Password too short.");
-      }
-
-      if (typeof SNM.countryByName === "function") {
-        var cmeta = SNM.countryByName(country);
-        if (cmeta && cmeta.localLen) {
-          var local = (
-            document.getElementById("reg-local").value || ""
-          ).replace(/\D/g, "");
-          while (local.charAt(0) === "0") local = local.slice(1);
-          if (local.length !== cmeta.localLen) {
-            return SNM._showErr(
-              "regError",
-              "Local number for " +
-                country +
-                " should be " +
-                cmeta.localLen +
-                " digits (no leading 0)."
-            );
-          }
-        }
+        return SNM._showErr("regError", "Password too short (min 4).");
       }
 
       btnRegister.disabled = true;
@@ -180,7 +168,10 @@ SNM.bindAuth = function () {
           lng: geo.lng
         };
 
-        SNM._showErr("regError", "Requesting OTP… (server may take \~30s cold start)");
+        SNM._showErr(
+          "regError",
+          "Requesting OTP… (server may take \~30s cold start)"
+        );
         var data = await SNM.api("/auth/otp/request", {
           method: "POST",
           body: body
@@ -204,10 +195,7 @@ SNM.bindAuth = function () {
         SNM._showErr("regError", "");
         SNM.showScreen("otp");
       } catch (err) {
-        SNM._showErr(
-          "regError",
-          SNM._errText(err) || "OTP request failed"
-        );
+        SNM._showErr("regError", SNM._errText(err) || "OTP request failed");
       }
       btnRegister.disabled = false;
     };
@@ -303,60 +291,6 @@ SNM.bindAuth = function () {
         SNM._showErr("loginError", SNM._errText(err) || "Login failed");
       }
       btnLogin.disabled = false;
-    };
-  }
-
-  var btnSetupDone = document.getElementById("btnSetupDone");
-  if (btnSetupDone) {
-    btnSetupDone.onclick = function () {
-      var role = SNM.getRole();
-      var extra = { role: role };
-      if (role === "buyer") {
-        extra.prefs = [];
-        document.querySelectorAll(".pref-cb:checked").forEach(function (cb) {
-          extra.prefs.push(cb.value);
-        });
-      }
-      if (role === "merchant") {
-        extra.business_name =
-          (document.getElementById("setup-biz-name") || {}).value || "";
-        extra.category =
-          (document.getElementById("setup-biz-category") || {}).value || "";
-        extra.walkin = !!(document.getElementById("setup-walkin") || {}).checked;
-        extra.pod = !!(document.getElementById("setup-pod") || {}).checked;
-        extra.delivery = !!(document.getElementById("setup-delivery") || {})
-          .checked;
-        extra.hours =
-          (document.getElementById("setup-hours") || {}).value || "";
-      }
-      if (role === "service") {
-        extra.service_type =
-          (document.getElementById("setup-service-type") || {}).value || "";
-        extra.home_service = !!(
-          document.getElementById("setup-home-service") || {}
-        ).checked;
-        extra.hours =
-          (document.getElementById("setup-service-hours") || {}).value || "";
-      }
-      if (role === "driver") {
-        extra.coverage =
-          (document.getElementById("setup-driver-coverage") || {}).value || "";
-        extra.active = !!(document.getElementById("setup-driver-active") || {})
-          .checked;
-      }
-      if (role === "emergency") {
-        extra.unit_type =
-          (document.getElementById("setup-emerg-type") || {}).value || "";
-        extra.public_contact =
-          (document.getElementById("setup-emerg-contact") || {}).value || "";
-        extra.active = !!(document.getElementById("setup-emerg-active") || {})
-          .checked;
-      }
-      try {
-        localStorage.setItem("snm_setup_meta", JSON.stringify(extra));
-      } catch (e) {}
-      SNM.setSetupDone(true);
-      SNM.showScreen("home");
     };
   }
 };

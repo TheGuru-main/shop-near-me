@@ -82,14 +82,12 @@ SNM.loadFairlyUsed = async function () {
 };
 
 SNM.createFairlyUsed = async function () {
+  var media_url = await SNM.readItemImage("fu-item-image");
   var titleEl = document.getElementById("fu-title");
   var bodyEl =
     document.getElementById("fu-note") ||
     document.getElementById("fu-body");
   var priceEl = document.getElementById("fu-price");
-  var title = ((titleEl && titleEl.value) || "").trim();
-  var body = ((bodyEl && bodyEl.value) || "").trim();
-  var price = ((priceEl && priceEl.value) || "").trim();
 var g = SNM.posterGeo();
 var bodyText = SNM.geoStamp(noteOrBody);
 
@@ -127,6 +125,13 @@ await SNM.api("/fairly-used", {
 };
 
 SNM.bindFairlyUsed = function () {
+  if (SNM._fuBound) return;
+  SNM._fuBound = true;
+
+  if (typeof SNM.previewItemImage === "function") {
+    SNM.previewItemImage("fu-item-image", "fu-item-preview");
+  }
+
   var btn = document.getElementById("btnFuPost");
   if (btn && !btn._snmWired) {
     btn._snmWired = true;

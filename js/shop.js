@@ -26,7 +26,7 @@ SNM.showShopPanels = function () {
     panels.merchant.classList.remove("hidden");
   } else if (role === "service" && panels.service) {
     panels.service.classList.remove("hidden");
-  } else if (role === "driver" && panels.driver) {
+  } else if ((role === "driver" || role === "logistics") && panels.driver) {
     panels.driver.classList.remove("hidden");
   } else if (role === "emergency" && panels.emergency) {
     panels.emergency.classList.remove("hidden");
@@ -66,8 +66,15 @@ SNM.renderShopList = function (items) {
     } else {
       el.innerHTML = items
         .map(function (it) {
+          var img = it.image_url
+            ? '<img class="card-thumb" src="' +
+              SNM.esc(it.image_url) +
+              '" alt="" />'
+            : "";
           return (
-            '<article class="card"><strong>' +
+            '<article class="card">' +
+            img +
+            "<strong>" +
             SNM.esc(it.name || it.title || "Item") +
             "</strong><p class='muted small'>" +
             SNM.esc(String(it.price != null ? it.price : "")) +
@@ -79,7 +86,10 @@ SNM.renderShopList = function (items) {
     }
   }
 
-  paint(document.getElementById("shopList") || document.getElementById("catalogueList"));
+  paint(
+    document.getElementById("shopList") ||
+      document.getElementById("catalogueList")
+  );
   paint(document.getElementById("svcList"));
 };
 
@@ -93,141 +103,191 @@ SNM.loadShop = async function () {
   if (svcList) svcList.innerHTML = "<p class='muted'>Loading…</p>";
 
   try {
-    /* Correct path: GET /products/me */
     var data = await SNM.api("/products/me");
     var items =
       (data && (data.items || data.products || data.results)) ||
       (Array.isArray(data) ? data : []);
     SNM.renderShopList(items);
   } catch (e) {
-    if (el) {
+    var msg = (e && e.message) || "error";
+    if (el)
       el.innerHTML =
-        "<p class='muted'>Catalogue unavailable: " +
-        SNM.esc((e && e.message) || "error") +
-        "</p>";
-    }
-    if (svcList) {
+        "<p class='muted'>Catalogue unavailable: " + SNM.esc(msg) + "</p>";
+    if (svcList)
       svcList.innerHTML =
-        "<p class='muted'>" + SNM.esc((e && e.message) || "error") + "</p>";
-    }
+        "<p class='muted'>Services unavailable: " + SNM.esc(msg) + "</p>";
   }
+};
+
+SNM.loadMyProducts = SNM.loadShop;
+
+/** Camera or gallery → data URL for this item */
+SNM.readItemImage = function (inputId, maxBytes) {
+  maxBytes = maxBytes || 900000;
+  return new Promise(function (resolve) {
+    var el = document.getElementById(inputId);
+    if (!el || !el.files || !el.files[0]) {
+      resolve(null);
+      return;
+    }
+    var file = el.files[0];
+    if (file.size > maxBytes) {
+      alert("Photo too large. Use under \~900KB.");
+      resolve(null);
+      return;
+    }
+    var r = new FileReader();
+    r.onload = function () {
+      resolve(r.result || null);
+    };
+    r.onerror = function () {
+      resolve(null);
+    };
+    r.readAsDataURL(file);
+  });
+};
+
+SNM.previewItemImage = function (inputId, previewId) {
+  var input = document.getElementById(inputId);
+  var box = document.getElementById(previewId);
+  if (!input || !box) return;
+  input.onchange = function () {
+    var file = input.files && input.files[0];
+    if (!file) {
+      box.innerHTML = "";
+      box.classList.add("hidden");
+      return;
+    }
+    var url = URL.createObjectURL(file);
+    box.innerHTML = '<img src="' + url + '" alt="Item preview" />';
+    box.classList.remove("hidden");
+  };
 };
 
 SNM.addShopItem = async function () {
   var nameEl = document.getElementById("shop-name");
   var priceEl = document.getElementById("shop-price");
-  var qtyEl = document.getElementById("shop-qty");
   var curEl = document.getElementById("shop-currency");
+  var qtyEl = document.getElementById("shop-qty");
   var perEl = document.getElementById("shop-perishable");
   var availEl = document.getElementById("shop-available");
 
   var name = ((nameEl && nameEl.value) || "").trim();
   var priceRaw = ((priceEl && priceEl.value) || "").trim();
-  if (!name) return alert("Enter item name.");
-  if (!priceRaw) return alert("Enter price.");
+  if (!name) {
+    alert("Item name required.");
+    return;
+  }
 
-  var g = SNM.posterGeo();
-var desc = SNM.geoStamp(""); /* or existing description field */
+  var image_url = await SNM.readItemImage("shop-item-image");
+  var desc = typeof SNM.geoStamp === "function" ? SNM.geoStamp("") : "";
+  var g = typeof SNM.posterGeo === "function" ? SNM.posterGeo() : {};
 
-var body = {
-  name: name,
-  price: parseFloat(priceRaw) || 0,
-  quantity: qtyEl && qtyEl.value ? parseFloat(qtyEl.value) || null : null,
-  currency: ((curEl && curEl.value) || "NGN").trim(),
-  perishable: !!(perEl && perEl.checked),
-  available: !availEl || !!availEl.checked,
-  business_type: "merchant",
-  category: "retail",
-  description: desc
-};
-/* extra fields — ignored if API rejects; stamp still in description */
-if (g.lat != null) body.lat = g.lat;
-if (g.lng != null) body.lng = g.lng;
+  var body = {
+    name: name,
+    price: parseFloat(priceRaw) || 0,
+    quantity:
+      qtyEl && qtyEl.value
+        ? parseFloat(String(qtyEl.value).replace(/[^\d.]/g, "")) || null
+        : null,
+    currency: ((curEl && curEl.value) || "NGN").trim(),
+    perishable: !!(perEl && perEl.checked),
+    available: !availEl || !!availEl.checked,
+    business_type: "merchant",
+    category: perEl && perEl.checked ? "food" : "retail",
+    description: desc,
+    image_url: image_url
+  };
+  if (g.lat != null) body.lat = g.lat;
+  if (g.lng != null) body.lng = g.lng;
 
   try {
     await SNM.api("/products", { method: "POST", body: body });
     if (nameEl) nameEl.value = "";
     if (priceEl) priceEl.value = "";
     if (qtyEl) qtyEl.value = "";
+    var imgIn = document.getElementById("shop-item-image");
+    if (imgIn) imgIn.value = "";
+    var prev = document.getElementById("shop-item-preview");
+    if (prev) {
+      prev.innerHTML = "";
+      prev.classList.add("hidden");
+    }
     await SNM.loadShop();
   } catch (e) {
-    alert("Add failed: " + ((e && e.message) || "check API"));
+    alert("Add listing failed: " + ((e && e.message) || "check API"));
   }
 };
 
 SNM.addServiceItem = async function () {
-  var name = ((document.getElementById("svc-name") || {}).value || "").trim();
-  var rate = ((document.getElementById("svc-rate") || {}).value || "").trim();
-  var currency = (
-    (document.getElementById("svc-currency") || {}).value || "NGN"
-  ).trim();
-  var unit = (
-    (document.getElementById("svc-rate-unit") || {}).value || "per_night"
-  ).trim();
-  var type = (
-    (document.getElementById("svc-type") || {}).value || "hospitality"
-  ).trim();
-  var desc = ((document.getElementById("svc-desc") || {}).value || "").trim();
-  var qtyRaw = ((document.getElementById("svc-qty") || {}).value || "").trim();
-  var mode = (
-    (document.getElementById("svc-avail-mode") || {}).value || "flexible"
-  ).trim();
-  var available = !!((document.getElementById("svc-available") || {}).checked);
-
-  if (!name) return alert("Enter service / room / package name.");
-  if (!rate) return alert("Enter rate.");
-
-  var days = [];
-  document.querySelectorAll(".svc-day:checked").forEach(function (cb) {
-    days.push(cb.value);
-  });
-
-  var fromDate = (document.getElementById("svc-from-date") || {}).value || "";
-  var toDate = (document.getElementById("svc-to-date") || {}).value || "";
-  var fromTime = (document.getElementById("svc-from-time") || {}).value || "";
-  var toTime = (document.getElementById("svc-to-time") || {}).value || "";
-
-  var description = desc;
-  description +=
-    (description ? "\n" : "") +
-    "[availability:" +
-    mode +
-    "] [rate_unit:" +
-    unit +
-    "]";
-  if (mode === "scheduled") {
-    description +=
-      " [from:" +
-      fromDate +
-      " " +
-      fromTime +
-      "] [to:" +
-      toDate +
-      " " +
-      toTime +
-      "] [days:" +
-      days.join(",") +
-      "]";
+  var nameEl = document.getElementById("svc-name");
+  var name = ((nameEl && nameEl.value) || "").trim();
+  if (!name) {
+    alert("Service name required.");
+    return;
   }
+
+  var typeEl = document.getElementById("svc-type");
+  var descEl = document.getElementById("svc-desc");
+  var rateEl = document.getElementById("svc-rate");
+  var curEl = document.getElementById("svc-currency");
+  var unitEl = document.getElementById("svc-rate-unit");
+  var qtyEl = document.getElementById("svc-qty");
+  var modeEl = document.getElementById("svc-avail-mode");
+  var availEl = document.getElementById("svc-available");
+
+  var desc = ((descEl && descEl.value) || "").trim();
+  var mode = ((modeEl && modeEl.value) || "flexible").trim();
+  var days = [];
+  document.querySelectorAll(".svc-day:checked").forEach(function (c) {
+    days.push(c.value);
+  });
+  var fromD = ((document.getElementById("svc-from-date") || {}).value || "").trim();
+  var toD = ((document.getElementById("svc-to-date") || {}).value || "").trim();
+  var fromT = ((document.getElementById("svc-from-time") || {}).value || "").trim();
+  var toT = ((document.getElementById("svc-to-time") || {}).value || "").trim();
+
+  var scheduleBits = [];
+  scheduleBits.push("mode:" + mode);
+  if (days.length) scheduleBits.push("days:" + days.join(","));
+  if (fromD) scheduleBits.push("from:" + fromD);
+  if (toD) scheduleBits.push("to:" + toD);
+  if (fromT || toT) scheduleBits.push("time:" + fromT + "-" + toT);
+  if (unitEl && unitEl.value) scheduleBits.push("unit:" + unitEl.value);
+
+  var fullDesc = [desc, scheduleBits.join(" | ")].filter(Boolean).join("\n");
+  if (typeof SNM.geoStamp === "function") fullDesc = SNM.geoStamp(fullDesc);
+
+  var image_url = await SNM.readItemImage("svc-item-image");
+  var g = typeof SNM.posterGeo === "function" ? SNM.posterGeo() : {};
 
   var body = {
     name: name,
-    price: parseFloat(rate) || 0,
-    currency: currency,
-    quantity: qtyRaw ? parseFloat(qtyRaw) || null : null,
-    available: available,
+    price: parseFloat(((rateEl && rateEl.value) || "0").trim()) || 0,
+    currency: ((curEl && curEl.value) || "NGN").trim(),
+    quantity: qtyEl && qtyEl.value ? parseFloat(qtyEl.value) || null : null,
+    available: !availEl || !!availEl.checked,
     perishable: false,
     business_type: "service",
-    category: type,
-    description: description
+    category: ((typeEl && typeEl.value) || "service").trim(),
+    description: fullDesc,
+    image_url: image_url
   };
+  if (g.lat != null) body.lat = g.lat;
+  if (g.lng != null) body.lng = g.lng;
 
   try {
     await SNM.api("/products", { method: "POST", body: body });
-    ["svc-name", "svc-rate", "svc-desc", "svc-qty"].forEach(function (id) {
-      var el = document.getElementById(id);
-      if (el) el.value = "";
-    });
+    if (nameEl) nameEl.value = "";
+    if (descEl) descEl.value = "";
+    if (rateEl) rateEl.value = "";
+    var imgIn = document.getElementById("svc-item-image");
+    if (imgIn) imgIn.value = "";
+    var prev = document.getElementById("svc-item-preview");
+    if (prev) {
+      prev.innerHTML = "";
+      prev.classList.add("hidden");
+    }
     await SNM.loadShop();
   } catch (e) {
     alert("Add service failed: " + ((e && e.message) || "check API"));
@@ -236,25 +296,30 @@ SNM.addServiceItem = async function () {
 
 SNM.setPresence = async function (flags) {
   flags = flags || {};
+  var wantLive = !!(
+    flags.live ||
+    flags.active ||
+    flags.heartbeat ||
+    flags.shop_open ||
+    flags.available
+  );
   try {
-    await SNM.api("/presence", {
+    if (typeof SNM.setLive === "function") {
+      await SNM.setLive(wantLive);
+      if (wantLive && typeof SNM.heartbeat === "function") await SNM.heartbeat();
+      if (typeof SNM.startHeartbeatLoop === "function")
+        SNM.startHeartbeatLoop(wantLive);
+      return true;
+    }
+    await SNM.api("/presence/live", {
       method: "POST",
-      body: {
-        active: !!flags.active,
-        available: !!flags.available,
-        heartbeat: !!flags.heartbeat,
-        shop_open: !!flags.shop_open
-      }
+      body: { live: wantLive }
     });
+    if (wantLive) await SNM.api("/presence/heartbeat", { method: "POST" });
     return true;
   } catch (e) {
-    try {
-      await SNM.api("/presence/update", { method: "POST", body: flags });
-      return true;
-    } catch (e2) {
-      alert("Status update failed: " + ((e2 && e2.message) || ""));
-      return false;
-    }
+    alert("Status update failed: " + ((e && e.message) || "check login"));
+    return false;
   }
 };
 
@@ -262,31 +327,15 @@ SNM.bindShop = function () {
   if (SNM._shopBound) return;
   SNM._shopBound = true;
 
+  SNM.previewItemImage("shop-item-image", "shop-item-preview");
+  SNM.previewItemImage("svc-item-image", "svc-item-preview");
+
   var addBtn = document.getElementById("btnShopAdd");
   if (addBtn) {
     addBtn.onclick = function () {
       SNM.addShopItem();
     };
   }
-
-
-var g = SNM.posterGeo();
-var desc = SNM.geoStamp(""); 
-
-var body = {
-  name: name,
-  price: parseFloat(priceRaw) || 0,
-  quantity: qtyEl && qtyEl.value ? parseFloat(qtyEl.value) || null : null,
-  currency: ((curEl && curEl.value) || "NGN").trim(),
-  perishable: !!(perEl && perEl.checked),
-  available: !availEl || !!availEl.checked,
-  business_type: "merchant",
-  category: "retail",
-  description: desc
-};
-/* extra fields — ignored if API rejects; stamp still in description */
-if (g.lat != null) body.lat = g.lat;
-if (g.lng != null) body.lng = g.lng;
 
   var svcBtn = document.getElementById("btnSvcAdd");
   if (svcBtn) {
@@ -300,7 +349,8 @@ if (g.lng != null) body.lng = g.lng;
     shopOpen.onchange = function () {
       SNM.setPresence({
         shop_open: !!shopOpen.checked,
-        heartbeat: !!shopOpen.checked
+        heartbeat: !!shopOpen.checked,
+        active: !!shopOpen.checked
       });
     };
   }
@@ -332,93 +382,15 @@ if (g.lng != null) body.lng = g.lng;
   if (emgSave) {
     emgSave.onclick = function () {
       var active = !!((document.getElementById("emg-active") || {}).checked);
-<<<<<<< HEAD
       SNM.setPresence({
         active: active,
         heartbeat: active,
         available: active
       });
-=======
-      SNM.setPresence({ active: active, heartbeat: active, available: active });
     };
-  }
-};
-
-
-  var hb =
-    document.getElementById("toggleHeartbeat") ||
-    document.getElementById("shop-heartbeat");
-  if (hb) {
-    hb.onchange = function () {
-      SNM.setPresence({ heartbeat: !!hb.checked, active: !!hb.checked });
-    };
-  }
-
-var description = SNM.geoStamp(desc + (description extras you already add));
-kl
-body.description = description;
-var g = SNM.posterGeo();
-if (g.lat != null) body.lat = g.lat;
-if (g.lng != null) body.lng = g.lng;
-
-  var act =
-    document.getElementById("toggleActive") ||
-    document.getElementById("shop-active");
-  if (act) {
-    act.onchange = function () {
-      SNM.setPresence({ active: !!act.checked });
-    };
-  }
-
-  var av =
-    document.getElementById("toggleAvailable") ||
-    document.getElementById("shop-available");
-  if (av) {
-    av.onchange = function () {
-      SNM.setPresence({ available: !!av.checked });
-    };
-  }
-
-  var open =
-    document.getElementById("toggleShopOpen") ||
-    document.getElementById("shop-open");
-  if (open) {
-    open.onchange = function () {
-      SNM.setPresence({ shop_open: !!open.checked, heartbeat: !!open.checked });
->>>>>>> a2cb266 (Ship: geo stamp on posts, presence heartbeat, messages fix, PWA icons/SW)
-    };
-  }
-};
-
-SNM.setPresence = async function (flags) {
-  flags = flags || {};
-  var body = {
-    active: !!flags.active,
-    available: !!flags.available,
-    heartbeat: !!flags.heartbeat,
-    shop_open: !!flags.shop_open,
-    live: !!(flags.active || flags.heartbeat || flags.shop_open)
-  };
-  try {
-    await SNM.api("/presence/heartbeat", { method: "POST", body: body });
-    return true;
-  } catch (e1) {
-    try {
-      await SNM.api("/presence/live", { method: "POST", body: body });
-      return true;
-    } catch (e2) {
-      alert("Status update failed: " + ((e2 && e2.message) || e1.message || ""));
-      return false;
-    }
   }
 };
 
 SNM.onShopEnter = function () {
   SNM.loadShop();
 };
-
-<<<<<<< HEAD
-/* Also reload when router opens shop */
-SNM.loadMyProducts = SNM.loadShop;
-=======
->>>>>>> a2cb266 (Ship: geo stamp on posts, presence heartbeat, messages fix, PWA icons/SW)

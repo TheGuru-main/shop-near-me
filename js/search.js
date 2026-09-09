@@ -5,12 +5,24 @@ SNM.LOCAL_SYNONYMS = SNM.LOCAL_SYNONYMS || {
   rice: ["ofada", "grain", "paddy", "fried rice"],
   beans: ["oily bean", "protein", "ewa"],
   hotel: ["lodge", "guest house", "short-let", "hospitality", "room"],
-  room: ["hotel", "suite", "lodge"],
   food: ["eatery", "restaurant", "kitchen", "meal"],
-  phone: ["mobile", "handset", "smartphone"],
+  phone: ["mobile", "handset", "smartphone" "electronics" ],
   ride: ["driver", "logistics", "bike", "delivery"],
   water: ["pure water", "sachet", "bottle"],
   gas: ["cooking gas", "lpg", "cylinder"]
+  food: ["rice", "beans", "oil", "bread", "meal", "eatery", "restaurant", "kitchen", "indomie", "yam", "egg", "fish", "meat", "biscuit", "snacks", "pizza", "shawarma", "mishai" ],
+  groceries: ["rice", "beans", "oil", "bread", "water", "gas"],
+  rice: ["ofada", "grain", "fried rice", "food"],
+  beans: ["ewa", "protein", "food"],
+  hotel: ["lodge", "guest house", "short-let", "hospitality", "room"],
+  room: ["hotel", "suite", "lodge" "house agent" "house" "bedroom flat" "BNB" "short-let"],
+  fashion: ["clothes", "shoe", "wear" "shirts" "polo" "trouser" "okirika" "bend-down-select"],
+  pharmacy: ["drug", "medicine", "chemist" "hospital" ],
+  footwear: ["slipper", "shoe", "pams", "shoes", "baby shoes", "adult shoes"],
+  appliances: ["bed", "pot", "wheelbarrow", "stove","knife", "cup","building materials"],
+  building_materials:["cement", "iron", "gravel", "shovel", "spade", "throwel", "headpan", "taperule", "line", "saw", "hammer", "nail"],
+  work: ["plumber", "capenter", "barber", "mechanic", "fix", "auto repair", "electrician", "painter", "car painter", "rewire", "engineer", "vulcanizer"],
+  perishable: ["fruit", "pawpaw", "vegetable", "orange", "food"]
 };
 
 SNM.tokensOf = function (str) {
@@ -159,20 +171,26 @@ SNM.doSearch = async function () {
 
   try {
     var expanded = await SNM.expandSearchTerms(q);
-    var data = await SNM.api(
-      "/search/products" +
-        SNM.qs({
-          q: q,
-          lat: geo.lat != null ? geo.lat : u.lat,
-          lng: geo.lng != null ? geo.lng : u.lng,
-          community: u.community || "",
-          city: u.city || "",
-          region: u.region || "",
-          country: u.country || "",
-          max_km: SNM.MAX_KM || 2000,
-          limit: 40
-        })
-    );
+
+var apiQ = q;
+if (expanded.expanded && expanded.expanded.length) {
+  apiQ = [q].concat(expanded.expanded.slice(0, 6)).join(" ");
+}
+
+var data = await SNM.api(
+  "/search/products" +
+    SNM.qs({
+      q: apiQ,
+      lat: geo.lat != null ? geo.lat : u.lat,
+      lng: geo.lng != null ? geo.lng : u.lng,
+      community: u.community || "",
+      city: u.city || "",
+      region: u.region || "",
+      country: u.country || "",
+      max_km: SNM.MAX_KM || 2000,
+      limit: 40
+    })
+);
 
     var rows = data.results || data.items || [];
     if (!Array.isArray(rows)) rows = [];
@@ -180,13 +198,18 @@ SNM.doSearch = async function () {
     var terms = expanded.all;
     var strict = rows;
     if (expanded.tokens.length) {
-      strict = rows.filter(function (r) {
-        var h = SNM.haystackListing(r);
-        /* every user-typed token must hit; synonyms only boost ranking */
-        return expanded.tokens.every(function (t) {
-          return SNM.termHits(h, t);
-        });
-      });
+  strict = rows.filter(function (r) {
+    var h = SNM.haystackListing(r);
+    var typedOk = expanded.tokens.every(function (t) {
+      return SNM.termHits(h, t);
+    });
+    if (typedOk) return true;
+    // category / synonym path
+    return expanded.expanded.some(function (t) {
+      return SNM.termHits(h, t);
+    });
+  });
+}
       /* if too strict emptied list, relax: any expanded term */
       if (!strict.length && terms.length) {
         strict = rows.filter(function (r) {
