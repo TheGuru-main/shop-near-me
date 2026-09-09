@@ -366,14 +366,38 @@ SNM.bindShop = function () {
     };
   }
 
+  var drvActive = document.getElementById("drv-active");
+  if (drvActive && !drvActive._snmWired) {
+    drvActive._snmWired = true;
+    drvActive.onchange = function () {
+      var on = !!drvActive.checked;
+      SNM.setPresence({
+        active: on,
+        heartbeat: on,
+        available: on,
+        live: on
+      });
+    };
+  }
+
   var drvSave = document.getElementById("btnDrvSave");
-  if (drvSave) {
+  if (drvSave && !drvSave._snmWired) {
+    drvSave._snmWired = true;
     drvSave.onclick = function () {
       var active = !!((document.getElementById("drv-active") || {}).checked);
+      var coverage =
+        ((document.getElementById("drv-coverage") || {}).value || "").trim();
+      try {
+        localStorage.setItem(
+          "snm_driver_meta",
+          JSON.stringify({ coverage: coverage, active: active })
+        );
+      } catch (e) {}
       SNM.setPresence({
         active: active,
         heartbeat: active,
-        available: active
+        available: active,
+        live: active
       });
     };
   }

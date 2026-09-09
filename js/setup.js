@@ -106,11 +106,26 @@ SNM.finishSetup = function () {
   SNM.markSetupDone();
 
   if (data.active && typeof SNM.setPresence === "function") {
-    SNM.setPresence({ active: true, heartbeat: true, live: true });
+    try {
+      var p = SNM.setPresence({
+        active: true,
+        heartbeat: true,
+        live: true
+      });
+      if (p && typeof p.then === "function") {
+        p.catch(function () {});
+      }
+    } catch (e) {}
   }
 
-  if (typeof SNM.enterHome === "function") SNM.enterHome(true);
-  else if (typeof SNM.showScreen === "function") SNM.showScreen("home");
+  if (typeof SNM.showScreen === "function") {
+    SNM.showScreen("home");
+  }
+  if (typeof SNM.enterHome === "function") {
+    try {
+      SNM.enterHome(false);
+    } catch (e2) {}
+  }
 };
 
 SNM.renderBuyerPrefs = function () {
