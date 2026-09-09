@@ -111,6 +111,9 @@ SNM.normalizeListing = function (raw) {
       primary_location: s.primary_location || p.primary_location || "",
       community: s.community || p.community || "",
       city: s.city || p.city || "",
+      image_url: p.image_url || null,
+      available: p.available !== false,
+      live: !!(s.live),
       region: s.region || p.region || "",
       country: s.country || p.country || "",
       lat:
@@ -259,13 +262,52 @@ SNM.cardHtml = function (item) {
       : "";
   var dist =
     item.km != null && item.km !== "" && !isNaN(Number(item.km))
-      ? SNM.escapeHtml(Number(item.km).toFixed(1) + " km away")
+      ? SNM.escapeHtml(Number(item.km).toFixed(1) + " km")
+      : "";
+
+  var cat = String(
+    item.kind || item.category || item.business_type || "retail"
+  )
+    .toLowerCase()
+    .replace(/\s+/g, "_");
+  var catClass = "cat-retail";
+  if (/fairly/.test(cat)) catClass = "cat-fairly_used";
+  else if (/food|perish/.test(cat)) catClass = "cat-food";
+  else if (/service|hospitality|hotel|salon/.test(cat)) catClass = "cat-service";
+  else if (/driver|logistic/.test(cat)) catClass = "cat-driver";
+  else if (/merchant|retail/.test(cat)) catClass = "cat-merchant";
+
+  var stock =
+    item.available === false
+      ? '<span class="badge-stock out">Out of stock</span>'
+      : '<span class="badge-stock in">In stock ✓</span>';
+
+  var img = item.image_url
+    ? '<img class="card-thumb" src="' +
+      SNM.escapeHtml(item.image_url) +
+      '" alt="" loading="lazy" />'
+    : "";
+
+  var live =
+    item.live || item.seller_live
+      ? '<span class="badge-live">● Live</span>'
       : "";
 
   return (
-    '<article class="card listing-card" data-listing-id="' +
+    '<article class="card listing-card ' +
+    catClass +
+    '" data-listing-id="' +
     SNM.escapeHtml(item.id) +
     '">' +
+    img +
+    '<div class="card-top">' +
+    '<span class="card-cat">' +
+    SNM.escapeHtml(cat.replace(/_/g, " ")) +
+    "</span> " +
+    stock +
+    " " +
+    live +
+    "</div>" +
     '<div class="title">' +
     SNM.escapeHtml(item.name) +
     (price ? " · " + price : "") +
@@ -283,36 +325,18 @@ SNM.cardHtml = function (item) {
       ? "<div><strong>Location:</strong> " + SNM.escapeHtml(place) + "</div>"
       : "") +
     (dist ? "<div class='dist'>" + dist + "</div>" : "") +
-    (item.body
-      ? "<div class='soft'>" +
-        SNM.escapeHtml(String(item.body).slice(0, 180)) +
-        "</div>"
-      : "") +
     "</div>" +
     '<div class="card-actions">' +
     '<button type="button" class="btn small" data-act="detail" data-id="' +
     SNM.escapeHtml(item.id) +
     '">View</button>' +
-    '<button type="button" class="btn small secondary" data-act="comment" data-id="' +
-    SNM.escapeHtml(item.id) +
-    '">Comment</button>' +
     '<button type="button" class="btn small secondary" data-act="share" data-id="' +
     SNM.escapeHtml(item.id) +
     '">Share</button>' +
     '<button type="button" class="btn small" data-act="message" data-phone="' +
     SNM.escapeHtml(item.phone) +
-    '">Message seller</button>' +
-    "</div>" +
-    '<div class="comment-box hidden" data-comment-for="' +
-    SNM.escapeHtml(item.id) +
-    '">' +
-    '<input type="text" class="comment-input" placeholder="Write a comment…" />' +
-    '<button type="button" class="btn small" data-act="comment-send" data-id="' +
-    SNM.escapeHtml(item.id) +
-    '">Send</button></div>' +
-    '<div class="comments-list" data-comments-for="' +
-    SNM.escapeHtml(item.id) +
-    '"></div></article>'
+    '">Message</button>' +
+    "</div></article>"
   );
 };
 
@@ -342,15 +366,14 @@ SNM.ensureDetailSheet = function () {
   if (!sheet._snmWired) {
     sheet._snmWired = true;
     var closeBtn = document.getElementById("btnCloseDetail");
-    if (closeBtn) {
-      closeBtn.onclick = function (e) {
-        if (e) {
-          e.preventDefault();
-          e.stopPropagation();
-        }
-        SNM.closeListingDetail();
-      };
-    }
+  if (closeBtn) {
+  closeBtn.onclick = function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    SNM.closeListingDetail();
+  };
+}
+
     sheet.addEventListener("click", function (e) {
       if (e.target === sheet) SNM.closeListingDetail();
     });
@@ -387,17 +410,18 @@ SNM.toggleMapExpand = function (forceOpen) {
 SNM.closeListingDetail = function () {
   var sheet = document.getElementById("listingDetail");
   if (!sheet) return;
+
   SNM._mapExpanded = false;
-  sheet.classList.remove("open");
-  sheet.setAttribute("aria-hidden", "true");
-  sheet.style.display = "none";
   SNM._detailItem = null;
+
   if (SNM._detailMap) {
     try {
+      SNM._detailMap.off();
       SNM._detailMap.remove();
     } catch (e) {}
     SNM._detailMap = null;
   }
+
   var mapEl =
     document.getElementById("listingDetailMap") ||
     document.getElementById("detailMap");
@@ -405,7 +429,19 @@ SNM.closeListingDetail = function () {
     mapEl.innerHTML = "";
     mapEl.classList.remove("map-expanded");
     mapEl.style.height = "";
+    mapEl.style.minHeight = "180px";
+    mapEl._snmTap = false;
   }
+
+  var body =
+    document.getElementById("listingDetailBody") ||
+    document.getElementById("detailBody");
+  if (body) body.innerHTML = "";
+
+  sheet.classList.remove("open");
+  sheet.setAttribute("aria-hidden", "true");
+  sheet.style.display = "none";
+  document.body.classList.remove("sheet-open");
 };
 
 SNM.renderDetailMap = async function (item) {

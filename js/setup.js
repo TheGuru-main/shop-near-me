@@ -1,120 +1,151 @@
 window.SNM = window.SNM || {};
 
+SNM.BUYER_PREF_CATS = SNM.BUYER_PREF_CATS || [
+  "Food",
+  "Groceries",
+  "Fashion",
+  "Electronics",
+  "Pharmacy",
+  "Services",
+  "Hospitality",
+  "Logistics"
+];
+
+SNM.BUYER_PREF_ITEMS = SNM.BUYER_PREF_ITEMS || [
+  "Rice",
+  "Beans",
+  "Oil",
+  "Bread",
+  "Phone",
+  "Hair",
+  "Hotel",
+  "Ride",
+  "Water",
+  "Gas"
+];
+
+SNM.saveSetupData = function (data) {
+  try {
+    localStorage.setItem("snm_setup_data", JSON.stringify(data || {}));
+  } catch (e) {}
+  var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+  u.setup = data || {};
+  if (data && data.prefs) u.prefs = data.prefs;
+  if (typeof SNM.setUser === "function") SNM.setUser(u);
+  else {
+    try {
+      localStorage.setItem("snm_user", JSON.stringify(u));
+    } catch (e2) {}
+  }
+};
+
+SNM.markSetupDone = function () {
+  if (typeof SNM.setSetupDone === "function") SNM.setSetupDone(true);
+  else {
+    try {
+      localStorage.setItem("snm_setup_done", "1");
+    } catch (e) {}
+  }
+};
+
+SNM.collectSetupPayload = function () {
+  var role = (
+    ((typeof SNM.getUser === "function" && SNM.getUser()) || {}).role ||
+    (typeof SNM.getRole === "function" && SNM.getRole()) ||
+    "buyer"
+  )
+    .toString()
+    .toLowerCase();
+
+  var extra = { role: role };
+
+  if (role === "buyer") {
+    var prefs = [];
+    document.querySelectorAll("#buyerPrefs .chip.active").forEach(function (c) {
+      prefs.push(c.textContent);
+    });
+    extra.prefs = prefs;
+  } else if (role === "merchant") {
+    extra.shop_name =
+      (document.getElementById("setup-biz-name") || {}).value || "";
+    extra.category =
+      (document.getElementById("setup-biz-category") || {}).value || "";
+    extra.walkin = !!(document.getElementById("setup-walkin") || {}).checked;
+    extra.pod = !!(document.getElementById("setup-pod") || {}).checked;
+    extra.delivery = !!(document.getElementById("setup-delivery") || {})
+      .checked;
+    extra.hours = (document.getElementById("setup-hours") || {}).value || "";
+  } else if (role === "service") {
+    extra.service_type =
+      (document.getElementById("setup-service-type") || {}).value || "";
+    extra.home_service = !!(
+      document.getElementById("setup-home-service") || {}
+    ).checked;
+    extra.hours =
+      (document.getElementById("setup-service-hours") || {}).value || "";
+  } else if (role === "driver" || role === "logistics") {
+    extra.coverage =
+      (document.getElementById("setup-driver-coverage") || {}).value || "";
+    extra.active = !!(document.getElementById("setup-driver-active") || {})
+      .checked;
+  } else if (role === "emergency") {
+    extra.emerg_type =
+      (document.getElementById("setup-emerg-type") || {}).value || "";
+    extra.contact =
+      (document.getElementById("setup-emerg-contact") || {}).value || "";
+    extra.active = !!(document.getElementById("setup-emerg-active") || {})
+      .checked;
+  }
+
+  return extra;
+};
+
+SNM.finishSetup = function () {
+  var data = SNM.collectSetupPayload();
+  SNM.saveSetupData(data);
+  SNM.markSetupDone();
+
+  if (data.active && typeof SNM.setPresence === "function") {
+    SNM.setPresence({ active: true, heartbeat: true, live: true });
+  }
+
+  if (typeof SNM.enterHome === "function") SNM.enterHome(true);
+  else if (typeof SNM.showScreen === "function") SNM.showScreen("home");
+};
+
+SNM.renderBuyerPrefs = function () {
+  var box = document.getElementById("buyerPrefs");
+  if (!box || box.dataset.ready === "1") return;
+  box.dataset.ready = "1";
+  box.innerHTML = "";
+
+  function addChip(label) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "chip";
+    b.textContent = label;
+    b.onclick = function () {
+      b.classList.toggle("active");
+    };
+    box.appendChild(b);
+  }
+
+  (SNM.BUYER_PREF_CATS || []).forEach(addChip);
+  (SNM.BUYER_PREF_ITEMS || []).forEach(addChip);
+};
+
 SNM.initSetupScreens = function () {
-  var cats = document.getElementById("buyerPrefCats");
-  var items = document.getElementById("buyerPrefItems");
+  SNM.renderBuyerPrefs();
 
-  if (cats && !cats.dataset.ready) {
-    cats.dataset.ready = "1";
-    (SNM.BUYER_PREF_CATS || []).forEach(function (c) {
-      var b = document.createElement("button");
-      b.type = "button";
-      b.className = "chip";
-      b.textContent = c;
-      b.onclick = function () {
-        b.classList.toggle("active");
-        updateCount();
-      };
-      cats.appendChild(b);
-    });
-  }
-  if (items && !items.dataset.ready) {
-    items.dataset.ready = "1";
-    (SNM.BUYER_PREF_ITEMS || []).forEach(function (c) {
-      var b = document.createElement("button");
-      b.type = "button";
-      b.className = "chip";
-      b.textContent = c;
-      b.onclick = function () {
-        b.classList.toggle("active");
-        updateCount();
-      };
-      items.appendChild(b);
-    });
-  }
-
-  function updateCount() {
-    var n = document.querySelectorAll(
-      "#buyerPrefCats .chip.active, #buyerPrefItems .chip.active"
-    ).length;
-    var el = document.getElementById("buyerPrefCount");
-    if (el) el.textContent = n + " selected";
-  }
-
-  function finish(data) {
-    SNM.saveSetupData(data || {});
-    SNM.markSetupDone();
-    SNM.go("home");
-  }
-
-  var b1 = document.getElementById("btnSetupBuyerDone");
-  if (b1) {
-    b1.onclick = function () {
-      var selected = [];
-      document
-        .querySelectorAll("#buyerPrefCats .chip.active, #buyerPrefItems .chip.active")
-        .forEach(function (c) {
-          selected.push(c.textContent);
-        });
-      finish({ prefs: selected });
-    };
-  }
-
-  var b2 = document.getElementById("btnSetupMerchantDone");
-  if (b2) {
-    b2.onclick = function () {
-      finish({
-        shop_name: (document.getElementById("m-shop-name") || {}).value,
-        category: (document.getElementById("m-category") || {}).value,
-        walkin: !!(document.getElementById("m-walkin") || {}).checked,
-        pod: !!(document.getElementById("m-pod") || {}).checked,
-        delivery: !!(document.getElementById("m-delivery") || {}).checked,
-        hours: (document.getElementById("m-hours") || {}).value,
-        open_now: !!(document.getElementById("m-open-now") || {}).checked,
-        accepting: !!(document.getElementById("m-accepting") || {}).checked
-      });
-    };
-  }
-
-  var b3 = document.getElementById("btnSetupServiceDone");
-  if (b3) {
-    b3.onclick = function () {
-      finish({
-        display: (document.getElementById("s-name") || {}).value,
-        type: (document.getElementById("s-type") || {}).value,
-        services: (document.getElementById("s-services") || {}).value,
-        rate: (document.getElementById("s-rate") || {}).value,
-        currency: (document.getElementById("s-currency") || {}).value,
-        home: !!(document.getElementById("s-home") || {}).checked,
-        hours: (document.getElementById("s-hours") || {}).value,
-        available: !!(document.getElementById("s-available") || {}).checked
-      });
-    };
-  }
-
-  var b4 = document.getElementById("btnSetupDriverDone");
-  if (b4) {
-    b4.onclick = function () {
-      finish({
-        vehicle: (document.getElementById("d-vehicle") || {}).value,
-        coverage: (document.getElementById("d-coverage") || {}).value,
-        bulky: !!(document.getElementById("d-bulky") || {}).checked,
-        pod: !!(document.getElementById("d-pod") || {}).checked,
-        active: !!(document.getElementById("d-active") || {}).checked
-      });
-    };
-  }
-
-  var b5 = document.getElementById("btnSetupEmergencyDone");
-  if (b5) {
-    b5.onclick = function () {
-      finish({
-        type: (document.getElementById("e-type") || {}).value,
-        name: (document.getElementById("e-name") || {}).value,
-        contact: (document.getElementById("e-contact") || {}).value,
-        visible: !!(document.getElementById("e-visible") || {}).checked,
-        active: !!(document.getElementById("e-active") || {}).checked
-      });
+  var btn = document.getElementById("btnSetupDone");
+  if (btn && !btn._snmSetupWired) {
+    btn._snmSetupWired = true;
+    btn.onclick = function (e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      SNM.finishSetup();
     };
   }
 };
@@ -122,3 +153,23 @@ SNM.initSetupScreens = function () {
 SNM.bindSetup = function () {
   SNM.initSetupScreens();
 };
+
+/* auth.js may call showSetupForRole — keep panels in sync */
+SNM.showSetupForRole =
+  SNM.showSetupForRole ||
+  function (role) {
+    role = String(role || "buyer").toLowerCase();
+    var label = document.getElementById("setupRoleLabel");
+    if (label) label.textContent = role;
+    ["buyer", "merchant", "service", "driver", "emergency"].forEach(function (
+      r
+    ) {
+      var panel = document.getElementById("setup-" + r);
+      if (panel) panel.classList.toggle("hidden", r !== role);
+    });
+    if (role === "logistics") {
+      var d = document.getElementById("setup-driver");
+      if (d) d.classList.remove("hidden");
+    }
+    SNM.renderBuyerPrefs();
+  };

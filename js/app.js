@@ -10,12 +10,14 @@
       if (typeof SNM.bindAuth === "function") SNM.bindAuth();
       if (typeof SNM.bindHome === "function") SNM.bindHome();
       if (typeof SNM.initPresenceForRole === "function") SNM.initPresenceForRole();
+      if (typeof SNM.bindSetup === "function") SNM.bindSetup();
       if (typeof SNM.bindFairlyUsed === "function") SNM.bindFairlyUsed();
       if (typeof SNM.bindShell === "function") SNM.bindShell();
       if (typeof SNM.bindSearch === "function") SNM.bindSearch();
       if (typeof SNM.bindShop === "function") SNM.bindShop();
       if (typeof SNM.bindMessages === "function") SNM.bindMessages();
       if (typeof SNM.bindPremium === "function") SNM.bindPremium();
+      if (typeof SNM.bindInvoiceStudio === "function") SNM.bindInvoiceStudio();
       if (typeof SNM.bindDocuments === "function") SNM.bindDocuments();
       if (typeof SNM.bindTrust === "function") SNM.bindTrust();
     } catch (err) {

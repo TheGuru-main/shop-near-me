@@ -187,6 +187,12 @@ body {
   background: rgba(20, 83, 45, 0.16);
 }
 
+#listingDetail { z-index: 2000; }
+#listingDetail:not(.open) { display: none !important; pointer-events: none; }
+#listingDetail.open { display: block; pointer-events: auto; }
+#listingDetailMap { pointer-events: auto; }
+#btnCloseDetail { position: relative; z-index: 5; }
+
 .container {
   width: 100%;
   max-width: 480px;
@@ -209,6 +215,23 @@ body {
   color: var(--muted);
 }
 
+.feed-list { display: flex; flex-direction: column; gap: 12px; }
+.card.listing-card {
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(20,83,45,.12);
+  border: 1px solid rgba(20,83,45,.08);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.card.listing-card:active { transform: scale(0.99); }
+.card-rail {
+  display: flex; gap: 10px; overflow-x: auto;
+  scroll-snap-type: x mandatory; padding-bottom: 8px;
+}
+.card-rail .card { min-width: 78%; scroll-snap-align: start; flex-shrink: 0; }
+.cat-merchant { border-left: 4px solid #14532d; }
+.cat-service { border-left: 4px solid #1d4ed8; }
+.cat-food { border-left: 4px solid #c2410c; }
+.cat-fairly_used { border-left: 4px solid #a16207; }
 .form-stack input,
 .form-stack select,
 .form-stack textarea {
@@ -1218,6 +1241,109 @@ body {
   color: var(--text);
 }
 
+/* Cards + carousel */
+.card-rail {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding: 4px 2px 12px;
+  -webkit-overflow-scrolling: touch;
+}
+.card-rail .listing-card {
+  min-width: 82%;
+  max-width: 320px;
+  scroll-snap-align: start;
+  flex-shrink: 0;
+}
+.feed-list .listing-card,
+.card.listing-card {
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(20, 83, 45, 0.1);
+  border: 1px solid rgba(20, 83, 45, 0.08);
+  background: #fff;
+  padding: 12px 14px;
+  margin-bottom: 4px;
+}
+.card.listing-card:active {
+  transform: scale(0.99);
+}
+.card-thumb {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  background: #e8f5e9;
+}
+.card-top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.card-cat {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.85;
+}
+.badge-stock.in {
+  font-size: 11px;
+  color: #15803d;
+  font-weight: 600;
+}
+.badge-stock.out {
+  font-size: 11px;
+  color: #b91c1c;
+  font-weight: 600;
+}
+.badge-live {
+  font-size: 11px;
+  color: #16a34a;
+  font-weight: 700;
+}
+.cat-merchant {
+  border-left: 4px solid #14532d;
+}
+.cat-service {
+  border-left: 4px solid #1d4ed8;
+}
+.cat-food {
+  border-left: 4px solid #c2410c;
+}
+.cat-driver {
+  border-left: 4px solid #7c3aed;
+}
+.cat-fairly_used {
+  border-left: 4px solid #a16207;
+}
+.cat-retail {
+  border-left: 4px solid #14532d;
+}
+
+/* Buyer setup chips */
+#buyerPrefs.chip-row,
+.prefs-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chip {
+  border: 1px solid #14532d55;
+  background: #f0fdf4;
+  color: #14532d;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+.chip.active {
+  background: #14532d;
+  color: #fff;
+}
+
 /* Leaflet inside our map boxes */
 .leaflet-container {
   font: inherit;
@@ -1229,3 +1355,4 @@ body {
     box-shadow: 0 0 0 1px var(--card-border);
   }
 }
+
