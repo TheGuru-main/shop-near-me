@@ -105,6 +105,11 @@ SNM.finishSetup = function () {
   SNM.saveSetupData(data);
   SNM.markSetupDone();
 
+  // Go home first — don’t wait on presence
+  if (typeof SNM.showScreen === "function") {
+    SNM.showScreen("home");
+  }
+
   if (data.active && typeof SNM.setPresence === "function") {
     try {
       var p = SNM.setPresence({
@@ -112,21 +117,11 @@ SNM.finishSetup = function () {
         heartbeat: true,
         live: true
       });
-      if (p && typeof p.then === "function") {
-        p.catch(function () {});
-      }
+      if (p && typeof p.then === "function") p.catch(function () {});
     } catch (e) {}
   }
-
-  if (typeof SNM.showScreen === "function") {
-    SNM.showScreen("home");
-  }
-  if (typeof SNM.enterHome === "function") {
-    try {
-      SNM.enterHome(false);
-    } catch (e2) {}
-  }
 };
+
 
 SNM.renderBuyerPrefs = function () {
   var box = document.getElementById("buyerPrefs");

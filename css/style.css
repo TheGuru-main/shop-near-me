@@ -1050,7 +1050,7 @@ body {
 
 /* ----- Setup / shop panels ----- */
 .setup-panel.hidden,
-.shop-panel {
+.shop-panel.hidden {
   display: none !important;
 }
 
