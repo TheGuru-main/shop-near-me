@@ -82,7 +82,10 @@ SNM.loadFairlyUsed = async function () {
 };
 
 SNM.createFairlyUsed = async function () {
-  var media_url = await SNM.readItemImage("fu-item-image");
+  var media_url = await SNM.readItemImageFrom(
+    "fu-item-image-cam",
+    "fu-item-image-file"
+  );
   var titleEl = document.getElementById("fu-title");
   var bodyEl =
     document.getElementById("fu-note") ||
@@ -128,8 +131,14 @@ SNM.bindFairlyUsed = function () {
   if (SNM._fuBound) return;
   SNM._fuBound = true;
 
-  if (typeof SNM.previewItemImage === "function") {
-    SNM.previewItemImage("fu-item-image", "fu-item-preview");
+  if (typeof SNM.wirePhotoButtons === "function") {
+    SNM.wirePhotoButtons(
+      "btnFuCam",
+      "btnFuGallery",
+      "fu-item-image-cam",
+      "fu-item-image-file",
+      "fu-item-preview"
+    );
   }
 
   var btn = document.getElementById("btnFuPost");

@@ -283,6 +283,12 @@ body {
   flex: 1;
 }
 
+.photo-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0; }
+.photo-row .hidden, input.hidden { display: none !important; }
+.shop-edit-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+.shop-edit-row input[type="text"],
+.shop-edit-row input[type="number"] { flex: 1; min-width: 90px; }
+
 /* Listing detail sheet */
 #splash.hidden { display: none !important; }
 .detail-sheet {

@@ -107,16 +107,121 @@ SNM.loadShop = async function () {
     var items =
       (data && (data.items || data.products || data.results)) ||
       (Array.isArray(data) ? data : []);
-    SNM.renderShopList(items);
-  } catch (e) {
-    var msg = (e && e.message) || "error";
-    if (el)
+
+SNM.renderShopList = function (items) {
+  items = items || [];
+  SNM._shopItems = items;
+
+  items = items.slice().sort(function (a, b) {
+    var ta = new Date(a.created_at || a.addedAt || 0).getTime();
+    var tb = new Date(b.created_at || b.addedAt || 0).getTime();
+    return tb - ta;
+  });
+
+  function paint(el) {
+    if (!el) return;
+    if (!items.length) {
       el.innerHTML =
-        "<p class='muted'>Catalogue unavailable: " + SNM.esc(msg) + "</p>";
-    if (svcList)
-      svcList.innerHTML =
-        "<p class='muted'>Services unavailable: " + SNM.esc(msg) + "</p>";
+        "<p class='muted'>No catalogue items yet. Add one above.</p>";
+      return;
+    }
+    el.innerHTML = items
+      .map(function (it) {
+        var id = it.id || it.product_id || "";
+        var name = it.name || it.title || "";
+        var qty = it.quantity != null ? it.quantity : it.qty != null ? it.qty : "";
+        var avail = it.available !== false;
+        var img = it.image_url
+          ? '<img class="card-thumb" src="' +
+            SNM.esc(String(it.image_url)) +
+            '" alt="" />'
+          : "";
+        return (
+          '<article class="card shop-item-card" data-product-id="' +
+          SNM.esc(String(id)) +
+          '">' +
+          img +
+          '<div class="shop-edit-row">' +
+          '<input type="text" class="shop-edit-name" value="' +
+          SNM.esc(String(name)) +
+          '" placeholder="Name" />' +
+          "</div>" +
+          '<div class="shop-edit-row">' +
+          '<input type="number" class="shop-edit-qty" value="' +
+          SNM.esc(String(qty)) +
+          '" placeholder="Qty" inputmode="decimal" />' +
+          '<label class="check-row"><input type="checkbox" class="shop-edit-avail"' +
+          (avail ? " checked" : "") +
+          " /> In stock</label>" +
+          "</div>" +
+          '<div class="shop-edit-row">' +
+          '<button type="button" class="btn small" data-shop-save="' +
+          SNM.esc(String(id)) +
+          '">Save</button>' +
+          '<span class="muted small shop-edit-status"></span>' +
+          "</div>" +
+          "</article>"
+        );
+      })
+      .join("");
+
+    SNM.bindShopListActions(el);
   }
+
+  paint(
+    document.getElementById("shopList") ||
+      document.getElementById("catalogueList")
+  );
+  paint(document.getElementById("svcList"));
+};
+
+SNM.patchProduct = async function (productId, body) {
+  return SNM.api("/products/" + encodeURIComponent(productId), {
+    method: "PATCH",
+    body: body
+  });
+};
+
+SNM.bindShopListActions = function (root) {
+  if (!root) return;
+  root.querySelectorAll("[data-shop-save]").forEach(function (btn) {
+    if (btn._snmSaveWired) return;
+    btn._snmSaveWired = true;
+    btn.onclick = async function () {
+      var id = btn.getAttribute("data-shop-save");
+      var card = btn.closest(".shop-item-card");
+      if (!id || !card) return;
+      var nameEl = card.querySelector(".shop-edit-name");
+      var qtyEl = card.querySelector(".shop-edit-qty");
+      var availEl = card.querySelector(".shop-edit-avail");
+      var status = card.querySelector(".shop-edit-status");
+      var name = nameEl ? (nameEl.value || "").trim() : "";
+      var qtyRaw = qtyEl ? (qtyEl.value || "").trim() : "";
+      var quantity =
+        qtyRaw === "" ? null : parseFloat(qtyRaw);
+      if (quantity != null && isNaN(quantity)) quantity = null;
+      var available = !!(availEl && availEl.checked);
+      if (!name) {
+        alert("Name required");
+        return;
+      }
+      btn.disabled = true;
+      if (status) status.textContent = "Saving…";
+      try {
+        await SNM.patchProduct(id, {
+          name: name,
+          quantity: quantity,
+          available: available
+        });
+        if (status) status.textContent = "Saved";
+        await SNM.loadShop();
+      } catch (e) {
+        if (status) status.textContent = "Failed";
+        alert("Update failed: " + ((e && e.message) || ""));
+      }
+      btn.disabled = false;
+    };
+  });
 };
 
 SNM.loadMyProducts = SNM.loadShop;
@@ -147,21 +252,72 @@ SNM.readItemImage = function (inputId, maxBytes) {
   });
 };
 
-SNM.previewItemImage = function (inputId, previewId) {
-  var input = document.getElementById(inputId);
+SNM.readItemImageFrom = async function (camId, fileId, maxBytes) {
+  maxBytes = maxBytes || 900000;
+  var cam = document.getElementById(camId);
+  var file = document.getElementById(fileId);
+  var input =
+    cam && cam.files && cam.files[0]
+      ? cam
+      : file && file.files && file.files[0]
+        ? file
+        : null;
+  if (!input || !input.files[0]) return null;
+  var f = input.files[0];
+  if (f.size > maxBytes) {
+    alert("Photo too large. Use under \~900KB.");
+    return null;
+  }
+  return await new Promise(function (resolve) {
+    var r = new FileReader();
+    r.onload = function () {
+      resolve(r.result || null);
+    };
+    r.onerror = function () {
+      resolve(null);
+    };
+    r.readAsDataURL(f);
+  });
+};
+
+SNM.wirePhotoButtons = function (camBtnId, fileBtnId, camInputId, fileInputId, previewId) {
+  var camBtn = document.getElementById(camBtnId);
+  var fileBtn = document.getElementById(fileBtnId);
+  var camIn = document.getElementById(camInputId);
+  var fileIn = document.getElementById(fileInputId);
   var box = document.getElementById(previewId);
-  if (!input || !box) return;
-  input.onchange = function () {
-    var file = input.files && input.files[0];
-    if (!file) {
+
+  function previewFrom(input) {
+    if (!box) return;
+    var f = input.files && input.files[0];
+    if (!f) {
       box.innerHTML = "";
       box.classList.add("hidden");
       return;
     }
-    var url = URL.createObjectURL(file);
+    var url = URL.createObjectURL(f);
     box.innerHTML = '<img src="' + url + '" alt="Item preview" />';
     box.classList.remove("hidden");
-  };
+  }
+
+  if (camBtn && camIn) {
+    camBtn.onclick = function () {
+      if (fileIn) fileIn.value = "";
+      camIn.click();
+    };
+    camIn.onchange = function () {
+      previewFrom(camIn);
+    };
+  }
+  if (fileBtn && fileIn) {
+    fileBtn.onclick = function () {
+      if (camIn) camIn.value = "";
+      fileIn.click();
+    };
+    fileIn.onchange = function () {
+      previewFrom(fileIn);
+    };
+  }
 };
 
 SNM.addShopItem = async function () {
@@ -179,7 +335,15 @@ SNM.addShopItem = async function () {
     return;
   }
 
-  var image_url = await SNM.readItemImage("shop-item-image");
+  var image_url = await SNM.readItemImageFrom(
+    "shop-item-image-cam",
+    "shop-item-image-file"
+  );
+["shop-item-image-cam", "shop-item-image-file"].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+
   var desc = typeof SNM.geoStamp === "function" ? SNM.geoStamp("") : "";
   var g = typeof SNM.posterGeo === "function" ? SNM.posterGeo() : {};
 
@@ -327,8 +491,20 @@ SNM.bindShop = function () {
   if (SNM._shopBound) return;
   SNM._shopBound = true;
 
-  SNM.previewItemImage("shop-item-image", "shop-item-preview");
-  SNM.previewItemImage("svc-item-image", "svc-item-preview");
+  SNM.wirePhotoButtons(
+    "btnShopCam",
+    "btnShopGallery",
+    "shop-item-image-cam",
+    "shop-item-image-file",
+    "shop-item-preview"
+  );
+  SNM.wirePhotoButtons(
+    "btnSvcCam",
+    "btnSvcGallery",
+    "svc-item-image-cam",
+    "svc-item-image-file",
+    "svc-item-preview"
+  );
 
   var addBtn = document.getElementById("btnShopAdd");
   if (addBtn) {

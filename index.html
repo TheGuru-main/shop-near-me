@@ -406,11 +406,22 @@
           <label>Quantity<input id="shop-qty" placeholder="e.g. 12 or 12kg" /></label>
           <label class="check-row"><input type="checkbox" id="shop-perishable" /> Perishable</label>
           <label class="check-row"><input type="checkbox" id="shop-available" checked /> Available</label>
-          <label>Item photo (optional)
-          <input id="shop-item-image" type="file" accept="image/*" capture="environment" />
-          </label>
-          <p class="muted small">Take the product photo or choose from gallery.</p>
-          <div id="shop-item-preview" class="img-preview hidden"></div>
+
+          <div class="photo-row">
+            <span class="muted small">Item photo (optional)</span>
+            <div class="photo-actions">
+              <button type="button" class="btn secondary small" id="btnShopCam">
+                <i class="fa-solid fa-camera"></i> Camera
+              </button>
+              <button type="button" class="btn secondary small" id="btnShopGallery">
+                <i class="fa-solid fa-images"></i> Gallery
+              </button>
+            </div>
+            <input id="shop-item-image-cam" type="file" accept="image/*" capture="environment" class="hidden" />
+            <input id="shop-item-image-file" type="file" accept="image/*" class="hidden" />
+            <div id="shop-item-preview" class="img-preview hidden"></div>
+          </div>
+
           <button type="button" class="btn block" id="btnShopAdd">Add listing</button>
           <div id="shopList" class="feed-list"></div>
         </div>
@@ -496,10 +507,22 @@
           </div>
 
           <label class="check-row"><input type="checkbox" id="svc-available" checked /> Available now</label>
-           <label>Service photo (optional)
-            <input id="svc-item-image" type="file" accept="image/*" capture="environment" />
-          </label>
-          <div id="svc-item-preview" class="img-preview hidden"></div>          
+
+          <div class="photo-row">
+            <span class="muted small">Service photo (optional)</span>
+            <div class="photo-actions">
+              <button type="button" class="btn secondary small" id="btnSvcCam">
+                <i class="fa-solid fa-camera"></i> Camera
+              </button>
+              <button type="button" class="btn secondary small" id="btnSvcGallery">
+                <i class="fa-solid fa-images"></i> Gallery
+              </button>
+            </div>
+            <input id="svc-item-image-cam" type="file" accept="image/*" capture="environment" class="hidden" />
+            <input id="svc-item-image-file" type="file" accept="image/*" class="hidden" />
+            <div id="svc-item-preview" class="img-preview hidden"></div>
+          </div>
+
           <button type="button" class="btn block" id="btnSvcAdd">Add service</button>
           <div id="svcList" class="feed-list"></div>
         </div>
@@ -597,10 +620,23 @@
           <label>Title<input id="fu-title" /></label>
           <label>Note<textarea id="fu-note" rows="2"></textarea></label>
           <label>Price (optional)<input id="fu-price" inputmode="decimal" /></label>
-             <label>Item photo (optional)
-            <input id="fu-item-image" type="file" accept="image/*" capture="environment" />
-          </label>
-          <div id="fu-item-preview" class="img-preview hidden"></div>
+     
+          <div class="photo-row">
+            <span class="muted small">Item photo</span>
+            <div class="photo-actions">
+              <button type="button" class="btn secondary small" id="btnFuCam">
+                <i class="fa-solid fa-camera"></i> Camera
+              </button>
+              <button type="button" class="btn secondary small" id="btnFuGallery">
+                <i class="fa-solid fa-images"></i> Gallery
+              </button>
+            </div>
+
+            <input id="fu-item-image-cam" type="file" accept="image/*" capture="environment" class="hidden" />
+            <input id="fu-item-image-file" type="file" accept="image/*" class="hidden" />
+            <div id="fu-item-preview" class="img-preview hidden"></div>
+          </div>
+
           <button type="button" class="btn block" id="btnFuPost">Post</button>
         </div>
         <div id="fuList" class="feed-list"></div>
