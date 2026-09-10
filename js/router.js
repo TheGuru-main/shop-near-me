@@ -168,6 +168,19 @@ SNM.bindRouter = function () {
   );
 if (typeof SNM.bindShell === "function") SNM.bindShell();
 
+SNM.enterHome = function (navigate) {
+  if (navigate === true && typeof SNM.showScreen === "function") {
+    SNM.showScreen("home");
+    return;
+  }
+  SNM.fillHomeHeader();
+  if (typeof SNM.renderTabbar === "function") SNM.renderTabbar("home");
+  setTimeout(function () {
+    if (typeof SNM.loadFeed === "function") SNM.loadFeed();
+    if (typeof SNM.initHomeMap === "function") SNM.initHomeMap();
+  }, 0);
+};
+
 SNM.renderTabbar = function (active) {
   active = active || "home";
   var role = (typeof SNM.getRole === "function" && SNM.getRole()) || "buyer";

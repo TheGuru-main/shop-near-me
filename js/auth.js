@@ -143,14 +143,8 @@ SNM.bindAuth = function () {
       btnRegister.disabled = true;
       try {
         var geo = await SNM._geo();
-        if (geo.lat == null || geo.lng == null) {
-          geo = {
-            lat: SNM._lastLat != null ? SNM._lastLat : 4.8156,
-            lng: SNM._lastLng != null ? SNM._lastLng : 7.0498
-          };
-        }
-        SNM._lastLat = geo.lat;
-        SNM._lastLng = geo.lng;
+     if (geo.lat != null) SNM._lastLat = geo.lat;
+     if (geo.lng != null) SNM._lastLng = geo.lng;
 
         var body = {
           name: name,
@@ -227,6 +221,9 @@ SNM.bindAuth = function () {
         SNM.setSetupDone(false);
         SNM.showSetupForRole((user && user.role) || pending.role || "buyer");
         SNM.showScreen("setup");
+        if (typeof SNM.wireSetupDoneButton === "function") {
+            SNM.wireSetupDoneButton();
+          }
       } catch (err) {
         SNM._showErr("otpError", SNM._errText(err) || "Invalid OTP");
       }
@@ -282,11 +279,17 @@ SNM.bindAuth = function () {
         if (user) SNM.setUser(user);
         SNM._showErr("loginError", "");
         if (!SNM.setupDone()) {
+
           SNM.showSetupForRole((user && user.role) || "buyer");
           SNM.showScreen("setup");
+          if (typeof SNM.wireSetupDoneButton === "function") {
+            SNM.wireSetupDoneButton();
+          }
         } else {
           SNM.showScreen("home");
         }
+
+
       } catch (err) {
         SNM._showErr("loginError", SNM._errText(err) || "Login failed");
       }
