@@ -9,6 +9,7 @@ SNM.showShopPanels = function () {
     (typeof SNM.getRole === "function" && SNM.getRole()) ||
     "buyer";
   role = String(role).toLowerCase().trim();
+  if (role === "logistics") role = "driver";
 
   var panels = {
     merchant: document.getElementById("shop-merchant"),
@@ -19,19 +20,22 @@ SNM.showShopPanels = function () {
   };
 
   Object.keys(panels).forEach(function (k) {
-    if (panels[k]) panels[k].classList.add("hidden");
+    if (panels[k]) {
+      panels[k].classList.add("hidden");
+      panels[k].style.display = "none";
+    }
   });
 
-  if (role === "merchant" && panels.merchant) {
-    panels.merchant.classList.remove("hidden");
-  } else if (role === "service" && panels.service) {
-    panels.service.classList.remove("hidden");
-  } else if ((role === "driver" || role === "logistics") && panels.driver) {
-    panels.driver.classList.remove("hidden");
-  } else if (role === "emergency" && panels.emergency) {
-    panels.emergency.classList.remove("hidden");
-  } else if (panels.buyer) {
-    panels.buyer.classList.remove("hidden");
+  var show = null;
+  if (role === "merchant") show = panels.merchant;
+  else if (role === "service") show = panels.service;
+  else if (role === "driver") show = panels.driver;
+  else if (role === "emergency") show = panels.emergency;
+  else show = panels.buyer;
+
+  if (show) {
+    show.classList.remove("hidden");
+    show.style.display = "block";
   }
 };
 

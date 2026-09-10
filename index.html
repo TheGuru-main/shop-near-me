@@ -529,14 +529,19 @@
 
         <!-- Driver -->
         <div id="shop-driver" class="shop-panel hidden">
-          <h3 class="section-h">Driver status</h3>
-          <label class="check-row"><input type="checkbox" id="drv-active" /> Active for jobs (heartbeat)</label>
+          <h3 class="section-h">Driver / logistics status</h3>
+          <p class="muted">Turn on when you are available for jobs. Heartbeat stays live while active.</p>
+          <label class="check-row">
+            <input type="checkbox" id="drv-active" /> Active for jobs (heartbeat)
+          </label>
           <label>Coverage note
-            <input id="drv-coverage" placeholder="Areas you cover" />
+            <input id="drv-coverage" placeholder="Bike · areas you cover" />
           </label>
           <button type="button" class="btn block" id="btnDrvSave">Save status</button>
+          <p id="drvStatusMsg" class="muted small"></p>
           <div id="drvJobs" class="feed-list"></div>
         </div>
+
           <!-- Emergency -->
         <div id="shop-emergency" class="shop-panel hidden">
           <h3 class="section-h">Unit status</h3>
