@@ -31,6 +31,7 @@ SNM.saveSetupData = function (data) {
   var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
   u.setup = data || {};
   if (data && data.prefs) u.prefs = data.prefs;
+  if (data && data.role) u.role = data.role;
   if (typeof SNM.setUser === "function") SNM.setUser(u);
   else {
     try {
@@ -55,7 +56,9 @@ SNM.collectSetupPayload = function () {
     "buyer"
   )
     .toString()
-    .toLowerCase();
+    .toLowerCase()
+    .trim();
+  if (role === "logistics") role = "driver";
 
   var extra = { role: role };
 
@@ -83,7 +86,7 @@ SNM.collectSetupPayload = function () {
     ).checked;
     extra.hours =
       (document.getElementById("setup-service-hours") || {}).value || "";
-  } else if (role === "driver" || role === "logistics") {
+  } else if (role === "driver") {
     extra.coverage =
       (document.getElementById("setup-driver-coverage") || {}).value || "";
     extra.active = !!(document.getElementById("setup-driver-active") || {})
@@ -100,34 +103,72 @@ SNM.collectSetupPayload = function () {
   return extra;
 };
 
-SNM.finishSetup = function () {
+/** Force home UI even if showScreen is broken this session */
+SNM.goHomeNow = function () {
   try {
-    var data = SNM.collectSetupPayload();
+    document.querySelectorAll(".screen").forEach(function (s) {
+      s.classList.remove("active");
+      s.style.display = "none";
+    });
+    var home = document.getElementById("home");
+    if (home) {
+      home.classList.add("active");
+      home.style.display = "flex";
+    }
+    document.body.classList.add("has-nav");
+    try {
+      location.hash = "#home";
+    } catch (e) {}
+    if (typeof SNM.renderTabbar === "function") SNM.renderTabbar("home");
+    if (typeof SNM.fillHomeHeader === "function") SNM.fillHomeHeader();
+    setTimeout(function () {
+      if (typeof SNM.loadFeed === "function") SNM.loadFeed();
+      if (typeof SNM.initHomeMap === "function") SNM.initHomeMap();
+    }, 0);
+  } catch (err) {
+    console.error("goHomeNow", err);
+    try {
+      location.hash = "#home";
+      location.reload();
+    } catch (e2) {}
+  }
+};
+
+SNM.finishSetup = function () {
+  var data = null;
+  try {
+    data = SNM.collectSetupPayload();
     SNM.saveSetupData(data);
   } catch (e) {
     console.error("setup save", e);
   }
 
-  if (typeof SNM.setSetupDone === "function") SNM.setSetupDone(true);
-  else if (typeof SNM.markSetupDone === "function") SNM.markSetupDone();
+  SNM.markSetupDone();
 
-  // Navigate immediately — several fallbacks
+  /* Prefer router; always fall back to forced home */
+  var navigated = false;
   try {
-    if (typeof SNM.showScreen === "function") SNM.showScreen("home");
+    if (typeof SNM.showScreen === "function") {
+      SNM.showScreen("home");
+      navigated = true;
+    }
   } catch (e2) {
     console.error(e2);
   }
-  try {
-    location.hash = "#home";
-  } catch (e3) {}
 
-  // Presence in background only
+  var home = document.getElementById("home");
+  var homeVisible =
+    home &&
+    (home.classList.contains("active") ||
+      (home.style && home.style.display === "flex"));
+
+  if (!navigated || !homeVisible) {
+    SNM.goHomeNow();
+  }
+
+  /* presence offline from navigation */
   try {
-    var data2 = null;
-    try {
-      data2 = JSON.parse(localStorage.getItem("snm_setup_data") || "null");
-    } catch (e4) {}
-    if (data2 && data2.active && typeof SNM.setPresence === "function") {
+    if (data && data.active && typeof SNM.setPresence === "function") {
       var p = SNM.setPresence({
         active: true,
         heartbeat: true,
@@ -140,7 +181,11 @@ SNM.finishSetup = function () {
 
 SNM.wireSetupDoneButton = function () {
   var btn = document.getElementById("btnSetupDone");
-  if (!btn) return;
+  if (!btn) {
+    console.warn("btnSetupDone missing");
+    return;
+  }
+  /* always rebind — do not use one-shot flags */
   btn.onclick = function (e) {
     if (e) {
       e.preventDefault();
@@ -150,19 +195,10 @@ SNM.wireSetupDoneButton = function () {
   };
 };
 
-SNM.initSetupScreens = function () {
-  SNM.renderBuyerPrefs();
-  SNM.wireSetupDoneButton();
-};
-
-SNM.bindSetup = function () {
-  SNM.initSetupScreens();
-};
-
-
 SNM.renderBuyerPrefs = function () {
   var box = document.getElementById("buyerPrefs");
-  if (!box || box.dataset.ready === "1") return;
+  if (!box) return;
+  if (box.dataset.ready === "1") return;
   box.dataset.ready = "1";
   box.innerHTML = "";
 
@@ -181,42 +217,34 @@ SNM.renderBuyerPrefs = function () {
   (SNM.BUYER_PREF_ITEMS || []).forEach(addChip);
 };
 
+SNM.showSetupForRole = function (role) {
+  role = String(role || "buyer").toLowerCase().trim();
+  if (role === "logistics") role = "driver";
+
+  var label = document.getElementById("setupRoleLabel");
+  if (label) label.textContent = role;
+
+  ["buyer", "merchant", "service", "driver", "emergency"].forEach(function (r) {
+    var panel = document.getElementById("setup-" + r);
+    if (panel) {
+      if (r === role) {
+        panel.classList.remove("hidden");
+        panel.style.display = "";
+      } else {
+        panel.classList.add("hidden");
+      }
+    }
+  });
+
+  if (role === "buyer") SNM.renderBuyerPrefs();
+  SNM.wireSetupDoneButton();
+};
+
 SNM.initSetupScreens = function () {
   SNM.renderBuyerPrefs();
-
-  var btn = document.getElementById("btnSetupDone");
-  if (btn && !btn._snmSetupWired) {
-    btn._snmSetupWired = true;
-    btn.onclick = function (e) {
-      if (e) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-      SNM.finishSetup();
-    };
-  }
+  SNM.wireSetupDoneButton();
 };
 
 SNM.bindSetup = function () {
   SNM.initSetupScreens();
 };
-
-/* auth.js may call showSetupForRole — keep panels in sync */
-SNM.showSetupForRole =
-  SNM.showSetupForRole ||
-  function (role) {
-    role = String(role || "buyer").toLowerCase();
-    var label = document.getElementById("setupRoleLabel");
-    if (label) label.textContent = role;
-    ["buyer", "merchant", "service", "driver", "emergency"].forEach(function (
-      r
-    ) {
-      var panel = document.getElementById("setup-" + r);
-      if (panel) panel.classList.toggle("hidden", r !== role);
-    });
-    if (role === "logistics") {
-      var d = document.getElementById("setup-driver");
-      if (d) d.classList.remove("hidden");
-    }
-    SNM.renderBuyerPrefs();
-  };
