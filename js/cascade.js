@@ -23,9 +23,12 @@ SNM.composePhone = function () {
   var localEl = document.getElementById("reg-local");
   var hidden = document.getElementById("reg-phone");
   if (!localEl || !hidden) return "";
-  var dial = (dialEl && dialEl.textContent) || "";
-  dial = String(dial).trim();
-  if (dial && dial.charAt(0) !== "+") dial = "+" + dial.replace(/\D/g, "");
+  var dial = String((dialEl && dialEl.textContent) || "").trim();
+  if (!dial || dial === "+") {
+    hidden.value = "";
+    return "";
+  }
+  if (dial.charAt(0) !== "+") dial = "+" + dial.replace(/\D/g, "");
   var local = String(localEl.value || "").replace(/\D/g, "");
   while (local.charAt(0) === "0") local = local.slice(1);
   localEl.value = local;
