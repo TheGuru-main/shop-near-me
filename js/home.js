@@ -716,4 +716,249 @@ if (act === "detail" && item) SNM.openListingDetail(item);
         " @ " +
         ([item.primary_location, item.community].filter(Boolean).join(", ") ||
           "Shop Near Me");
-      if (navi
+      if (navigator.share) {
+        navigator.share({ title: item.name, text: text }).catch(function () {
+          prompt("Copy:", text);
+        });
+      } else prompt("Copy:", text);
+    } else if (act === "comment" && id) {
+      var box = document.querySelector('[data-comment-for="' + id + '"]');
+      if (box) box.classList.toggle("hidden");
+    } else if (act === "comment-send" && id) {
+      var wrap = document.querySelector('[data-comment-for="' + id + '"]');
+      var input = wrap && wrap.querySelector(".comment-input");
+      var textc = input ? (input.value || "").trim() : "";
+      if (!textc) return;
+      SNM.api("/fairly-used/comments", {
+        method: "POST",
+        body: { post_id: id, body: textc, text: textc }
+      })
+        .then(function () {
+          SNM.appendComment(id, textc);
+          if (input) input.value = "";
+        })
+        .catch(function () {
+          SNM.appendComment(id, textc);
+          if (input) input.value = "";
+        });
+    }
+  });
+};
+
+/* ---------- home feed ---------- */
+
+SNM.fillHomeHeader = function () {
+  var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+  var n = document.getElementById("homeName");
+  var r = document.getElementById("homeRole");
+  var p = document.getElementById("homePlace");
+  if (n) n.textContent = u.name || "—";
+  if (r) r.textContent = u.role || "—";
+  if (p) {
+    p.textContent = [u.primary_location, u.community, u.city, u.country]
+      .filter(Boolean)
+      .join(" · ");
+  }
+};
+
+SNM.loadFeed = async function () {
+  var box = document.getElementById("homeFeed");
+  if (!box) return;
+  box.innerHTML = "<p class='soft'>Loading…</p>";
+  try {
+    var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+    var geo = typeof SNM.seekerGeo === "function" ? SNM.seekerGeo() : {};
+    /* empty q shows nearby catalogue; do not filter feed only by first pref */
+    var q = "";
+
+    var params = {
+      q: q,
+      community: u.community || "",
+      city: u.city || "",
+      region: u.region || "",
+      country: u.country || "",
+      max_km: SNM.MAX_KM || 80,
+      limit: 40
+    };
+    if (geo.lat != null) params.lat = geo.lat;
+    if (geo.lng != null) params.lng = geo.lng;
+
+    var data = await SNM.api("/search/products" + SNM.qs(params));
+    var rows = data.results || data.items || [];
+    if (!Array.isArray(rows)) rows = [];
+
+    var normalized = rows.map(function (r) {
+      return SNM.normalizeListing(r);
+    });
+
+    if (geo.lat != null && geo.lng != null) {
+      normalized.forEach(function (it) {
+        if (it.lat != null && it.lng != null) {
+          try {
+            it.km = SNM.haversineKm(
+              geo.lat,
+              geo.lng,
+              Number(it.lat),
+              Number(it.lng)
+            );
+          } catch (e) {}
+        }
+      });
+    }
+
+    var maxKm = SNM.MAX_KM || 80;
+    normalized = normalized.filter(function (it) {
+      if (it.km == null || isNaN(Number(it.km))) return true;
+      return Number(it.km) <= maxKm;
+    });
+
+    normalized.sort(function (a, b) {
+      var ka = a.km != null && !isNaN(Number(a.km)) ? Number(a.km) : 999999;
+      var kb = b.km != null && !isNaN(Number(b.km)) ? Number(b.km) : 999999;
+      if (ka !== kb) return ka - kb;
+      return String(b.created_at || "").localeCompare(String(a.created_at || ""));
+    });
+
+    var assistant =
+      data.assistant && (data.assistant.message || data.assistant);
+    box.innerHTML =
+      (assistant
+        ? '<div class="card assistant"><div class="meta">' +
+          SNM.escapeHtml(String(assistant)) +
+          "</div></div>"
+        : "") +
+      (normalized.length
+        ? normalized
+            .map(function (r) {
+              return SNM.cardHtml(r);
+            })
+            .join("")
+        : "<p class='soft'>No listings near you yet. Try Search or Fairly used.</p>");
+    if (typeof SNM.bindCardActions === "function") SNM.bindCardActions(box);
+  } catch (e) {
+    console.error("loadFeed", e);
+    box.innerHTML =
+      "<p class='soft'>" +
+      SNM.escapeHtml((e && e.message) || "Feed unavailable") +
+      "</p>";
+  }
+};
+
+SNM.initHomeMap = function () {
+  var mapEl = document.getElementById("gsgMap");
+  if (!mapEl) return;
+  if (typeof L === "undefined") {
+    mapEl.innerHTML =
+      "<p class='muted' style='padding:1rem'>Map library not loaded.</p>";
+    return;
+  }
+  var geo = SNM.seekerGeo();
+  var lat = geo.lat != null ? geo.lat : 4.8156;
+  var lng = geo.lng != null ? geo.lng : 7.0498;
+
+  if (SNM._homeMap) {
+    try {
+      SNM._homeMap.remove();
+    } catch (e) {}
+    SNM._homeMap = null;
+  }
+  mapEl.innerHTML = "";
+  mapEl.style.minHeight = mapEl.style.minHeight || "180px";
+
+  try {
+    SNM._homeMap = L.map(mapEl).setView([lat, lng], 14);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "© OSM"
+    }).addTo(SNM._homeMap);
+    L.circleMarker([lat, lng], {
+      radius: 9,
+      color: "#14532d",
+      fillColor: "#86efac",
+      fillOpacity: 0.95,
+      weight: 2
+    })
+      .addTo(SNM._homeMap)
+      .bindPopup("You");
+    setTimeout(function () {
+      try {
+        SNM._homeMap.invalidateSize();
+      } catch (e) {}
+    }, 280);
+  } catch (err) {
+    mapEl.innerHTML =
+      "<p class='muted' style='padding:1rem'>Map unavailable.</p>";
+  }
+};
+
+SNM.enterHome = function (navigate) {
+  if (navigate === true && typeof SNM.showScreen === "function") {
+    SNM.showScreen("home");
+    return;
+  }
+  if (typeof SNM.fillHomeHeader === "function") SNM.fillHomeHeader();
+  if (typeof SNM.renderTabbar === "function") SNM.renderTabbar("home");
+  setTimeout(function () {
+    if (typeof SNM.loadFeed === "function") SNM.loadFeed();
+    if (typeof SNM.initHomeMap === "function") SNM.initHomeMap();
+  }, 0);
+};
+
+SNM.fillProfile = function () {
+  var body = document.getElementById("profileBody");
+  var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+  if (!body) return;
+  body.innerHTML =
+    "<p><strong>" +
+    SNM.escapeHtml(u.name || "") +
+    "</strong></p>" +
+    "<p class='soft'>" +
+    SNM.escapeHtml(u.role || "") +
+    "</p>" +
+    "<p class='soft'>" +
+    SNM.escapeHtml(u.phone || "") +
+    "</p>" +
+    "<p class='soft'>" +
+    SNM.escapeHtml(
+      [u.primary_location, u.community, u.city, u.country]
+        .filter(Boolean)
+        .join(" · ")
+    ) +
+    "</p>";
+};
+
+SNM.bindHome = function () {
+  SNM.ensureDetailSheet();
+  SNM.bindCardActions(document.body);
+  var refresh = document.getElementById("btnRefreshFeed");
+  if (refresh && !refresh._snmWired) {
+    refresh._snmWired = true;
+    refresh.onclick = function () {
+      SNM.loadFeed();
+    };
+  }
+  var searchTop = document.getElementById("btnSearchTop");
+  if (searchTop && !searchTop._snmWired) {
+    searchTop._snmWired = true;
+    searchTop.onclick = function () {
+      SNM.showScreen("search");
+    };
+  }
+  var perish = document.getElementById("btnPerishables");
+  if (perish && !perish._snmWired) {
+    perish._snmWired = true;
+    perish.onclick = function () {
+      SNM.showScreen("search");
+      setTimeout(function () {
+        var q = document.getElementById("searchQ");
+        if (q) q.value = "perishable food";
+        if (typeof SNM.doSearch === "function") SNM.doSearch();
+        else if (typeof SNM.runSearch === "function") SNM.runSearch();
+        else {
+          var btn = document.getElementById("btnSearchGo");
+          if (btn) btn.click();
+        }
+      }, 80);
+    };
+  }
+};
