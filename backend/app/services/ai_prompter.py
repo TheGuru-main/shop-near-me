@@ -31,7 +31,7 @@ def _template_search(ctx: dict[str, Any]) -> str:
         f"Top matches for “{q}”"
         + (f" near {place}" if place else "")
         + f" — showing {n} result(s), led by {top}, "
-        f"ordered by item match, place brotherhood, distance, then live shops."
+        f"ordered by item match, distance, then live shops."
     )
 
 
@@ -110,11 +110,11 @@ async def _gemini(prompt: str) -> str | None:
     if not key:
         return None
 
+    model = getattr(settings, "gemini_model", None) or "gemini-2.0-flash"
     url = (
-    "https://generativelanguage.googleapis.com/v1beta/models/"
-    "gemini-2.0-flash:generateContent"
-)
-  model = getattr(settings, "gemini_model", None) or "gemini-2.0-flash"
+        "https://generativelanguage.googleapis.com/v1beta/models/"
+        f"{model}:generateContent"
+    )
     try:
         async with httpx.AsyncClient(timeout=12.0) as client:
             r = await client.post(
@@ -133,8 +133,11 @@ async def _gemini(prompt: str) -> str | None:
                 return None
             data = r.json()
             parts = (
-                data.get("candidates") or [{}]
-            )[0].get("content", {}).get("parts") or []
+                (data.get("candidates") or [{}])[0]
+                .get("content", {})
+                .get("parts")
+                or []
+            )
             text = (parts[0].get("text") if parts else "") or ""
             return text.strip() or None
     except Exception as exc:
@@ -143,18 +146,21 @@ async def _gemini(prompt: str) -> str | None:
 
 
 async def _huggingface(prompt: str) -> str | None:
+    """Optional backup. Returns None if token missing or host unreachable."""
     settings = get_settings()
     token = getattr(settings, "huggingface_api_token", "") or ""
+    if not token:
+        return None
+
     model = getattr(
         settings,
         "huggingface_model",
         "mistralai/Mistral-7B-Instruct-v0.2",
     )
-    if not token:
-        return None
-    url = f"https://api-inference.huggingface.co/models/{model}"
+    # Newer HF router; falls back path if your token expects classic inference
+    url = f"https://router.huggingface.co/models/{model}"
     try:
-        async with httpx.AsyncClient(timeout=20.0) as client:
+        async with httpx.AsyncClient(timeout=15.0) as client:
             r = await client.post(
                 url,
                 headers={"Authorization": f"Bearer {token}"},
@@ -167,6 +173,21 @@ async def _huggingface(prompt: str) -> str | None:
                     },
                 },
             )
+            if r.status_code != 200:
+                # try classic host once
+                url2 = f"https://api-inference.huggingface.co/models/{model}"
+                r = await client.post(
+                    url2,
+                    headers={"Authorization": f"Bearer {token}"},
+                    json={
+                        "inputs": prompt,
+                        "parameters": {
+                            "max_new_tokens": 100,
+                            "temperature": 0.4,
+                            "return_full_text": False,
+                        },
+                    },
+                )
             if r.status_code != 200:
                 logger.warning("hf %s %s", r.status_code, r.text[:200])
                 return None
@@ -183,18 +204,19 @@ async def _huggingface(prompt: str) -> str | None:
 
 def _prompt_search(ctx: dict[str, Any]) -> str:
     return (
-        "You are Shop Near Me assistant. One or two short sentences. "
-        "Do not invent shops or prices. Use only this context.\n"
+        "You are Shop Near Me assistant. Reply in one or two short sentences. "
+        "Do not invent shops, prices, or places. Use only this context.\n"
         f"Context: {ctx}\n"
-        "Explain ranking focus: item match,  distance, live shops. "
-        "Include follow-up questions based on user's search context and parallel related words by fields ."
+        "Mention item match, distance, and live shops when relevant. "
+        "Optionally one short follow-up question related to the search."
     )
 
 
 def _prompt_news(ctx: dict[str, Any]) -> str:
     return (
-        "You are Shop Near Me commerce and daily buw8ness news analysis  sector desk. One short briefing sentence, "
-        "then optionally one follow-up question" "during search" "for follow-ups and search aid." " No invented facts beyond context.\n"
+        "You are Shop Near Me commerce and local business desk. "
+        "One short briefing sentence, then optionally one follow-up question "
+        "that could help the user search. No invented facts beyond context.\n"
         f"Context: {ctx}"
     )
 
