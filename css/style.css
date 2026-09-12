@@ -508,6 +508,48 @@ body {
   transform: scale(0.98);
 }
 
+/* Feed carousels */
+.feed-section { margin: 0 0 1.25rem; }
+.feed-section-h {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+  color: #14532d;
+}
+.card-rail {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 4px 2px 12px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+.card-rail .listing-card {
+  flex: 0 0 min(280px, 82vw);
+  scroll-snap-align: start;
+  max-width: 280px;
+}
+.card-owner-edit {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.card-owner-edit input[type="text"],
+.card-owner-edit input[type="number"] {
+  width: 100%;
+  font-size: 0.9rem;
+}
+.card-owner-edit .row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+
 /* ----- Buttons ----- */
 .btn {
   border: none;
