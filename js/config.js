@@ -2,7 +2,7 @@ window.SNM = window.SNM || {};
 
 SNM.API_BASE = "https://shop-near-me-apiv1-0-0-1p.onrender.com/api/v1";
 SNM.VERSION = "1.0.0.1p";
-SNM.MAX_KM = 2000;
+SNM.MAX_KM = 80; 
 
 /* Continent ids locked for ladder */
 SNM.CONTINENTS = [

@@ -101,25 +101,62 @@ SNM.collectSetupPayload = function () {
 };
 
 SNM.finishSetup = function () {
-  var data = SNM.collectSetupPayload();
-  SNM.saveSetupData(data);
-  SNM.markSetupDone();
-
-  // Go home first — don’t wait on presence
-  if (typeof SNM.showScreen === "function") {
-    SNM.showScreen("home");
+  try {
+    var data = SNM.collectSetupPayload();
+    SNM.saveSetupData(data);
+  } catch (e) {
+    console.error("setup save", e);
   }
 
-  if (data.active && typeof SNM.setPresence === "function") {
+  if (typeof SNM.setSetupDone === "function") SNM.setSetupDone(true);
+  else if (typeof SNM.markSetupDone === "function") SNM.markSetupDone();
+
+  // Navigate immediately — several fallbacks
+  try {
+    if (typeof SNM.showScreen === "function") SNM.showScreen("home");
+  } catch (e2) {
+    console.error(e2);
+  }
+  try {
+    location.hash = "#home";
+  } catch (e3) {}
+
+  // Presence in background only
+  try {
+    var data2 = null;
     try {
+      data2 = JSON.parse(localStorage.getItem("snm_setup_data") || "null");
+    } catch (e4) {}
+    if (data2 && data2.active && typeof SNM.setPresence === "function") {
       var p = SNM.setPresence({
         active: true,
         heartbeat: true,
         live: true
       });
       if (p && typeof p.then === "function") p.catch(function () {});
-    } catch (e) {}
-  }
+    }
+  } catch (e5) {}
+};
+
+SNM.wireSetupDoneButton = function () {
+  var btn = document.getElementById("btnSetupDone");
+  if (!btn) return;
+  btn.onclick = function (e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    SNM.finishSetup();
+  };
+};
+
+SNM.initSetupScreens = function () {
+  SNM.renderBuyerPrefs();
+  SNM.wireSetupDoneButton();
+};
+
+SNM.bindSetup = function () {
+  SNM.initSetupScreens();
 };
 
 

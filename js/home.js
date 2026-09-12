@@ -249,6 +249,27 @@ var stamped =
   return item;
 };
 
+var geo = SNM.seekerGeo();
+normalized.forEach(function (it) {
+  if (
+    geo.lat != null &&
+    geo.lng != null &&
+    it.lat != null &&
+    it.lng != null
+  ) {
+    it.km = SNM.haversineKm(geo.lat, geo.lng, Number(it.lat), Number(it.lng));
+  }
+});
+normalized.sort(function (a, b) {
+  var ka = a.km != null && !isNaN(a.km) ? Number(a.km) : 999999;
+  var kb = b.km != null && !isNaN(b.km) ? Number(b.km) : 999999;
+  return ka - kb;
+});
+// optional: drop far rows
+normalized = normalized.filter(function (it) {
+  return it.km == null || it.km <= (SNM.MAX_KM || 80);
+});
+
 /* ---------- cards ---------- */
 
 SNM.cardHtml = function (item) {

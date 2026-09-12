@@ -109,10 +109,12 @@ async def _gemini(prompt: str) -> str | None:
     key = getattr(settings, "gemini_api_key", "") or ""
     if not key:
         return None
+
     url = (
-        "https://generativelanguage.googleapis.com/v1beta/models/"
-        "gemini-1.5-flash:generateContent"
-    )
+    "https://generativelanguage.googleapis.com/v1beta/models/"
+    "gemini-2.0-flash:generateContent"
+)
+  model = getattr(settings, "gemini_model", None) or "gemini-2.0-flash"
     try:
         async with httpx.AsyncClient(timeout=12.0) as client:
             r = await client.post(
@@ -184,15 +186,15 @@ def _prompt_search(ctx: dict[str, Any]) -> str:
         "You are Shop Near Me assistant. One or two short sentences. "
         "Do not invent shops or prices. Use only this context.\n"
         f"Context: {ctx}\n"
-        "Explain ranking focus: item match, place brotherhood, distance, live shops. "
-        "Optionally one follow-up question."
+        "Explain ranking focus: item match,  distance, live shops. "
+        "Include follow-up questions based on user's search context and parallel related words by fields ."
     )
 
 
 def _prompt_news(ctx: dict[str, Any]) -> str:
     return (
-        "You are Shop Near Me sector desk. One short briefing sentence, "
-        "then optionally one follow-up question. No invented facts beyond context.\n"
+        "You are Shop Near Me commerce and daily buw8ness news analysis  sector desk. One short briefing sentence, "
+        "then optionally one follow-up question" "during search" "for follow-ups and search aid." " No invented facts beyond context.\n"
         f"Context: {ctx}"
     )
 
