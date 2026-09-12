@@ -249,6 +249,9 @@ var stamped =
   return item;
 };
 
+
+______
+
 var geo = SNM.seekerGeo();
 normalized.forEach(function (it) {
   if (
@@ -269,6 +272,10 @@ normalized.sort(function (a, b) {
 normalized = normalized.filter(function (it) {
   return it.km == null || it.km <= (SNM.MAX_KM || 80);
 });
+
+____
+
+
 
 /* ---------- cards ---------- */
 
