@@ -55,47 +55,51 @@ SNM._showErr = function (id, msg) {
   el.classList.add("show");
 };
 
-SNM.showSetupForRole = function (role) {
-  role = role || SNM.getRole() || "buyer";
-  var label = document.getElementById("setupRoleLabel");
-  if (label) label.textContent = role;
-
-  ["buyer", "merchant", "service", "driver", "emergency"].forEach(function (r) {
-    var panel = document.getElementById("setup-" + r);
-    if (panel) {
-      if (r === role) panel.classList.remove("hidden");
-      else panel.classList.add("hidden");
-    }
-  });
-
-  if (role === "buyer") {
-    if (typeof SNM.renderBuyerPrefs === "function") {
-      SNM.renderBuyerPrefs();
-    } else {
-      var box = document.getElementById("buyerPrefs");
-      if (box && !box.dataset.ready) {
-        var list = SNM.BUYER_PREF_CATS || SNM.BUYER_PREFS || [];
-        box.innerHTML = list
-          .map(function (p) {
-            return (
-              '<button type="button" class="chip">' + p + "</button>"
-            );
-          })
-          .join("");
-        box.dataset.ready = "1";
-        box.querySelectorAll(".chip").forEach(function (b) {
-          b.onclick = function () {
-            b.classList.toggle("active");
-          };
-        });
-      }
-    }
+SNM._openSetup = function (role) {
+  role = String(role || "buyer").toLowerCase().trim();
+  if (role === "logistics") role = "driver";
+  try {
+    sessionStorage.setItem("snm_role", role);
+  } catch (e) {}
+  if (typeof SNM.showSetupForRole === "function") {
+    SNM.showSetupForRole(role);
   }
-
-  if (typeof SNM.initSetupScreens === "function") SNM.initSetupScreens();
+  if (typeof SNM.showScreen === "function") SNM.showScreen("setup");
+  if (typeof SNM.wireSetupDoneButton === "function") {
+    SNM.wireSetupDoneButton();
+  }
+  if (typeof SNM.initSetupScreens === "function") {
+    SNM.initSetupScreens();
+  }
 };
 
+/* Only define if setup.js has not already set it */
+if (typeof SNM.showSetupForRole !== "function") {
+  SNM.showSetupForRole = function (role) {
+    role = String(role || SNM.getRole() || "buyer")
+      .toLowerCase()
+      .trim();
+    if (role === "logistics") role = "driver";
+    var label = document.getElementById("setupRoleLabel");
+    if (label) label.textContent = role;
+    ["buyer", "merchant", "service", "driver", "emergency"].forEach(function (
+      r
+    ) {
+      var panel = document.getElementById("setup-" + r);
+      if (!panel) return;
+      if (r === role) panel.classList.remove("hidden");
+      else panel.classList.add("hidden");
+    });
+    if (role === "buyer" && typeof SNM.renderBuyerPrefs === "function") {
+      SNM.renderBuyerPrefs();
+    }
+  };
+}
+
 SNM.bindAuth = function () {
+  if (SNM._authBound) return;
+  SNM._authBound = true;
+
   var btnRegister = document.getElementById("btnRegister");
   if (btnRegister) {
     btnRegister.onclick = async function () {
@@ -105,13 +109,15 @@ SNM.bindAuth = function () {
         sessionStorage.getItem("snm_role") ||
         sessionStorage.getItem("snm_reg_role") ||
         "buyer";
+      role = String(role).toLowerCase().trim();
+
       var name = (document.getElementById("reg-name").value || "").trim();
       var continentEl = document.getElementById("reg-continent");
       var continentId = continentEl ? continentEl.value : "";
       var continentName = "";
       if (continentEl && continentEl.selectedIndex >= 0) {
         continentName =
-          continentEl.options[continentEl.selectedIndex].textContent;
+          continentEl.options[continentEl.selectedIndex].textContent || "";
       }
       var country = (document.getElementById("reg-country").value || "").trim();
       var region = (document.getElementById("reg-region").value || "").trim();
@@ -124,7 +130,7 @@ SNM.bindAuth = function () {
       var phone =
         typeof SNM.composePhone === "function"
           ? SNM.composePhone()
-          : (document.getElementById("reg-phone") || {}).value || "";
+          : ((document.getElementById("reg-phone") || {}).value || "").trim();
 
       if (!name) return SNM._showErr("regError", "Enter your full name.");
       if (!continentId) return SNM._showErr("regError", "Select continent.");
@@ -133,18 +139,27 @@ SNM.bindAuth = function () {
       if (!city) return SNM._showErr("regError", "Select city / town / LGA.");
       if (!community) return SNM._showErr("regError", "Select community.");
       if (!primary) return SNM._showErr("regError", "Enter primary location.");
-      if (!phone || phone.charAt(0) !== "+") {
-        return SNM._showErr("regError", "Phone must be international (+…).");
+      if (!phone || phone.charAt(0) !== "+" || phone.length < 11) {
+        return SNM._showErr(
+          "regError",
+          "Select country (dial code) and enter a full mobile number."
+        );
       }
-      if (!password || password.length < 4) {
-        return SNM._showErr("regError", "Password too short (min 4).");
+      if (phone.indexOf("+234") === 0 && phone.length !== 14) {
+        return SNM._showErr(
+          "regError",
+          "Nigeria: +234 + 10 digits (e.g. 708…), no leading 0."
+        );
+      }
+      if (!password || password.length < 6) {
+        return SNM._showErr("regError", "Password min 6 characters.");
       }
 
       btnRegister.disabled = true;
       try {
         var geo = await SNM._geo();
-     if (geo.lat != null) SNM._lastLat = geo.lat;
-     if (geo.lng != null) SNM._lastLng = geo.lng;
+        if (geo.lat != null) SNM._lastLat = geo.lat;
+        if (geo.lng != null) SNM._lastLng = geo.lng;
 
         var body = {
           name: name,
@@ -157,14 +172,17 @@ SNM.bindAuth = function () {
           region: region,
           city: city,
           community: community,
-          primary_location: primary,
-          lat: geo.lat,
-          lng: geo.lng
+          primary_location: primary
         };
+        /* only send numbers — null breaks strict float schemas */
+        if (geo.lat != null && !isNaN(geo.lat)) body.lat = geo.lat;
+        if (geo.lng != null && !isNaN(geo.lng)) body.lng = geo.lng;
+        if (body.lat == null && SNM._lastLat != null) body.lat = SNM._lastLat;
+        if (body.lng == null && SNM._lastLng != null) body.lng = SNM._lastLng;
 
         SNM._showErr(
           "regError",
-          "Requesting OTP… (server may take \~30s cold start)"
+          "Requesting OTP… (server may take \~30s on cold start)"
         );
         var data = await SNM.api("/auth/otp/request", {
           method: "POST",
@@ -216,14 +234,19 @@ SNM.bindAuth = function () {
         var token = data.access_token || data.token;
         var user = data.user || data;
         if (token) SNM.setToken(token);
-        if (user) SNM.setUser(user);
+        if (user) {
+          if (!user.role && pending.role) user.role = pending.role;
+          SNM.setUser(user);
+        }
+        try {
+          sessionStorage.setItem(
+            "snm_role",
+            (user && user.role) || pending.role || "buyer"
+          );
+        } catch (e) {}
         SNM.setPending(null);
-        SNM.setSetupDone(false);
-        SNM.showSetupForRole((user && user.role) || pending.role || "buyer");
-        SNM.showScreen("setup");
-        if (typeof SNM.wireSetupDoneButton === "function") {
-            SNM.wireSetupDoneButton();
-          }
+        if (typeof SNM.setSetupDone === "function") SNM.setSetupDone(false);
+        SNM._openSetup((user && user.role) || pending.role || "buyer");
       } catch (err) {
         SNM._showErr("otpError", SNM._errText(err) || "Invalid OTP");
       }
@@ -277,19 +300,15 @@ SNM.bindAuth = function () {
         var user = data.user || data;
         if (token) SNM.setToken(token);
         if (user) SNM.setUser(user);
+        try {
+          if (user && user.role) sessionStorage.setItem("snm_role", user.role);
+        } catch (e) {}
         SNM._showErr("loginError", "");
         if (!SNM.setupDone()) {
-
-          SNM.showSetupForRole((user && user.role) || "buyer");
-          SNM.showScreen("setup");
-          if (typeof SNM.wireSetupDoneButton === "function") {
-            SNM.wireSetupDoneButton();
-          }
+          SNM._openSetup((user && user.role) || "buyer");
         } else {
           SNM.showScreen("home");
         }
-
-
       } catch (err) {
         SNM._showErr("loginError", SNM._errText(err) || "Login failed");
       }
