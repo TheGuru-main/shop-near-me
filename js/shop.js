@@ -35,82 +35,9 @@ SNM.showShopPanels = function () {
 
   if (show) {
     show.classList.remove("hidden");
-    show.style.display = "block";
+    show.style.display = "flex";
   }
 };
-
-SNM.renderShopList = function (items) {
-  items = items || [];
-  SNM._shopItems = items;
-
-  items = items.slice().sort(function (a, b) {
-    var ta = new Date(a.created_at || a.addedAt || 0).getTime();
-    var tb = new Date(b.created_at || b.addedAt || 0).getTime();
-    return tb - ta;
-  });
-
-  function paint(el) {
-    if (!el) return;
-    if (!items.length) {
-      el.innerHTML =
-        "<p class='muted'>No catalogue items yet. Add one above.</p>";
-      return;
-    }
-    if (typeof SNM.cardHtml === "function") {
-      el.innerHTML = items
-        .map(function (it) {
-          return SNM.cardHtml(
-            typeof SNM.normalizeListing === "function"
-              ? SNM.normalizeListing(it)
-              : it
-          );
-        })
-        .join("");
-      if (typeof SNM.bindCardActions === "function") SNM.bindCardActions(el);
-    } else {
-      el.innerHTML = items
-        .map(function (it) {
-          var img = it.image_url
-            ? '<img class="card-thumb" src="' +
-              SNM.esc(it.image_url) +
-              '" alt="" />'
-            : "";
-          return (
-            '<article class="card">' +
-            img +
-            "<strong>" +
-            SNM.esc(it.name || it.title || "Item") +
-            "</strong><p class='muted small'>" +
-            SNM.esc(String(it.price != null ? it.price : "")) +
-            (it.currency ? " · " + SNM.esc(it.currency) : "") +
-            "</p></article>"
-          );
-        })
-        .join("");
-    }
-  }
-
-  paint(
-    document.getElementById("shopList") ||
-      document.getElementById("catalogueList")
-  );
-  paint(document.getElementById("svcList"));
-};
-
-SNM.loadShop = async function () {
-  SNM.showShopPanels();
-  var el =
-    document.getElementById("shopList") ||
-    document.getElementById("catalogueList");
-  var svcList = document.getElementById("svcList");
-  if (el) el.innerHTML = "<p class='muted'>Loading catalogue…</p>";
-  if (svcList) svcList.innerHTML = "<p class='muted'>Loading…</p>";
-
-  try {
-    var data = await SNM.api("/products/me");
-    var items =
-      (data && (data.items || data.products || data.results)) ||
-      (Array.isArray(data) ? data : []);
 
 SNM.renderShopList = function (items) {
   items = items || [];
@@ -133,7 +60,8 @@ SNM.renderShopList = function (items) {
       .map(function (it) {
         var id = it.id || it.product_id || "";
         var name = it.name || it.title || "";
-        var qty = it.quantity != null ? it.quantity : it.qty != null ? it.qty : "";
+        var qty =
+          it.quantity != null ? it.quantity : it.qty != null ? it.qty : "";
         var avail = it.available !== false;
         var img = it.image_url
           ? '<img class="card-thumb" src="' +
@@ -161,7 +89,10 @@ SNM.renderShopList = function (items) {
           '<div class="shop-edit-row">' +
           '<button type="button" class="btn small" data-shop-save="' +
           SNM.esc(String(id)) +
-          '">Save</button>' +
+          '">Save</button> ' +
+          '<button type="button" class="btn secondary small" data-shop-del="' +
+          SNM.esc(String(id)) +
+          '">Delete</button>' +
           '<span class="muted small shop-edit-status"></span>' +
           "</div>" +
           "</article>"
@@ -169,7 +100,9 @@ SNM.renderShopList = function (items) {
       })
       .join("");
 
-    SNM.bindShopListActions(el);
+    if (typeof SNM.bindShopListActions === "function") {
+      SNM.bindShopListActions(el);
+    }
   }
 
   paint(
@@ -186,8 +119,15 @@ SNM.patchProduct = async function (productId, body) {
   });
 };
 
+SNM.deleteProduct = async function (productId) {
+  return SNM.api("/products/" + encodeURIComponent(productId), {
+    method: "DELETE"
+  });
+};
+
 SNM.bindShopListActions = function (root) {
   if (!root) return;
+
   root.querySelectorAll("[data-shop-save]").forEach(function (btn) {
     if (btn._snmSaveWired) return;
     btn._snmSaveWired = true;
@@ -201,8 +141,7 @@ SNM.bindShopListActions = function (root) {
       var status = card.querySelector(".shop-edit-status");
       var name = nameEl ? (nameEl.value || "").trim() : "";
       var qtyRaw = qtyEl ? (qtyEl.value || "").trim() : "";
-      var quantity =
-        qtyRaw === "" ? null : parseFloat(qtyRaw);
+      var quantity = qtyRaw === "" ? null : parseFloat(qtyRaw);
       if (quantity != null && isNaN(quantity)) quantity = null;
       var available = !!(availEl && availEl.checked);
       if (!name) {
@@ -226,35 +165,73 @@ SNM.bindShopListActions = function (root) {
       btn.disabled = false;
     };
   });
+
+  root.querySelectorAll("[data-shop-del]").forEach(function (btn) {
+    if (btn._snmDelWired) return;
+    btn._snmDelWired = true;
+    btn.onclick = async function () {
+      var id = btn.getAttribute("data-shop-del");
+      if (!id) return;
+      if (!confirm("Delete this listing?")) return;
+      try {
+        await SNM.deleteProduct(id);
+        await SNM.loadShop();
+      } catch (e) {
+        alert("Delete failed: " + ((e && e.message) || ""));
+      }
+    };
+  });
+};
+
+SNM.loadShop = async function () {
+  SNM.showShopPanels();
+
+  var role =
+    (typeof SNM.getRole === "function" && SNM.getRole()) ||
+    (((typeof SNM.getUser === "function" && SNM.getUser()) || {}).role ||
+      "buyer");
+  role = String(role).toLowerCase().trim();
+  if (role === "logistics") role = "driver";
+
+  /* Drivers / emergency: status panel only — no catalogue fetch required */
+  if (role === "driver" || role === "emergency") {
+    try {
+      var meta = JSON.parse(localStorage.getItem("snm_driver_meta") || "null");
+      if (meta && role === "driver") {
+        var cov = document.getElementById("drv-coverage");
+        var act = document.getElementById("drv-active");
+        if (cov && meta.coverage) cov.value = meta.coverage;
+        if (act && typeof meta.active === "boolean") act.checked = meta.active;
+      }
+    } catch (e) {}
+    return;
+  }
+
+  var el =
+    document.getElementById("shopList") ||
+    document.getElementById("catalogueList");
+  var svcList = document.getElementById("svcList");
+  if (el) el.innerHTML = "<p class='muted'>Loading catalogue…</p>";
+  if (svcList) svcList.innerHTML = "<p class='muted'>Loading…</p>";
+
+  try {
+    var data = await SNM.api("/products/me");
+    var items =
+      (data && (data.items || data.products || data.results)) ||
+      (Array.isArray(data) ? data : []);
+    SNM.renderShopList(items);
+  } catch (e) {
+    var msg = (e && e.message) || "error";
+    if (el)
+      el.innerHTML =
+        "<p class='muted'>Catalogue unavailable: " + SNM.esc(msg) + "</p>";
+    if (svcList)
+      svcList.innerHTML =
+        "<p class='muted'>Services unavailable: " + SNM.esc(msg) + "</p>";
+  }
 };
 
 SNM.loadMyProducts = SNM.loadShop;
-
-/** Camera or gallery → data URL for this item */
-SNM.readItemImage = function (inputId, maxBytes) {
-  maxBytes = maxBytes || 900000;
-  return new Promise(function (resolve) {
-    var el = document.getElementById(inputId);
-    if (!el || !el.files || !el.files[0]) {
-      resolve(null);
-      return;
-    }
-    var file = el.files[0];
-    if (file.size > maxBytes) {
-      alert("Photo too large. Use under \~900KB.");
-      resolve(null);
-      return;
-    }
-    var r = new FileReader();
-    r.onload = function () {
-      resolve(r.result || null);
-    };
-    r.onerror = function () {
-      resolve(null);
-    };
-    r.readAsDataURL(file);
-  });
-};
 
 SNM.readItemImageFrom = async function (camId, fileId, maxBytes) {
   maxBytes = maxBytes || 900000;
@@ -284,7 +261,13 @@ SNM.readItemImageFrom = async function (camId, fileId, maxBytes) {
   });
 };
 
-SNM.wirePhotoButtons = function (camBtnId, fileBtnId, camInputId, fileInputId, previewId) {
+SNM.wirePhotoButtons = function (
+  camBtnId,
+  fileBtnId,
+  camInputId,
+  fileInputId,
+  previewId
+) {
   var camBtn = document.getElementById(camBtnId);
   var fileBtn = document.getElementById(fileBtnId);
   var camIn = document.getElementById(camInputId);
@@ -343,10 +326,6 @@ SNM.addShopItem = async function () {
     "shop-item-image-cam",
     "shop-item-image-file"
   );
-["shop-item-image-cam", "shop-item-image-file"].forEach(function (id) {
-    var el = document.getElementById(id);
-    if (el) el.value = "";
-  });
 
   var desc = typeof SNM.geoStamp === "function" ? SNM.geoStamp("") : "";
   var g = typeof SNM.posterGeo === "function" ? SNM.posterGeo() : {};
@@ -374,8 +353,10 @@ SNM.addShopItem = async function () {
     if (nameEl) nameEl.value = "";
     if (priceEl) priceEl.value = "";
     if (qtyEl) qtyEl.value = "";
-    var imgIn = document.getElementById("shop-item-image");
-    if (imgIn) imgIn.value = "";
+    ["shop-item-image-cam", "shop-item-image-file"].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.value = "";
+    });
     var prev = document.getElementById("shop-item-preview");
     if (prev) {
       prev.innerHTML = "";
@@ -410,9 +391,13 @@ SNM.addServiceItem = async function () {
   document.querySelectorAll(".svc-day:checked").forEach(function (c) {
     days.push(c.value);
   });
-  var fromD = ((document.getElementById("svc-from-date") || {}).value || "").trim();
+  var fromD = (
+    (document.getElementById("svc-from-date") || {}).value || ""
+  ).trim();
   var toD = ((document.getElementById("svc-to-date") || {}).value || "").trim();
-  var fromT = ((document.getElementById("svc-from-time") || {}).value || "").trim();
+  var fromT = (
+    (document.getElementById("svc-from-time") || {}).value || ""
+  ).trim();
   var toT = ((document.getElementById("svc-to-time") || {}).value || "").trim();
 
   var scheduleBits = [];
@@ -426,7 +411,10 @@ SNM.addServiceItem = async function () {
   var fullDesc = [desc, scheduleBits.join(" | ")].filter(Boolean).join("\n");
   if (typeof SNM.geoStamp === "function") fullDesc = SNM.geoStamp(fullDesc);
 
-  var image_url = await SNM.readItemImage("svc-item-image");
+  var image_url = await SNM.readItemImageFrom(
+    "svc-item-image-cam",
+    "svc-item-image-file"
+  );
   var g = typeof SNM.posterGeo === "function" ? SNM.posterGeo() : {};
 
   var body = {
@@ -449,8 +437,10 @@ SNM.addServiceItem = async function () {
     if (nameEl) nameEl.value = "";
     if (descEl) descEl.value = "";
     if (rateEl) rateEl.value = "";
-    var imgIn = document.getElementById("svc-item-image");
-    if (imgIn) imgIn.value = "";
+    ["svc-item-image-cam", "svc-item-image-file"].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.value = "";
+    });
     var prev = document.getElementById("svc-item-preview");
     if (prev) {
       prev.innerHTML = "";
@@ -547,8 +537,7 @@ SNM.bindShop = function () {
   }
 
   var drvActive = document.getElementById("drv-active");
-  if (drvActive && !drvActive._snmWired) {
-    drvActive._snmWired = true;
+  if (drvActive) {
     drvActive.onchange = function () {
       var on = !!drvActive.checked;
       SNM.setPresence({
@@ -561,12 +550,12 @@ SNM.bindShop = function () {
   }
 
   var drvSave = document.getElementById("btnDrvSave");
-  if (drvSave && !drvSave._snmWired) {
-    drvSave._snmWired = true;
+  if (drvSave) {
     drvSave.onclick = function () {
       var active = !!((document.getElementById("drv-active") || {}).checked);
-      var coverage =
-        ((document.getElementById("drv-coverage") || {}).value || "").trim();
+      var coverage = (
+        (document.getElementById("drv-coverage") || {}).value || ""
+      ).trim();
       try {
         localStorage.setItem(
           "snm_driver_meta",
