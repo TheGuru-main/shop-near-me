@@ -21,8 +21,8 @@ SNM.AUTHED = {
   "admin-contact": 1,
   calculator: 1,
   invoice: 1,
-  setup: 1,
   dashboard: 1
+  /* setup intentionally NOT authed-nav — no bottom bar during setup */
 };
 
 SNM.hideSplash = function () {
@@ -65,26 +65,34 @@ SNM.showScreen = function (id) {
     document.body.classList.remove("has-nav");
   }
 
- try {
+  try {
     window.scrollTo(0, 0);
   } catch (e) {}
 
-  /* reset body scroll inside the screen */
-  var scrollBody =
-    target.querySelector(":scope > .container") ||
-    target.querySelector(":scope > .home-body") ||
-    target.querySelector(":scope > .msg-layout");
-  if (scrollBody) scrollBody.scrollTop = 0;
+  if (target) {
+    var scrollBody =
+      target.querySelector(":scope > .container") ||
+      target.querySelector(":scope > .home-body") ||
+      target.querySelector(":scope > .msg-layout") ||
+      target.querySelector(".container");
+    if (scrollBody) scrollBody.scrollTop = 0;
+  }
 
   if (id === "register") {
     if (typeof SNM.bindCascade === "function") SNM.bindCascade();
     if (typeof SNM.initRegisterCascade === "function") SNM.initRegisterCascade();
   }
+  if (id === "setup") {
+    if (typeof SNM.wireSetupDoneButton === "function") SNM.wireSetupDoneButton();
+    if (typeof SNM.initSetupScreens === "function") SNM.initSetupScreens();
+  }
   if (id === "home" && typeof SNM.enterHome === "function") {
     SNM.enterHome(false);
   }
-  if (id === "shop" && typeof SNM.loadMyProducts === "function") SNM.loadMyProducts();
-  if (id === "shop" && typeof SNM.loadShop === "function") SNM.loadShop();
+  if (id === "shop") {
+    if (typeof SNM.loadMyProducts === "function") SNM.loadMyProducts();
+    if (typeof SNM.loadShop === "function") SNM.loadShop();
+  }
   if (id === "messages") {
     if (typeof SNM.bindMessages === "function") SNM.bindMessages();
     if (typeof SNM.loadInbox === "function") {
@@ -92,18 +100,29 @@ SNM.showScreen = function (id) {
     }
   }
   if (id === "search" && typeof SNM.bindSearch === "function") SNM.bindSearch();
-  if (id === "news" && typeof SNM.loadNews === "function") SNM.loadNews("local");
-  if (id === "fairly-used" && typeof SNM.loadFairlyUsed === "function")
+  if (id === "news" && typeof SNM.loadNews === "function") {
+    SNM.loadNews(SNM._newsCat || "business");
+  }
+  if (id === "fairly-used" && typeof SNM.loadFairlyUsed === "function") {
     SNM.loadFairlyUsed();
-  if (id === "premium" && typeof SNM.loadPremium === "function") SNM.loadPremium();
-  if (id === "documents" && typeof SNM.loadDocuments === "function")
+  }
+  if (id === "premium" && typeof SNM.loadPremium === "function") {
+    SNM.loadPremium();
+  }
+  if (id === "documents" && typeof SNM.loadDocuments === "function") {
     SNM.loadDocuments();
-  if (id === "banqueue" && typeof SNM.loadBanqueue === "function") SNM.loadBanqueue();
-  if (id === "emergency" && typeof SNM.loadEmergency === "function")
+  }
+  if (id === "banqueue" && typeof SNM.loadBanqueue === "function") {
+    SNM.loadBanqueue();
+  }
+  if (id === "emergency" && typeof SNM.loadEmergency === "function") {
     SNM.loadEmergency();
+  }
 
   try {
-    if (location.hash !== "#" + id) history.replaceState(null, "", "#" + id);
+    if (location.hash !== "#" + id) {
+      history.replaceState(null, "", "#" + id);
+    }
   } catch (e) {}
 };
 
@@ -111,7 +130,6 @@ SNM.go = function (id) {
   SNM.showScreen(id);
 };
 
-/* Paint home immediately; heavy work deferred */
 SNM.enterHome = function (navigate) {
   if (navigate === true) {
     SNM.showScreen("home");
@@ -127,7 +145,12 @@ SNM.enterHome = function (navigate) {
 
 SNM.renderTabbar = function (active) {
   active = active || "home";
-  var role = (typeof SNM.getRole === "function" && SNM.getRole()) || "buyer";
+  var role =
+    (typeof SNM.getRole === "function" && SNM.getRole()) ||
+    ((typeof SNM.getUser === "function" && SNM.getUser()) || {}).role ||
+    "buyer";
+  role = String(role).toLowerCase().trim();
+  if (role === "logistics") role = "driver";
 
   var tabs;
   if (role === "merchant" || role === "service") {
@@ -312,11 +335,10 @@ SNM.bindRouter = function () {
     true
   );
 
-  /* Define order: bindShell is already a top-level function above */
   if (typeof SNM.bindShell === "function") SNM.bindShell();
 
   window.addEventListener("hashchange", function () {
-    var id = (location.hash || "").replace(/^#/, "");
-    if (id) SNM.showScreen(id);
+    var hid = (location.hash || "").replace(/^#/, "");
+    if (hid) SNM.showScreen(hid);
   });
 };
