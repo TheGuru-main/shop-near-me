@@ -662,6 +662,34 @@ body {
   padding-bottom: calc(0.4rem + var(--safe-bottom));
 }
 
+/* Hidden by default — only active authed screen shows its nav */
+.bottom-nav {
+  display: none !important;
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 0;
+  width: 100%;
+  max-width: 480px;
+  z-index: var(--z-nav);
+  justify-content: space-around;
+  align-items: center;
+  gap: 0.15rem;
+  min-height: var(--nav-h);
+  padding: 0.35rem 0.35rem calc(0.35rem + var(--safe-bottom));
+  background: rgba(255, 255, 255, 0.94);
+  border-top: 1px solid var(--card-border);
+  backdrop-filter: blur(12px);
+}
+
+body.has-nav .screen.active > .bottom-nav {
+  display: flex !important;
+}
+
+/* Landing / auth: never show footer nav */
+body:not(.has-nav) .bottom-nav {
+  display: none !important;
+}
 .sep {
   border: none;
   border-top: 1px solid var(--card-border);
@@ -1177,6 +1205,52 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
+}
+
+/* Screen fills viewport and scrolls inside */
+.screen {
+  display: none;
+  min-height: 100dvh;
+  height: 100dvh;
+  flex-direction: column;
+  overflow: hidden;
+  padding-top: var(--safe-top);
+}
+
+.screen.active {
+  display: flex;
+}
+
+.screen.active > .top-bar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: var(--bar-h);
+  padding: 0.45rem 0.85rem;
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom: 1px solid var(--card-border);
+  backdrop-filter: blur(12px);
+}
+
+/* Content scrolls under the header */
+.screen.active > .container,
+.screen.active > .home-body,
+.screen.active > .msg-layout {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  min-height: 0;
+}
+
+/* Space for bottom nav on main tabs */
+body.has-nav .screen.active > .container,
+body.has-nav .screen.active > .home-body,
+body.has-nav .screen.active > .msg-layout {
+  padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 0.75rem);
 }
 
 /* ----- Share sheet (JS-injected) ----- */
