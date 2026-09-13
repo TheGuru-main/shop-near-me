@@ -547,8 +547,6 @@ SNM.closeListingDetail = function () {
 };
 
 
-____________
-
 
 SNM.renderDetailMap = async function (item) {
   var mapEl =
