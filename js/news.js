@@ -6,7 +6,10 @@ SNM.NEWS_CATS = [
   "logistics",
   "agriculture",
   "retail",
-  "local"
+  "local",
+  "fashion"
+  "production"
+  "travel"
 ];
 
 SNM.loadNews = async function (category) {
