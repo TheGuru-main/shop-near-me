@@ -505,10 +505,6 @@ SNM.toggleMapExpand = function (forceOpen) {
   }, 280);
 };
 
-
-
-____________
-
 SNM.closeListingDetail = function () {
   var sheet = document.getElementById("listingDetail");
   if (!sheet) return;
