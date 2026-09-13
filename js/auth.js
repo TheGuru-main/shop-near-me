@@ -55,6 +55,19 @@ SNM._showErr = function (id, msg) {
   el.classList.add("show");
 };
 
+/** True if user already finished setup or has a real profile place */
+SNM._profileLooksComplete = function (user) {
+  if (typeof SNM.setupDone === "function" && SNM.setupDone()) return true;
+  user = user || (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+  if (!user || !user.role) return false;
+  if (user.primary_location || user.community || user.city) return true;
+  try {
+    var setup = JSON.parse(localStorage.getItem("snm_setup_data") || "null");
+    if (setup && (setup.prefs || setup.shop_name || setup.coverage)) return true;
+  } catch (e) {}
+  return false;
+};
+
 SNM._openSetup = function (role) {
   role = String(role || "buyer").toLowerCase().trim();
   if (role === "logistics") role = "driver";
@@ -70,6 +83,16 @@ SNM._openSetup = function (role) {
   }
   if (typeof SNM.initSetupScreens === "function") {
     SNM.initSetupScreens();
+  }
+};
+
+SNM._goHomeAfterAuth = function () {
+  if (typeof SNM.showScreen === "function") {
+    SNM.showScreen("home");
+  } else {
+    try {
+      location.hash = "#home";
+    } catch (e) {}
   }
 };
 
@@ -174,7 +197,6 @@ SNM.bindAuth = function () {
           community: community,
           primary_location: primary
         };
-        /* only send numbers — null breaks strict float schemas */
         if (geo.lat != null && !isNaN(geo.lat)) body.lat = geo.lat;
         if (geo.lng != null && !isNaN(geo.lng)) body.lng = geo.lng;
         if (body.lat == null && SNM._lastLat != null) body.lat = SNM._lastLat;
@@ -245,6 +267,7 @@ SNM.bindAuth = function () {
           );
         } catch (e) {}
         SNM.setPending(null);
+        /* New account only — preferences / role setup once */
         if (typeof SNM.setSetupDone === "function") SNM.setSetupDone(false);
         SNM._openSetup((user && user.role) || pending.role || "buyer");
       } catch (err) {
@@ -304,10 +327,15 @@ SNM.bindAuth = function () {
           if (user && user.role) sessionStorage.setItem("snm_role", user.role);
         } catch (e) {}
         SNM._showErr("loginError", "");
-        if (!SNM.setupDone()) {
-          SNM._openSetup((user && user.role) || "buyer");
+
+        /* Returning user: never force category prefs again */
+        if (SNM._profileLooksComplete(user)) {
+          if (typeof SNM.setSetupDone === "function") SNM.setSetupDone(true);
+          SNM._goHomeAfterAuth();
+        } else if (typeof SNM.setupDone === "function" && SNM.setupDone()) {
+          SNM._goHomeAfterAuth();
         } else {
-          SNM.showScreen("home");
+          SNM._openSetup((user && user.role) || "buyer");
         }
       } catch (err) {
         SNM._showErr("loginError", SNM._errText(err) || "Login failed");
