@@ -86,11 +86,18 @@ SNM.collectSetupPayload = function () {
     ).checked;
     extra.hours =
       (document.getElementById("setup-service-hours") || {}).value || "";
-  } else if (role === "driver") {
-    extra.coverage =
-      (document.getElementById("setup-driver-coverage") || {}).value || "";
-    extra.active = !!(document.getElementById("setup-driver-active") || {})
-      .checked;
+
+   } else if (role === "driver") {
+  extra.coverage =
+    (document.getElementById("setup-driver-coverage") || {}).value || "";
+  extra.primary_location =
+    (document.getElementById("setup-driver-primary") || {}).value || "";
+  extra.use_gps = !!(document.getElementById("setup-driver-use-gps") || {})
+    .checked;
+  extra.active = !!(document.getElementById("setup-driver-active") || {})
+    .checked;
+}
+
   } else if (role === "emergency") {
     extra.emerg_type =
       (document.getElementById("setup-emerg-type") || {}).value || "";
