@@ -108,14 +108,17 @@ SNM.normalizeListing = function (raw) {
       available: p.available !== false,
       phone: s.uid || s.phone || "",
       owner_name: s.name || "",
+      owner_id: s.id || s.user_id || p.owner_id || null,
+      seller_id: s.id || s.user_id || null,
       primary_location: s.primary_location || p.primary_location || "",
       community: s.community || p.community || "",
       city: s.city || p.city || "",
       image_url: p.image_url || null,
-      available: p.available !== false,
-      live: !!(s.live),
+      live: !!s.live,
       region: s.region || p.region || "",
       country: s.country || p.country || "",
+      category: p.category || src.category || "",
+      business_type: src.business_type || p.business_type || "",
       lat:
         s.lat != null
           ? s.lat
@@ -133,7 +136,7 @@ SNM.normalizeListing = function (raw) {
               ? src.lng
               : null,
       km: src.km != null ? src.km : src.distance_km,
-      kind: src.card_type || "product",
+      kind: src.card_type || p.category || "product",
       created_at: p.created_at || ""
     };
   }
@@ -150,11 +153,15 @@ SNM.normalizeListing = function (raw) {
       currency: post.currency || "NGN",
       phone: author.phone || "",
       owner_name: author.name || "",
+      owner_id: author.id || author.user_id || null,
+      seller_id: author.id || author.user_id || null,
       primary_location: author.primary_location || "",
       community: author.community || "",
       city: author.city || "",
       region: author.region || "",
       country: author.country || "",
+      image_url: post.image_url || null,
+      available: post.available !== false,
       lat: author.lat != null ? author.lat : post.lat,
       lng: author.lng != null ? author.lng : post.lng,
       km: src.km != null ? src.km : src.distance_km,
@@ -196,6 +203,11 @@ SNM.normalizeListing = function (raw) {
     currency: raw.currency || "NGN",
     qty: raw.qty != null ? raw.qty : raw.quantity,
     perishable: !!raw.perishable,
+    available: raw.available !== false,
+    image_url: raw.image_url || null,
+    live: !!raw.live,
+    owner_id: raw.owner_id || raw.seller_id || owner.id || owner.user_id || null,
+    seller_id: raw.seller_id || raw.owner_id || owner.id || owner.user_id || null,
     owner_name:
       raw.owner_name ||
       raw.merchant_name ||
@@ -218,6 +230,8 @@ SNM.normalizeListing = function (raw) {
     city: raw.city || owner.city || "",
     region: raw.region || owner.region || "",
     country: raw.country || owner.country || "",
+    category: raw.category || "",
+    business_type: raw.business_type || "",
     km: raw.km != null ? raw.km : raw.distance_km,
     lat: lat,
     lng: lng,
@@ -236,7 +250,7 @@ SNM.normalizeListing = function (raw) {
     item.km = SNM.haversineKm(me.lat, me.lng, item.lat, item.lng);
   }
 
-var stamped =
+  var stamped =
     typeof SNM.parseGeoStamp === "function"
       ? SNM.parseGeoStamp(item.body || raw.body || "")
       : null;
@@ -249,7 +263,88 @@ var stamped =
   return item;
 };
 
+/* ---------- owner + carousel ---------- */
 
+SNM.isOwnListing = function (item) {
+  var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+  if (!u) return false;
+  var oid = item.owner_id || item.seller_id || item.user_id;
+  if (u.id != null && oid != null && String(oid) === String(u.id)) return true;
+  if (item.phone && u.phone && String(item.phone) === String(u.phone)) return true;
+  return false;
+};
+
+SNM.ownerEditHtml = function (item) {
+  if (!SNM.isOwnListing(item)) return "";
+  var id = item.id || "";
+  var qty =
+    item.qty != null ? item.qty : item.quantity != null ? item.quantity : "";
+  var avail = item.available !== false;
+  return (
+    '<div class="card-owner-edit" data-owner-edit="' +
+    SNM.escapeHtml(String(id)) +
+    '">' +
+    '<input type="text" class="own-edit-name" value="' +
+    SNM.escapeHtml(String(item.name || "")) +
+    '" placeholder="Name" />' +
+    '<div class="row">' +
+    '<input type="number" class="own-edit-qty" value="' +
+    SNM.escapeHtml(String(qty)) +
+    '" placeholder="Qty" inputmode="decimal" style="flex:1" />' +
+    '<label class="check-row"><input type="checkbox" class="own-edit-avail"' +
+    (avail ? " checked" : "") +
+    " /> In stock</label>" +
+    "</div>" +
+    '<div class="row">' +
+    '<button type="button" class="btn small" data-act="own-save" data-id="' +
+    SNM.escapeHtml(String(id)) +
+    '">Save</button>' +
+    '<button type="button" class="btn secondary small" data-act="own-del" data-id="' +
+    SNM.escapeHtml(String(id)) +
+    '">Delete</button>' +
+    '<span class="muted small own-edit-status"></span>' +
+    "</div></div>"
+  );
+};
+
+SNM.renderFeedCarousel = function (items) {
+  items = items || [];
+  if (!items.length) {
+    return "<p class='soft'>No listings near you yet. Try Search or Fairly used.</p>";
+  }
+  var groups = {};
+  items.forEach(function (it) {
+    var key =
+      it.owner_name ||
+      it.phone ||
+      it.category ||
+      it.business_type ||
+      "Listings";
+    key = String(key);
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(it);
+  });
+  return Object.keys(groups)
+    .map(function (key) {
+      var cards = groups[key]
+        .map(function (it) {
+          return SNM.cardHtml(it);
+        })
+        .join("");
+      return (
+        '<section class="feed-section">' +
+        '<h3 class="feed-section-h">' +
+        SNM.escapeHtml(key) +
+        " · " +
+        groups[key].length +
+        "</h3>" +
+        '<div class="card-rail">' +
+        cards +
+        "</div></section>"
+      );
+    })
+    .join("");
+};
 
 /* ---------- cards ---------- */
 
@@ -285,8 +380,10 @@ SNM.cardHtml = function (item) {
       : '<span class="badge-stock in">In stock ✓</span>';
 
   var img = item.image_url
-  ? '<img class="card-thumb" src="' + SNM.escapeHtml(item.image_url) + '" alt="" />'
-  : "";
+    ? '<img class="card-thumb" src="' +
+      SNM.escapeHtml(item.image_url) +
+      '" alt="" />'
+    : "";
 
   var live =
     item.live || item.seller_live
@@ -334,9 +431,11 @@ SNM.cardHtml = function (item) {
     SNM.escapeHtml(item.id) +
     '">Share</button>' +
     '<button type="button" class="btn small" data-act="message" data-phone="' +
-    SNM.escapeHtml(item.phone) +
+    SNM.escapeHtml(item.phone || "") +
     '">Message</button>' +
-    "</div></article>"
+    "</div>" +
+    SNM.ownerEditHtml(item) +
+    "</article>"
   );
 };
 
@@ -366,14 +465,13 @@ SNM.ensureDetailSheet = function () {
   if (!sheet._snmWired) {
     sheet._snmWired = true;
     var closeBtn = document.getElementById("btnCloseDetail");
-  if (closeBtn) {
-  closeBtn.onclick = function (e) {
-    e.preventDefault();
-    e.stopPropagation();
-    SNM.closeListingDetail();
-  };
-}
-
+    if (closeBtn) {
+      closeBtn.onclick = function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        SNM.closeListingDetail();
+      };
+    }
     sheet.addEventListener("click", function (e) {
       if (e.target === sheet) SNM.closeListingDetail();
     });
@@ -565,7 +663,8 @@ SNM.renderDetailMap = async function (item) {
       bounds[1][0],
       bounds[1][1]
     );
-    if (meta) meta.textContent = "Route · \~" + km.toFixed(1) + " km (straight line)";
+    if (meta)
+      meta.textContent = "Route · ~" + km.toFixed(1) + " km (straight line)";
   } else if (meta) {
     meta.textContent =
       bounds.length === 1
@@ -689,7 +788,9 @@ SNM.bindCardActions = function (root) {
       var card = e.target.closest("[data-listing-id]");
       if (
         card &&
-        !e.target.closest("button,a,input,.comment-box,.comments-list")
+        !e.target.closest(
+          "button,a,input,.comment-box,.comments-list,.card-owner-edit"
+        )
       ) {
         var it = SNM._listingsById[card.getAttribute("data-listing-id")];
         if (it) SNM.openListingDetail(it);
@@ -703,10 +804,15 @@ SNM.bindCardActions = function (root) {
     var phone = btn.getAttribute("data-phone");
     var item = id ? SNM._listingsById[id] : null;
 
-if (act === "detail" && item) SNM.openListingDetail(item);
-    else if (act === "message")
+    if (act === "detail" && item) {
+      SNM.openListingDetail(item);
+      return;
+    }
+    if (act === "message") {
       SNM.messageSeller(phone || (item && item.phone));
-    else if (act === "share" && item) {
+      return;
+    }
+    if (act === "share" && item) {
       var text =
         (item.name || "") +
         " — " +
@@ -721,12 +827,60 @@ if (act === "detail" && item) SNM.openListingDetail(item);
           prompt("Copy:", text);
         });
       } else prompt("Copy:", text);
-    } else if (act === "comment" && id) {
+      return;
+    }
+    if (act === "own-save" && id) {
+      var wrap =
+        btn.closest("[data-owner-edit]") ||
+        btn.closest(".card-owner-edit") ||
+        btn.closest(".listing-card");
+      var nameEl = wrap && wrap.querySelector(".own-edit-name");
+      var qtyEl = wrap && wrap.querySelector(".own-edit-qty");
+      var availEl = wrap && wrap.querySelector(".own-edit-avail");
+      var status = wrap && wrap.querySelector(".own-edit-status");
+      var name = nameEl ? (nameEl.value || "").trim() : "";
+      var qtyRaw = qtyEl ? (qtyEl.value || "").trim() : "";
+      var quantity = qtyRaw === "" ? null : parseFloat(qtyRaw);
+      if (quantity != null && isNaN(quantity)) quantity = null;
+      var available = !!(availEl && availEl.checked);
+      if (!name) {
+        alert("Name required");
+        return;
+      }
+      if (status) status.textContent = "Saving…";
+      SNM.api("/products/" + encodeURIComponent(id), {
+        method: "PATCH",
+        body: { name: name, quantity: quantity, available: available }
+      })
+        .then(function () {
+          if (status) status.textContent = "Saved";
+          if (typeof SNM.loadFeed === "function") SNM.loadFeed();
+        })
+        .catch(function (err) {
+          if (status) status.textContent = "Failed";
+          alert((err && err.message) || "Update failed");
+        });
+      return;
+    }
+    if (act === "own-del" && id) {
+      if (!confirm("Delete this listing?")) return;
+      SNM.api("/products/" + encodeURIComponent(id), { method: "DELETE" })
+        .then(function () {
+          if (typeof SNM.loadFeed === "function") SNM.loadFeed();
+        })
+        .catch(function (err) {
+          alert((err && err.message) || "Delete failed");
+        });
+      return;
+    }
+    if (act === "comment" && id) {
       var box = document.querySelector('[data-comment-for="' + id + '"]');
       if (box) box.classList.toggle("hidden");
-    } else if (act === "comment-send" && id) {
-      var wrap = document.querySelector('[data-comment-for="' + id + '"]');
-      var input = wrap && wrap.querySelector(".comment-input");
+      return;
+    }
+    if (act === "comment-send" && id) {
+      var wrapC = document.querySelector('[data-comment-for="' + id + '"]');
+      var input = wrapC && wrapC.querySelector(".comment-input");
       var textc = input ? (input.value || "").trim() : "";
       if (!textc) return;
       SNM.api("/fairly-used/comments", {
@@ -768,7 +922,6 @@ SNM.loadFeed = async function () {
   try {
     var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
     var geo = typeof SNM.seekerGeo === "function" ? SNM.seekerGeo() : {};
-    /* empty q shows nearby catalogue; do not filter feed only by first pref */
     var q = "";
 
     var params = {
@@ -816,7 +969,9 @@ SNM.loadFeed = async function () {
       var ka = a.km != null && !isNaN(Number(a.km)) ? Number(a.km) : 999999;
       var kb = b.km != null && !isNaN(Number(b.km)) ? Number(b.km) : 999999;
       if (ka !== kb) return ka - kb;
-      return String(b.created_at || "").localeCompare(String(a.created_at || ""));
+      return String(b.created_at || "").localeCompare(
+        String(a.created_at || "")
+      );
     });
 
     var assistant =
@@ -826,14 +981,9 @@ SNM.loadFeed = async function () {
         ? '<div class="card assistant"><div class="meta">' +
           SNM.escapeHtml(String(assistant)) +
           "</div></div>"
-        : "") +
-      (normalized.length
-        ? normalized
-            .map(function (r) {
-              return SNM.cardHtml(r);
-            })
-            .join("")
-        : "<p class='soft'>No listings near you yet. Try Search or Fairly used.</p>");
+        : "") + SNM.renderFeedCarousel(normalized);
+    /* allow rebinding after each paint */
+    box._snmCardAct = false;
     if (typeof SNM.bindCardActions === "function") SNM.bindCardActions(box);
   } catch (e) {
     console.error("loadFeed", e);
