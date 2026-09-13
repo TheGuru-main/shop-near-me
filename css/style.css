@@ -1421,6 +1421,85 @@ body.has-nav .screen.active > .msg-layout {
   font-family: inherit;
 }
 
+/* ===== Layout repair: map + feed + news ===== */
+
+.screen {
+  display: none;
+  min-height: 100dvh;
+  height: auto;
+  flex-direction: column;
+  overflow: visible;
+  padding-top: var(--safe-top);
+}
+
+.screen.active {
+  display: flex;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+}
+
+.screen.active > .top-bar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+/* Scroll the body — not the whole app under the map */
+.screen.active > .container,
+.screen.active > .home-body,
+.screen.active > .msg-layout {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Home map must keep a real height (Leaflet dies at 0px) */
+#home .map-wrap {
+  position: relative;
+  width: 100%;
+  height: 180px;
+  min-height: 180px;
+  max-height: 220px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 0.35rem 0 0.75rem;
+  background: #e5e7eb;
+  z-index: 1;
+}
+
+#home #gsgMap,
+#home .map-stub {
+  width: 100% !important;
+  height: 180px !important;
+  min-height: 180px !important;
+}
+
+/* Feed stays below map, not on top of it */
+#home #homeFeed {
+  position: relative;
+  z-index: 0;
+  padding-bottom: 1rem;
+}
+
+body.has-nav .screen.active > .container,
+body.has-nav .screen.active > .home-body,
+body.has-nav .screen.active > .msg-layout {
+  padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 0.75rem);
+}
+
+body:not(.has-nav) .bottom-nav {
+  display: none !important;
+}
+
+body.has-nav .screen.active > .bottom-nav {
+  display: flex !important;
+}
+
 /* News cards */
 .news-card a {
   color: var(--primary);
