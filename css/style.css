@@ -643,16 +643,18 @@ input:focus, select:focus, textarea:focus {
 .news-card a {
   color: lightcyan;
   font-weight: 700;
-  text-decoration: italic;
-  background-color: grey;
+  text-decoration: none;
+  font-style: italic;
+  background-color: black;
   font-family: monospace;
-  
+  text-transform: uppercase;
+  justify-content: left;
 }
 .news-body {
   font-size: 0.85rem;
   color: black;
   margin-top: 0.35rem;
-  background-color: whitesmoke;
+  background-color: grey;
   font-family: monospace;
   text-transform: uppercase;
 }
@@ -940,92 +942,4 @@ input:focus, select:focus, textarea:focus {
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
-}
-
-/* ===== HARD PIN: shortcut + menu screens ===== */
-html, body {
-  height: 100%;
-  overflow: hidden;
-}
-
-#app {
-  height: 100dvh;
-  max-height: 100dvh;
-  overflow: hidden;
-}
-
-#fairly-used.screen.active,
-#banqueue.screen.active,
-#emergency.screen.active,
-#checkout-assist.screen.active,
-#premium.screen.active,
-#documents.screen.active,
-#calculator.screen.active,
-#invoice.screen.active,
-#dashboard.screen.active,
-#saved.screen.active,
-#search.screen.active,
-#shop.screen.active,
-#news.screen.active,
-#home.screen.active,
-#rules.screen.active,
-#about.screen.active {
-  display: flex !important;
-  flex-direction: column !important;
-  height: 100dvh !important;
-  max-height: 100dvh !important;
-  overflow: hidden !important;
-  position: relative !important;
-}
-
-/* Header: never scrolls */
-#fairly-used.screen.active > .top-bar,
-#banqueue.screen.active > .top-bar,
-#emergency.screen.active > .top-bar,
-#checkout-assist.screen.active > .top-bar,
-#premium.screen.active > .top-bar,
-#documents.screen.active > .top-bar,
-#calculator.screen.active > .top-bar,
-#invoice.screen.active > .top-bar,
-#dashboard.screen.active > .top-bar,
-#saved.screen.active > .top-bar,
-#search.screen.active > .top-bar,
-#shop.screen.active > .top-bar,
-#news.screen.active > .top-bar,
-#home.screen.active > .top-bar,
-#rules.screen.active > .top-bar,
-#about.screen.active > .top-bar {
-  flex: 0 0 auto !important;
-  position: relative !important;
-  top: auto !important;
-  z-index: 50 !important;
-  width: 100% !important;
-  background: #fff !important;
-  border-bottom: 1px solid rgba(20, 83, 45, 0.14) !important;
-}
-
-/* Body: ONLY scroll region */
-#fairly-used.screen.active > .container,
-#banqueue.screen.active > .container,
-#emergency.screen.active > .container,
-#checkout-assist.screen.active > .container,
-#premium.screen.active > .container,
-#documents.screen.active > .container,
-#calculator.screen.active > .container,
-#invoice.screen.active > .container,
-#dashboard.screen.active > .container,
-#saved.screen.active > .container,
-#search.screen.active > .container,
-#shop.screen.active > .container,
-#news.screen.active > .container,
-#home.screen.active > .container,
-#home.screen.active > .home-body,
-#rules.screen.active > .container,
-#about.screen.active > .container {
-  flex: 1 1 auto !important;
-  min-height: 0 !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  -webkit-overflow-scrolling: touch;
-  padding: 0.75rem 0.9rem;
 }
