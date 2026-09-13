@@ -530,6 +530,8 @@ input:focus, select:focus, textarea:focus {
   font-weight: 700;
   color: var(--primary);
   margin: 0 0 0.4rem;
+  font-style : italic; 
+  font family: monospace;
 }
 .card-rail {
   display: flex;
@@ -538,6 +540,7 @@ input:focus, select:focus, textarea:focus {
   padding: 4px 2px 10px;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
+  border-shadow: 2px 2px grey;
 }
 .card-rail .listing-card {
   flex: 0 0 min(280px, 82vw);
@@ -613,6 +616,8 @@ body.has-nav .screen.active {
 
 #buyerPrefs .chip {
   background: #ecfdf5;
+  font-family: monospace;
+  text-align : center;
 }
 
 /* ===== Shortcut screens: sticky header + visible content ===== */
@@ -1074,6 +1079,40 @@ body.has-nav .screen.active > .bottom-nav {
   height: 200px;
   border-radius: 12px;
   background: #e5e7eb;
+}
+
+.screen.active {
+  display: flex !important;
+  flex-direction: column;
+  min-height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+}
+
+.screen.active > .top-bar {
+  flex-shrink: 0;
+  position: relative;
+  z-index: 40;
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.screen.active > .container {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.75rem 0.9rem;
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+}
+
+.app-footer,
+.footer-line {
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #14532d;
+  padding: 0.65rem;
+  opacity: 0.85;
 }
 
 /* Error lines */
