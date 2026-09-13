@@ -73,14 +73,39 @@ body {
 .screen {
   display: none;
   flex-direction: column;
-  min-height: 100dvh;
+  height: 100dvh;
   max-height: 100dvh;
   overflow: hidden;
-  padding-top: var(--safe-top);
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 .screen.active {
+  display: flex !important;
+}
+
+/* Header: pinned in the flex column — does not scroll */
+.screen.active > .top-bar {
+  flex: 0 0 auto;
+  position: relative; 
+/* not sticky, not fixed — flex pin */
+  z-index: 50;
   display: flex;
+  align-items: center;
+  min-height: 52px;
+  padding: 0.45rem 0.85rem;
+  background: #fff;
+  border-bottom: 1px solid rgba(20, 83, 45, 0.14);
+}
+
+/* Only body scrolls */
+.screen.active > .container,
+.screen.active > .home-body,
+.screen.active > .msg-layout {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.75rem 0.9rem;
 }
 
 .hidden {
