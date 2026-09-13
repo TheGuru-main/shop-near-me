@@ -419,34 +419,39 @@ input:focus, select:focus, textarea:focus {
 }
 .card.assistant,
 .ai-card {
-  background: linear-gradient(145deg, #ecfdf5, #d1fae5);
+  background: linear-gradient(322deg, lightcyan, whitesmoke);
   border-color: rgba(20, 83, 45, 0.2);
+  color: black;
 }
 
 .listing-card.cat-food {
-  background: linear-gradient(145deg, #ecfdf5, #a7f3d0);
+  background: linear-gradient(195deg, #ecfdf5, #a7f3d0);
 }
 .listing-card.cat-merchant,
 .listing-card.cat-retail {
-  background: linear-gradient(145deg, #f0fdf4, #bbf7d0);
+  background: linear-gradient(246deg, #f0fdf4, #bbf7d0);
 }
 .listing-card.cat-service {
-  background: linear-gradient(145deg, #eff6ff, #bfdbfe);
+  background: linear-gradient(320deg, #eff6ff, #bfdbfe);
 }
 .listing-card.cat-driver {
-  background: linear-gradient(145deg, #fff7ed, #fed7aa);
+  background: linear-gradient(278deg, #fff7ed, #fed7aa);
 }
 .listing-card.cat-fairly_used {
-  background: linear-gradient(145deg, #faf5ff, #e9d5ff);
+  background: linear-gradient(325deg, #faf5ff, #e9d5ff);
 }
 .listing-card .title {
   font-weight: 700;
   color: var(--primary);
   margin: 0.35rem 0;
+  font-family: monospace;
+  font-style: italic;
+  text-transform: uppercase;
 }
 .listing-card .meta {
   font-size: 0.85rem;
   color: var(--muted);
+  font-family: monospace;
 }
 .listing-card .card-actions {
   display: flex;
