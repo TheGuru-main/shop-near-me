@@ -15,8 +15,6 @@ SNM.NEWS_CATS = [
 SNM.loadNews = async function (category) {
   category = category || SNM._newsCat || "business";
 
-SNM.api("/news" + SNM.qs({ category: category || "local", q: category || "local" }))
-
   SNM._newsCat = category;
   var list = document.getElementById("newsList");
   var ai = document.getElementById("newsAssistant");
