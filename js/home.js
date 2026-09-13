@@ -505,6 +505,10 @@ SNM.toggleMapExpand = function (forceOpen) {
   }, 280);
 };
 
+
+
+____________
+
 SNM.closeListingDetail = function () {
   var sheet = document.getElementById("listingDetail");
   if (!sheet) return;
@@ -541,6 +545,10 @@ SNM.closeListingDetail = function () {
   sheet.style.display = "none";
   document.body.classList.remove("sheet-open");
 };
+
+
+____________
+
 
 SNM.renderDetailMap = async function (item) {
   var mapEl =
@@ -735,9 +743,10 @@ SNM.openListingDetail = function (item) {
       '<button type="button" class="btn block" id="btnDetailMessage" style="margin-top:0.5rem">Message seller</button>';
   }
 
-  sheet.classList.add("open");
+ sheet.classList.add("open");
   sheet.setAttribute("aria-hidden", "false");
-  sheet.style.display = "block";
+  sheet.style.display = "flex";
+  document.body.classList.add("sheet-open");
 
   var msgBtn = document.getElementById("btnDetailMessage");
   if (msgBtn) {
