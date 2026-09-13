@@ -588,10 +588,24 @@
             </button>
           </div>
           <div id="msgList" class="msg-bubbles"></div>
-          <div class="compose-row">
-            <input id="msgInput" placeholder="Type a message…" autocomplete="off" />
-            <button type="button" class="btn" id="btnMsgSend">Send</button>
-          </div>
+      <div class="compose-row">
+  <button type="button" id="btnMsgImage" class="btn icon" aria-label="Image">
+    <i class="fa-solid fa-image"></i>
+  </button>
+  <input type="file" id="msg-image" accept="image/*" class="hidden" />
+
+  <button type="button" id="btnMsgVoice" class="btn icon" aria-label="Voice note">
+    <i class="fa-solid fa-microphone"></i>
+  </button>
+
+  <input id="msgInput" placeholder="Type a message…" autocomplete="off" />
+  <button type="button" class="btn" id="btnMsgSend">Send</button>
+</div>
+     
+      <input type="file" id="msg-image" accept="image/*" class="hidden" />
+      <input id="msgInput" placeholder="Type a message…" autocomplete="off" />
+      <button type="button" class="btn" id="btnMsgSend">Send</button>
+    </div>
         </div>
       </div>
       <nav class="bottom-nav" id="bottomNavMsg"></nav>

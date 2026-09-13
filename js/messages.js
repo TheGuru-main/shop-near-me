@@ -2,6 +2,9 @@ window.SNM = window.SNM || {};
 
 SNM._threadId = null;
 SNM._threadPeer = null;
+SNM._threadPeerId = null;
+SNM._voiceRec = null;
+SNM._voiceChunks = [];
 
 SNM._validThreadId = function (id) {
   if (id == null) return false;
@@ -13,6 +16,7 @@ SNM._validThreadId = function (id) {
 SNM.closeThread = function () {
   SNM._threadId = null;
   SNM._threadPeer = null;
+  SNM._threadPeerId = null;
   var tv = document.getElementById("threadView");
   var inbox = document.getElementById("inboxList");
   var list = document.getElementById("threadList");
@@ -40,6 +44,175 @@ SNM.closeThread = function () {
   if (tt) tt.textContent = "Thread";
 };
 
+SNM.renderMessageBubble = function (m, me) {
+  me = me || {};
+  var mine =
+    (m.sender_id && me.id && String(m.sender_id) === String(me.id)) ||
+    (m.from_phone && me.phone && m.from_phone === me.phone) ||
+    !!m.mine;
+
+  var type = (m.type || m.msg_type || "text").toLowerCase();
+  var body = m.body || m.text || "";
+  var media = m.media_url || m.image_url || m.audio_url || "";
+  var who =
+    m.sender_name ||
+    m.from_name ||
+    (mine ? me.name || "You" : m.peer_name || "");
+
+  var inner = "";
+  if (type === "image" && media) {
+    inner =
+      '<img class="msg-media" src="' +
+      SNM.escapeHtml(media) +
+      '" alt="image" />' +
+      (body
+        ? '<div class="msg-caption">' + SNM.escapeHtml(body) + "</div>"
+        : "");
+  } else if ((type === "voice" || type === "audio") && media) {
+    inner =
+      '<audio class="msg-audio" controls src="' +
+      SNM.escapeHtml(media) +
+      '"></audio>' +
+      (body
+        ? '<div class="msg-caption">' + SNM.escapeHtml(body) + "</div>"
+        : "");
+  } else {
+    inner = SNM.escapeHtml(body || "");
+  }
+
+  return (
+    '<div class="msg-bubble ' +
+    (mine ? "me" : "them") +
+    '" data-msg-id="' +
+    SNM.escapeHtml(String(m.id || "")) +
+    '">' +
+    (who
+      ? '<div class="msg-who">' + SNM.escapeHtml(String(who)) + "</div>"
+      : "") +
+    '<div class="msg-payload">' +
+    inner +
+    "</div></div>"
+  );
+};
+
+/** Startrow drop: sender from token; receiver = thread peer */
+SNM.dropMessagePayload = async function (payload) {
+  payload = payload || {};
+  if (!SNM._validThreadId(SNM._threadId) && !SNM._threadPeer) {
+    throw new Error("Open a thread first");
+  }
+  var body = {
+    type: payload.type || "text",
+    body: payload.body != null ? payload.body : payload.text || "",
+    text: payload.body != null ? payload.body : payload.text || ""
+  };
+  if (payload.media_url) body.media_url = payload.media_url;
+  if (SNM._threadPeerId) body.to_user_id = SNM._threadPeerId;
+
+  if (SNM._validThreadId(SNM._threadId)) {
+    return SNM.api(
+      "/messages/threads/" + encodeURIComponent(String(SNM._threadId)),
+      { method: "POST", body: body }
+    );
+  }
+  body.to_phone = SNM._threadPeer;
+  body.phone = SNM._threadPeer;
+  return SNM.api("/messages/send", { method: "POST", body: body });
+};
+
+SNM.reloadOpenThread = async function () {
+  if (!SNM._validThreadId(SNM._threadId)) return;
+  var titleEl = document.getElementById("threadTitle");
+  await SNM.openThread(
+    SNM._threadId,
+    titleEl ? titleEl.textContent : "Thread"
+  );
+};
+
+SNM.toggleVoiceNote = async function () {
+  var btn = document.getElementById("btnMsgVoice");
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert("Voice notes need mic permission on this device.");
+    return;
+  }
+  if (SNM._voiceRec && SNM._voiceRec.state === "recording") {
+    SNM._voiceRec.stop();
+    if (btn) btn.classList.remove("recording");
+    return;
+  }
+  try {
+    var stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    SNM._voiceChunks = [];
+    var mime = MediaRecorder.isTypeSupported("audio/webm")
+      ? "audio/webm"
+      : "audio/mp4";
+    SNM._voiceRec = new MediaRecorder(stream, { mimeType: mime });
+    SNM._voiceRec.ondataavailable = function (e) {
+      if (e.data && e.data.size) SNM._voiceChunks.push(e.data);
+    };
+    SNM._voiceRec.onstop = async function () {
+      stream.getTracks().forEach(function (t) {
+        t.stop();
+      });
+      var blob = new Blob(SNM._voiceChunks, { type: mime });
+      SNM._voiceChunks = [];
+      if (blob.size < 500) return;
+      if (blob.size > 900000) {
+        alert("Voice note too long/large.");
+        return;
+      }
+      try {
+        var dataUrl = await new Promise(function (resolve, reject) {
+          var r = new FileReader();
+          r.onload = function () {
+            resolve(r.result);
+          };
+          r.onerror = reject;
+          r.readAsDataURL(blob);
+        });
+        await SNM.dropMessagePayload({
+          type: "voice",
+          body: "",
+          media_url: dataUrl
+        });
+        await SNM.reloadOpenThread();
+      } catch (err) {
+        alert((err && err.message) || "Voice send failed");
+      }
+    };
+    SNM._voiceRec.start();
+    if (btn) btn.classList.add("recording");
+  } catch (e) {
+    alert("Mic blocked or unavailable.");
+  }
+};
+
+SNM.openCallSheet = function (mode, peerLabel) {
+  var sheet = document.getElementById("call-sheet");
+  var peer = document.getElementById("callPeer");
+  var status = document.getElementById("callStatus");
+  if (peer) peer.textContent = peerLabel || SNM._threadPeer || "Peer";
+  if (status) {
+    status.textContent =
+      (mode === "video" ? "Video" : "Voice") +
+      " — signaling not fully live yet";
+  }
+  if (sheet) {
+    sheet.classList.add("open");
+    sheet.setAttribute("aria-hidden", "false");
+    sheet.style.display = "block";
+  }
+};
+
+SNM.closeCallSheet = function () {
+  var sheet = document.getElementById("call-sheet");
+  if (sheet) {
+    sheet.classList.remove("open");
+    sheet.setAttribute("aria-hidden", "true");
+    sheet.style.display = "none";
+  }
+};
+
 SNM.loadInbox = async function (opts) {
   opts = opts || {};
   var box =
@@ -47,7 +220,6 @@ SNM.loadInbox = async function (opts) {
     document.getElementById("threadList");
   if (!box) return;
 
-  /* Only close open thread when entering screen, not on every refresh */
   if (opts.closeThread !== false && !opts.keepThread) {
     SNM.closeThread();
   }
@@ -62,7 +234,6 @@ SNM.loadInbox = async function (opts) {
       (Array.isArray(data) ? data : []);
     if (!Array.isArray(rows)) rows = [];
 
-    /* drop broken / placeholder rows */
     rows = rows.filter(function (t) {
       var id = t && (t.id != null ? t.id : t.thread_id);
       return SNM._validThreadId(id);
@@ -125,13 +296,16 @@ SNM.loadInbox = async function (opts) {
 
 SNM.loadMessages = SNM.loadInbox;
 
-SNM.openThread = async function (id, title) {
+SNM.openThread = async function (id, title, peerMeta) {
   if (!SNM._validThreadId(id)) {
     console.warn("openThread: invalid id", id);
     return;
   }
   id = String(id).trim();
   SNM._threadId = id;
+  peerMeta = peerMeta || {};
+  if (peerMeta.phone) SNM._threadPeer = peerMeta.phone;
+  if (peerMeta.user_id) SNM._threadPeerId = peerMeta.user_id;
 
   var tv = document.getElementById("threadView");
   var inbox = document.getElementById("inboxList");
@@ -167,22 +341,10 @@ SNM.openThread = async function (id, title) {
       box.innerHTML = msgs.length
         ? msgs
             .map(function (m) {
-              var mine =
-                (m.sender_id &&
-                  me.id &&
-                  String(m.sender_id) === String(me.id)) ||
-                (m.from_phone && me.phone && m.from_phone === me.phone) ||
-                !!m.mine;
-              return (
-                '<div class="msg-bubble ' +
-                (mine ? "me" : "them") +
-                '">' +
-                SNM.escapeHtml(m.body || m.text || "") +
-                "</div>"
-              );
+              return SNM.renderMessageBubble(m, me);
             })
             .join("")
-        : "<p class='soft'>No messages yet. Say hello.</p>";
+        : "<p class='soft'>No messages yet. Type below to start.</p>";
       box.scrollTop = box.scrollHeight;
     }
   } catch (e) {
@@ -232,8 +394,13 @@ SNM.startDmByPhone = async function (phone) {
       (looked.thread && looked.thread.id) ||
       null;
 
+    SNM._threadPeerId = userId || null;
+
     if (SNM._validThreadId(tid)) {
-      await SNM.openThread(String(tid), looked.name || phone);
+      await SNM.openThread(String(tid), looked.name || phone, {
+        phone: phone,
+        user_id: userId
+      });
       return;
     }
 
@@ -244,11 +411,11 @@ SNM.startDmByPhone = async function (phone) {
       return;
     }
 
+    /* Create thread only — no auto "Hi" */
     var created = await SNM.api("/messages/threads", {
       method: "POST",
       body: {
         to_user_id: userId,
-        body: "Hi",
         context_type: "direct"
       }
     });
@@ -259,7 +426,10 @@ SNM.startDmByPhone = async function (phone) {
       (created.thread && created.thread.id);
 
     if (SNM._validThreadId(tid)) {
-      await SNM.openThread(String(tid), looked.name || phone);
+      await SNM.openThread(String(tid), looked.name || phone, {
+        phone: phone,
+        user_id: userId
+      });
     } else if (typeof SNM.loadInbox === "function") {
       await SNM.loadInbox({ keepThread: true });
     }
@@ -315,41 +485,90 @@ SNM.bindMessages = function () {
         document.getElementById("msgInput");
       var text = input ? (input.value || "").trim() : "";
       if (!text) return;
-      if (!SNM._validThreadId(SNM._threadId) && !SNM._threadPeer) {
-        if (typeof SNM.toast === "function") SNM.toast("Open a thread first");
-        return;
-      }
       try {
-        if (SNM._validThreadId(SNM._threadId)) {
-          await SNM.api(
-            "/messages/threads/" +
-              encodeURIComponent(String(SNM._threadId)),
-            { method: "POST", body: { body: text, text: text } }
-          );
-        } else {
-          await SNM.api("/messages/send", {
-            method: "POST",
-            body: {
-              body: text,
-              text: text,
-              to_phone: SNM._threadPeer,
-              phone: SNM._threadPeer
-            }
-          });
-        }
+        await SNM.dropMessagePayload({ type: "text", body: text });
         if (input) input.value = "";
-        if (SNM._validThreadId(SNM._threadId)) {
-          var titleEl = document.getElementById("threadTitle");
-          await SNM.openThread(
-            SNM._threadId,
-            titleEl ? titleEl.textContent : "Thread"
-          );
-        }
+        await SNM.reloadOpenThread();
       } catch (e) {
         if (typeof SNM.toast === "function")
           SNM.toast(e.message || "Send failed");
         else alert(e.message || "Send failed");
       }
+    };
+  }
+
+  var imgBtn = document.getElementById("btnMsgImage");
+  var imgInput = document.getElementById("msg-image");
+  if (imgBtn && imgInput && !imgBtn._snmWired) {
+    imgBtn._snmWired = true;
+    imgBtn.onclick = function () {
+      imgInput.click();
+    };
+    imgInput.onchange = async function () {
+      var f = imgInput.files && imgInput.files[0];
+      if (!f) return;
+      if (f.size > 900000) {
+        alert("Image too large (keep under \~900KB).");
+        imgInput.value = "";
+        return;
+      }
+      try {
+        var dataUrl = await new Promise(function (resolve, reject) {
+          var r = new FileReader();
+          r.onload = function () {
+            resolve(r.result);
+          };
+          r.onerror = reject;
+          r.readAsDataURL(f);
+        });
+        await SNM.dropMessagePayload({
+          type: "image",
+          body: "",
+          media_url: dataUrl
+        });
+        imgInput.value = "";
+        await SNM.reloadOpenThread();
+      } catch (e) {
+        alert((e && e.message) || "Image send failed");
+      }
+    };
+  }
+
+  var voiceBtn = document.getElementById("btnMsgVoice");
+  if (voiceBtn && !voiceBtn._snmWired) {
+    voiceBtn._snmWired = true;
+    voiceBtn.onclick = function () {
+      SNM.toggleVoiceNote();
+    };
+  }
+
+  var callV = document.getElementById("btnCallVoice");
+  if (callV && !callV._snmWired) {
+    callV._snmWired = true;
+    callV.onclick = function () {
+      if (!SNM._validThreadId(SNM._threadId)) {
+        alert("Open a chat first");
+        return;
+      }
+      SNM.openCallSheet("voice");
+    };
+  }
+  var callVid = document.getElementById("btnCallVideo");
+  if (callVid && !callVid._snmWired) {
+    callVid._snmWired = true;
+    callVid.onclick = function () {
+      if (!SNM._validThreadId(SNM._threadId)) {
+        alert("Open a chat first");
+        return;
+      }
+      SNM.openCallSheet("video");
+    };
+  }
+  var callEnd = document.getElementById("btnCallEnd");
+  if (callEnd && !callEnd._snmWired) {
+    callEnd._snmWired = true;
+    callEnd.onclick = function () {
+      SNM.closeCallSheet();
     };
   }
 

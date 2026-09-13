@@ -261,6 +261,9 @@ body {
   margin-top: 1rem;
 }
 
+.msg-bubble .msg-who { font-size: 0.7rem; opacity: 0.7; margin-bottom: 2px; }
+.msg-bubble .msg-media { max-width: 100%; border-radius: 8px; display: block; }
+.msg-bubble .msg-audio { width: 100%; max-width: 220px; }
 .phone-row {
   display: flex;
   gap: 0.5rem;
@@ -277,6 +280,11 @@ body {
   color: var(--primary);
   font-weight: 700;
   font-size: 0.9rem;
+}
+
+#btnMsgVoice.recording {
+  color: #b91c1c;
+  box-shadow: 0 0 0 2px #fecaca;
 }
 
 .phone-row input {
@@ -314,6 +322,29 @@ body {
   box-shadow: 0 -8px 30px rgba(0,0,0,0.18);
   transition: max-height 0.25s ease;
 }
+
+.listing-card {
+  border: 1px solid rgba(20, 83, 45, 0.12);
+  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+}
+.listing-card.cat-food {
+  background: linear-gradient(145deg, #ecfdf5 0%, #d1fae5 55%, #a7f3d0 100%);
+}
+.listing-card.cat-merchant,
+.listing-card.cat-retail {
+  background: linear-gradient(145deg, #f0fdf4 0%, #dcfce7 50%, #bbf7d0 100%);
+}
+.listing-card.cat-service {
+  background: linear-gradient(145deg, #eff6ff 0%, #dbeafe 55%, #bfdbfe 100%);
+}
+.listing-card.cat-driver {
+  background: linear-gradient(145deg, #fff7ed 0%, #ffedd5 55%, #fed7aa 100%);
+}
+.listing-card.cat-fairly_used {
+  background: linear-gradient(145deg, #faf5ff 0%, #f3e8ff 55%, #e9d5ff 100%);
+}
+.listing-card .title { color: #14532d; }
+
 .detail-sheet-inner.map-mode {
   max-height: 100dvh;
   border-radius: 0;
