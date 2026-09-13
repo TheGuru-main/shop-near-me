@@ -1,4 +1,7 @@
-/* Shop Near Me — unified stylesheet (matches index.html structure) */
+/* Shop Near Me — single stylesheet aligned to index.html
+   Rule: each .screen = top-bar + .container (+ optional .bottom-nav)
+   Header never scrolls away; only .container scrolls.
+*/
 
 :root {
   --bg: linear-gradient(331deg, #6b7280 0%, #16a34a 50%, #a5f3fc 100%);
@@ -22,9 +25,10 @@
   --z-content: 2;
   --z-nav: 100;
   --z-menu: 2000;
-  --z-sheet: 2100;
+  --z-sheet: 2200;
   --z-splash: 50;
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --app-max: 480px;
 }
 
 *,
@@ -53,8 +57,6 @@ body {
 #network-bg {
   position: fixed;
   inset: 0;
-  width: 100%;
-  height: 100%;
   z-index: var(--z-bg);
   pointer-events: none;
 }
@@ -62,12 +64,12 @@ body {
 #app {
   position: relative;
   z-index: var(--z-content);
-  max-width: 480px;
+  max-width: var(--app-max);
   margin: 0 auto;
   min-height: 100dvh;
 }
 
-/* ----- Screens ----- */
+/* ========== SCREENS ========== */
 .screen {
   display: none;
   flex-direction: column;
@@ -85,7 +87,7 @@ body {
   display: none !important;
 }
 
-/* ----- Splash ----- */
+/* ========== SPLASH ========== */
 #splash {
   position: fixed;
   inset: 0;
@@ -128,47 +130,61 @@ body {
   margin-top: 0.25rem;
 }
 
-/* ----- Top bar (always on top of each screen) ----- */
-.top-bar {
+/* ========== TOP BAR (fixed in column, never scrolls) ========== */
+.screen.active > .top-bar {
   flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 0.5rem;
   min-height: var(--bar-h);
   padding: 0.45rem 0.85rem;
-  background: rgba(255, 255, 255, 0.96);
+  background: linear-gradient(180deg, #ffffff 0%, #f0fdf4 100%);
   border-bottom: 1px solid var(--card-border);
-  backdrop-filter: blur(12px);
-  position: relative;
-  z-index: 30;
+  box-shadow: 0 2px 12px rgba(20, 83, 45, 0.06);
+  z-index: 40;
+}
+
+/* inactive screens still define top-bar for structure */
+.top-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: var(--bar-h);
+  padding: 0.45rem 0.85rem;
+  background: linear-gradient(180deg, #ffffff 0%, #f0fdf4 100%);
+  border-bottom: 1px solid var(--card-border);
 }
 
 .brand-sm {
   flex: 1;
   text-align: center;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--primary);
-  font-size: 0.95rem;
+  font-size: 1rem;
+  letter-spacing: -0.02em;
 }
 
 .screen-title {
   flex: 1;
   text-align: center;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 700;
   color: var(--primary);
+  line-height: 1.2;
 }
 
 .spacer {
   width: 40px;
+  flex-shrink: 0;
 }
 
 .icon-btn {
   width: 40px;
   height: 40px;
+  flex-shrink: 0;
   border: none;
   border-radius: 12px;
-  background: #f0fdf4;
+  background: #ecfdf5;
   color: var(--primary);
   display: inline-flex;
   align-items: center;
@@ -176,17 +192,26 @@ body {
   cursor: pointer;
   font-size: 1rem;
 }
+.icon-btn:active {
+  background: #bbf7d0;
+}
 
-/* ----- Scrollable body ----- */
-.container,
-.home-body,
-.msg-layout,
-.stack {
+/* ========== BODY (only this scrolls) ========== */
+.screen.active > .container,
+.screen.active > .home-body,
+.screen.active > .msg-layout {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding: 0.75rem 0.9rem;
+}
+
+/* room for fixed bottom nav */
+body.has-nav .screen.active > .container,
+body.has-nav .screen.active > .home-body,
+body.has-nav .screen.active > .msg-layout {
+  padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 0.85rem);
 }
 
 .stack {
@@ -195,28 +220,32 @@ body {
   gap: 0.75rem;
 }
 
-/* ----- Bottom nav: only authed active screen ----- */
+.form-stack label {
+  margin-bottom: 0.45rem;
+}
+
+/* ========== BOTTOM NAV ========== */
 .bottom-nav {
   display: none !important;
-  flex-shrink: 0;
+}
+
+body.has-nav .screen.active > .bottom-nav {
+  display: flex !important;
   position: fixed;
   left: 50%;
   transform: translateX(-50%);
   bottom: 0;
   width: 100%;
-  max-width: 480px;
+  max-width: var(--app-max);
   z-index: var(--z-nav);
   justify-content: space-around;
   align-items: center;
   min-height: var(--nav-h);
   padding: 0.35rem 0.35rem calc(0.35rem + var(--safe-bottom));
-  background: rgba(255, 255, 255, 0.96);
+  background: rgba(255, 255, 255, 0.97);
   border-top: 1px solid var(--card-border);
   backdrop-filter: blur(12px);
-}
-
-body.has-nav .screen.active > .bottom-nav {
-  display: flex !important;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06);
 }
 
 body:not(.has-nav) .bottom-nav {
@@ -230,48 +259,48 @@ body:not(.has-nav) .bottom-nav {
   color: var(--muted);
   font-size: 0.65rem;
   font-weight: 600;
-  padding: 0.25rem 0.15rem;
+  padding: 0.25rem 0.1rem;
   cursor: pointer;
   font-family: inherit;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.15rem;
+  gap: 0.12rem;
 }
-
 .bottom-nav button i {
   font-size: 1.1rem;
 }
-
 .bottom-nav button.active {
   color: var(--primary);
 }
 
-body.has-nav .screen.active > .container,
-body.has-nav .screen.active > .home-body,
-body.has-nav .screen.active > .msg-layout,
-body.has-nav .screen.active > .stack {
-  padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 0.85rem);
+/* ========== FOOTER ========== */
+.app-footer,
+.footer-line {
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--primary);
+  letter-spacing: 0.02em;
+  padding: 0.65rem 0.75rem;
+  opacity: 0.9;
 }
 
-/* ----- Typography / utils ----- */
-.muted, .soft {
-  color: var(--muted);
+.app-footer {
+  max-width: var(--app-max);
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.8);
+  border-top: 1px solid rgba(20, 83, 45, 0.12);
 }
-.small {
-  font-size: 0.8rem;
-}
+
+/* ========== TYPE / UTILS ========== */
+.muted, .soft { color: var(--muted); }
+.small { font-size: 0.8rem; }
 .section-h {
   font-size: 1rem;
   font-weight: 700;
   color: var(--primary);
   margin: 0.35rem 0;
-}
-.footer-line {
-  text-align: center;
-  font-size: 0.75rem;
-  color: var(--muted);
-  margin: 1rem 0 0.5rem;
 }
 .row-between {
   display: flex;
@@ -280,7 +309,7 @@ body.has-nav .screen.active > .stack {
   gap: 0.5rem;
 }
 
-/* ----- Buttons ----- */
+/* ========== BUTTONS ========== */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -296,12 +325,8 @@ body.has-nav .screen.active > .stack {
   background: linear-gradient(145deg, #166534, #14532d);
   color: #fff;
 }
-.btn:active {
-  transform: scale(0.98);
-}
-.btn.block {
-  width: 100%;
-}
+.btn:active { transform: scale(0.98); }
+.btn.block { width: 100%; }
 .btn.secondary {
   background: #ecfdf5;
   color: var(--primary);
@@ -312,10 +337,7 @@ body.has-nav .screen.active > .stack {
   color: var(--primary);
   border: 1px solid rgba(20, 83, 45, 0.25);
 }
-.btn.danger {
-  background: var(--danger);
-  color: #fff;
-}
+.btn.danger { background: var(--danger); color: #fff; }
 .btn.small {
   padding: 0.35rem 0.65rem;
   font-size: 0.8rem;
@@ -330,7 +352,7 @@ body.has-nav .screen.active > .stack {
   color: var(--primary);
 }
 
-/* ----- Forms ----- */
+/* ========== FORMS ========== */
 label {
   display: flex;
   flex-direction: column;
@@ -359,11 +381,9 @@ input:focus, select:focus, textarea:focus {
   gap: 0.5rem;
   font-weight: 500;
 }
-.check-row input {
-  width: auto;
-}
+.check-row input { width: auto; }
 
-/* ----- Cards ----- */
+/* ========== CARDS ========== */
 .card {
   background: var(--card);
   border: 1px solid var(--card-border);
@@ -378,22 +398,21 @@ input:focus, select:focus, textarea:focus {
   border-color: rgba(20, 83, 45, 0.2);
 }
 
-/* Listing category gradients */
 .listing-card.cat-food {
-  background: linear-gradient(145deg, #ecfdf5 0%, #d1fae5 55%, #a7f3d0 100%);
+  background: linear-gradient(145deg, #ecfdf5, #a7f3d0);
 }
 .listing-card.cat-merchant,
 .listing-card.cat-retail {
-  background: linear-gradient(145deg, #f0fdf4 0%, #dcfce7 50%, #bbf7d0 100%);
+  background: linear-gradient(145deg, #f0fdf4, #bbf7d0);
 }
 .listing-card.cat-service {
-  background: linear-gradient(145deg, #eff6ff 0%, #dbeafe 55%, #bfdbfe 100%);
+  background: linear-gradient(145deg, #eff6ff, #bfdbfe);
 }
 .listing-card.cat-driver {
-  background: linear-gradient(145deg, #fff7ed 0%, #ffedd5 55%, #fed7aa 100%);
+  background: linear-gradient(145deg, #fff7ed, #fed7aa);
 }
 .listing-card.cat-fairly_used {
-  background: linear-gradient(145deg, #faf5ff 0%, #f3e8ff 55%, #e9d5ff 100%);
+  background: linear-gradient(145deg, #faf5ff, #e9d5ff);
 }
 .listing-card .title {
   font-weight: 700;
@@ -421,7 +440,7 @@ input:focus, select:focus, textarea:focus {
 .badge-stock.out { color: var(--danger); font-size: 0.75rem; font-weight: 700; }
 .badge-live { color: #16a34a; font-size: 0.75rem; font-weight: 700; }
 
-/* ----- Role select ----- */
+/* ========== ROLE SELECT ========== */
 .role-stack {
   display: flex;
   flex-direction: column;
@@ -449,25 +468,20 @@ input:focus, select:focus, textarea:focus {
   width: 1.5rem;
   text-align: center;
 }
-.role-btn:active {
-  background: #bbf7d0;
-}
+.role-btn:active { background: #bbf7d0; }
 
-/* ----- Home quick nav (above map) ----- */
+/* ========== HOME QUICK NAV ========== */
 .home-quick-nav,
 #homeChips {
   display: flex;
   gap: 0.5rem;
   overflow-x: auto;
-  padding: 0.25rem 0 0.65rem;
+  padding: 0.15rem 0 0.65rem;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  position: relative;
   z-index: 5;
 }
-.home-quick-nav::-webkit-scrollbar {
-  display: none;
-}
+.home-quick-nav::-webkit-scrollbar { display: none; }
 
 .quick-nav-btn {
   flex: 0 0 auto;
@@ -487,14 +501,10 @@ input:focus, select:focus, textarea:focus {
   cursor: pointer;
   font-family: inherit;
 }
-.quick-nav-btn i {
-  font-size: 1.1rem;
-}
-.quick-nav-btn:active {
-  background: #bbf7d0;
-}
+.quick-nav-btn i { font-size: 1.1rem; }
+.quick-nav-btn:active { background: #bbf7d0; }
 
-/* ----- Map: fixed height, never under chips ----- */
+/* ========== MAP ========== */
 .map-wrap {
   position: relative;
   z-index: 1;
@@ -507,31 +517,25 @@ input:focus, select:focus, textarea:focus {
   margin: 0 0 0.75rem;
   border: 1px solid var(--card-border);
 }
-
 #gsgMap,
 .map-stub {
   width: 100% !important;
   height: var(--map-h) !important;
   min-height: var(--map-h) !important;
 }
-
-#homeFeed,
-.feed-list {
-  position: relative;
-  z-index: 0;
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  z-index: 1;
 }
 
-/* Feed carousels */
-.feed-section {
-  margin: 0 0 1.1rem;
-}
+/* ========== FEED CAROUSEL ========== */
+.feed-section { margin: 0 0 1.1rem; }
 .feed-section-h {
   font-size: 0.9rem;
   font-weight: 700;
   color: var(--primary);
   margin: 0 0 0.4rem;
-  font-style : italic; 
-  font family: monospace;
 }
 .card-rail {
   display: flex;
@@ -540,7 +544,6 @@ input:focus, select:focus, textarea:focus {
   padding: 4px 2px 10px;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
-  border-shadow: 2px 2px grey;
 }
 .card-rail .listing-card {
   flex: 0 0 min(280px, 82vw);
@@ -548,41 +551,7 @@ input:focus, select:focus, textarea:focus {
   scroll-snap-align: start;
 }
 
-/* ===== Simpler screen chrome ===== */
-.screen {
-  max-height: none;
-  overflow-x: hidden;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.screen.active {
-  display: flex;
-  flex-direction: column;
-  min-height: 100dvh;
-}
-
-.screen.active > .top-bar {
-  position: sticky;
-  top: 0;
-  z-index: 40;
-  flex-shrink: 0;
-}
-
-.screen.active > .container,
-.screen.active > .home-body,
-.screen.active > .stack,
-.screen.active > .msg-layout {
-  flex: 1 1 auto;
-  overflow: visible;
-  min-height: auto;
-}
-
-body.has-nav .screen.active {
-  padding-bottom: calc(var(--nav-h) + var(--safe-bottom));
-}
-
-/* ----- Chips (news, prefs, general) ----- */
+/* ========== CHIPS ========== */
 .chip-row,
 #newsCats,
 #buyerPrefs {
@@ -591,7 +560,6 @@ body.has-nav .screen.active {
   gap: 0.45rem;
   margin: 0.4rem 0 0.75rem;
 }
-
 .chip-btn,
 .chip {
   display: inline-flex;
@@ -606,7 +574,6 @@ body.has-nav .screen.active {
   cursor: pointer;
   font-family: inherit;
 }
-
 .chip-btn.active,
 .chip.active {
   background: var(--primary);
@@ -614,322 +581,26 @@ body.has-nav .screen.active {
   border-color: var(--primary);
 }
 
-#buyerPrefs .chip {
-  background: #ecfdf5;
-  font-family: monospace;
-  text-align : center;
-}
-
-/* ===== Shortcut screens: sticky header + visible content ===== */
-
-#fairly-used.screen.active,
-#banqueue.screen.active,
-#emergency.screen.active,
-#checkout-assist.screen.active,
-#checkout.screen.active,
-#premium.screen.active,
-#documents.screen.active,
-#calculator.screen.active,
-#invoice.screen.active,
-#dashboard.screen.active,
-#rules.screen.active,
-#about.screen.active,
-#trust.screen.active,
-#admin-contact.screen.active,
-#saved.screen.active,
-#search.screen.active,
-#shop.screen.active,
-#messages.screen.active,
-#news.screen.active,
-#home.screen.active {
-  display: flex;
-  flex-direction: column;
-  min-height: 100dvh;
-  max-height: 100dvh;
-  overflow: hidden;
-}
-
-/* Header always visible at top — no scroll-to-find */
-#fairly-used.screen.active > .top-bar,
-#banqueue.screen.active > .top-bar,
-#emergency.screen.active > .top-bar,
-#checkout-assist.screen.active > .top-bar,
-#checkout.screen.active > .top-bar,
-#premium.screen.active > .top-bar,
-#documents.screen.active > .top-bar,
-#calculator.screen.active > .top-bar,
-#invoice.screen.active > .top-bar,
-#dashboard.screen.active > .top-bar,
-#rules.screen.active > .top-bar,
-#about.screen.active > .top-bar,
-#trust.screen.active > .top-bar,
-#admin-contact.screen.active > .top-bar,
-#saved.screen.active > .top-bar,
-#search.screen.active > .top-bar,
-#shop.screen.active > .top-bar,
-#messages.screen.active > .top-bar,
-#news.screen.active > .top-bar,
-#home.screen.active > .top-bar {
-  position: fixed;
-  flex-shrink: 0;
-  z-index: 40;
-  background: whitesmoke;
-  color: black;
-  text-transform: uppercase;
-  text-align: relative;
-}
-
-/* Only the body scrolls */
-#fairly-used.screen.active > .container,
-#banqueue.screen.active > .container,
-#emergency.screen.active > .container,
-#checkout-assist.screen.active > .container,
-#checkout.screen.active > .container,
-#premium.screen.active > .container,
-#documents.screen.active > .container,
-#calculator.screen.active > .container,
-#invoice.screen.active > .container,
-#dashboard.screen.active > .container,
-#rules.screen.active > .container,
-#about.screen.active > .container,
-#trust.screen.active > .container,
-#admin-contact.screen.active > .container,
-#saved.screen.active > .container,
-#search.screen.active > .container,
-#shop.screen.active > .container,
-#messages.screen.active > .container,
-#messages.screen.active > .msg-layout,
-#news.screen.active > .container,
-#home.screen.active > .container,
-#home.screen.active > .home-body {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  padding-top: 0.75rem;
-}
-
-/* Footer nav stays on screen */
-body.has-nav .screen.active > .bottom-nav {
-  display: flex !important;
-  flex-shrink: 0;
-  position: relative; /* inside column — not fighting fixed stack */
-  left: auto;
-  transform: none;
-  width: 100%;
-  max-width: 480px;
-}
-
-/* If you prefer fixed footer bar, use this instead of position:relative above:
-body.has-nav .screen.active > .bottom-nav {
-  position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.app-footer {
-  max-width: 480px;
-  margin: 0 auto;
-  background: rgba(255, 255, 255, 0.75);
-  border-top: 1px solid rgba(20, 83, 45, 0.1);
-}
-
-/* In-screen footers inside scroll area */
-.container .footer-line,
-.home-body .footer-line,
-.stack .footer-line {
-  margin-top: 1.25rem;
-  margin-bottom: 0.5rem;
-}
-
-/* ===== Side dropdown menu (hamburger) ===== 
-*/
-#menuSheet.top-menu,
-.top-menu {
-  position: fixed;
-  top: calc(var(--bar-h) + var(--safe-top) + 4px);
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(280px, calc(100% - 2rem));
-  max-width: 480px;
-  margin-left: 0;
-  /* pin under app column */
-  right: auto;
-  z-index: 2000;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  padding: 0.5rem;
-  background: #fff;
-  border: 1px solid rgba(20, 83, 45, 0.15);
-  border-radius: 14px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
-}
-
-/* Prefer right side of the 480px app column */
-@media (min-width: 480px) {
-  #menuSheet.top-menu {
-    left: auto;
-    right: calc(50% - 240px + 0.75rem);
-    transform: none;
-  }
-}
-
-#menuSheet.top-menu.hidden {
-  display: none !important;
-}
-
-#menuSheet.top-menu button {
-  display: block;
-  width: 100%;
-  text-align: left;
-  border: none;
-  background: #f0fdf4;
-  color: #14532d;
-  font-weight: 600;
-  font-size: 0.9rem;
-  font-family: inherit;
-  padding: 0.7rem 0.85rem;
-  border-radius: 10px;
-  cursor: pointer;
-}
-
-#menuSheet.top-menu button:active {
-  background: #bbf7d0;
-}
-
-#menuSheet.top-menu button.danger {
-  background: #fef2f2;
-  color: #b91c1c;
-}
-
-/* ===== Listing detail: centered card sheet (in-app) ===== */
-
-#listingDetail.sheet,
-#listingDetail {
-  position: fixed !important;
-  inset: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  top: 0 !important;
-  bottom: 0 !important;
-  width: 100% !important;
-  max-width: none !important;
-  transform: none !important;
-  margin: 0 !important;
-  z-index: 2200 !important;
-  display: none;
-  align-items: flex-end;
-  justify-content: center;
-  background: rgba(15, 23, 42, 0.45);
-  padding: 0;
-  border-radius: 0;
-  box-shadow: none;
-}
-
-#listingDetail.open,
-#listingDetail[aria-hidden="false"] {
-  display: flex !important;
-}
-
-/* Inner panel = phone-width card */
-#listingDetail .sheet-handle,
-#listingDetail .sheet-body,
-#listingDetail #listingDetailBody,
-#listingDetail #listingDetailMap,
-#listingDetail .detail-map,
-#listingDetail > .btn {
-  width: 100%;
-  max-width: 480px;
-}
-
-#listingDetail {
-  flex-direction: column;
-}
-
-/* White sheet stack at bottom center */
-#listingDetail.open {
-  flex-direction: column;
-  justify-content: flex-end;
-  align-items: center;
-}
-
-#listingDetail > * {
-  background: #fff;
-}
-
-#listingDetail .sheet-handle {
-  margin: 0.5rem auto 0;
-  flex-shrink: 0;
-}
-
-#listingDetail #listingDetailBody,
-#listingDetail .sheet-body {
-  max-height: 42vh;
-  overflow-y: auto;
-  padding: 0.75rem 1rem;
-  border-radius: 18px 18px 0 0;
-}
-
-#listingDetail #listingDetailMap,
-#listingDetail .detail-map {
-  height: 200px !important;
-  min-height: 200px !important;
-  max-height: 45vh;
-  border-radius: 0;
-  background: #e5e7eb;
-}
-
-#listingDetail > .btn {
-  border-radius: 0;
-  margin: 0;
-  max-width: 480px;
-}
-
-/* Expanded map on tap */
-#listingDetailMap.map-expanded,
-#listingDetail .detail-map.map-expanded {
-  height: 55vh !important;
-  min-height: 55vh !important;
-}
-
-/* ----- News ----- */
-#news .container,
-#news.screen.active > .container {
-  display: flex;
-  flex-direction: column;
-}
-
+/* ========== NEWS ========== */
 #newsCats {
-  flex-shrink: 0;
   flex-wrap: nowrap;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 0.25rem;
-  text-transform : uppercase;
-  font-family: monospace;
-  font-style: italic;
-  height: 37px;
-  background-color: darkgrey;
+  scrollbar-width: none;
 }
-
+#newsCats::-webkit-scrollbar { display: none; }
 .news-card a {
   color: var(--primary);
   font-weight: 700;
   text-decoration: none;
-  text-transform: uppercase;
-  font-family: monospace;
-  font-style: italic;
-  background-color: darkgrey;
 }
 .news-body {
   font-size: 0.85rem;
   color: var(--muted);
   margin-top: 0.35rem;
-  font-family: monospace;
 }
 
-/* ----- Setup panels ----- */
+/* ========== SETUP / SHOP PANELS ========== */
 .setup-panel.hidden,
 .shop-panel.hidden {
   display: none !important;
@@ -941,7 +612,7 @@ body.has-nav .screen.active > .bottom-nav {
   gap: 0.55rem;
 }
 
-/* ----- Messages ----- */
+/* ========== MESSAGES ========== */
 .msg-layout {
   display: flex;
   flex-direction: column;
@@ -980,7 +651,7 @@ body.has-nav .screen.active > .bottom-nav {
   flex-direction: column;
   gap: 0.4rem;
   padding: 0.35rem 0;
-  min-height: 200px;
+  min-height: 180px;
 }
 .msg-bubble {
   max-width: 85%;
@@ -1019,8 +690,6 @@ body.has-nav .screen.active > .bottom-nav {
   flex-shrink: 0;
   padding-top: 0.35rem;
 }
-.compose-row input[type="text"],
-.compose-row input:not([type]),
 .compose-row #msgInput {
   flex: 1;
 }
@@ -1029,19 +698,120 @@ body.has-nav .screen.active > .bottom-nav {
   box-shadow: 0 0 0 2px #fecaca;
 }
 
-/* ----- Sheets / menu ----- */
-#menuSheet {
+/* ========== SIDE MENU ========== */
+#menuSheet.top-menu,
+.top-menu {
   position: fixed;
+  top: calc(var(--safe-top) + var(--bar-h) + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(280px, calc(100% - 2rem));
   z-index: var(--z-menu);
-  /* positioned by existing JS/CSS if any */
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  background: #fff;
+  border: 1px solid rgba(20, 83, 45, 0.15);
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
 }
+@media (min-width: 480px) {
+  #menuSheet.top-menu {
+    left: auto;
+    right: calc(50% - 240px + 0.75rem);
+    transform: none;
+  }
+}
+#menuSheet.top-menu.hidden {
+  display: none !important;
+}
+#menuSheet.top-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: #f0fdf4;
+  color: #14532d;
+  font-weight: 600;
+  font-size: 0.9rem;
+  font-family: inherit;
+  padding: 0.7rem 0.85rem;
+  border-radius: 10px;
+  cursor: pointer;
+}
+#menuSheet.top-menu button:active { background: #bbf7d0; }
+#menuSheet.top-menu button.danger {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+/* ========== LISTING DETAIL SHEET ========== */
+#listingDetail.sheet,
+#listingDetail {
+  position: fixed !important;
+  inset: 0 !important;
+  transform: none !important;
+  width: 100% !important;
+  max-width: none !important;
+  z-index: var(--z-sheet) !important;
+  display: none;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.45);
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+  margin: 0;
+}
+#listingDetail.open,
+#listingDetail[aria-hidden="false"] {
+  display: flex !important;
+}
+#listingDetail > * {
+  width: 100%;
+  max-width: var(--app-max);
+  background: #fff;
+}
+#listingDetail .sheet-handle {
+  width: 40px;
+  height: 4px;
+  border-radius: 99px;
+  background: #d1d5db;
+  margin: 0.5rem auto 0;
+}
+#listingDetail #listingDetailBody,
+#listingDetail .sheet-body {
+  max-height: 42vh;
+  overflow-y: auto;
+  padding: 0.75rem 1rem;
+  border-radius: 18px 18px 0 0;
+}
+#listingDetail #listingDetailMap,
+#listingDetail .detail-map {
+  height: 200px !important;
+  min-height: 200px !important;
+  background: #e5e7eb;
+}
+#listingDetailMap.map-expanded,
+#listingDetail .detail-map.map-expanded {
+  height: 55vh !important;
+  min-height: 55vh !important;
+}
+#listingDetail > .btn {
+  border-radius: 0;
+  margin: 0;
+}
+
+/* generic sheets (profile, call) */
 .sheet {
   position: fixed;
   left: 50%;
   transform: translateX(-50%);
   bottom: 0;
   width: 100%;
-  max-width: 480px;
+  max-width: var(--app-max);
   background: #fff;
   border-radius: 18px 18px 0 0;
   padding: 0.75rem 1rem calc(1rem + var(--safe-bottom));
@@ -1060,86 +830,14 @@ body.has-nav .screen.active > .bottom-nav {
   margin: 0.25rem auto 0.75rem;
 }
 
-/* Detail sheet */
-#listingDetail {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-sheet);
-  background: rgba(0, 0, 0, 0.45);
-  display: none;
-  align-items: flex-end;
-  justify-content: center;
-}
-#listingDetail.open {
-  display: flex;
-}
-#listingDetail .sheet-panel,
-#listingDetail .detail-inner {
-  background: #fff;
-  width: 100%;
-  max-width: 480px;
-  max-height: 90vh;
-  overflow-y: auto;
-  border-radius: 18px 18px 0 0;
-  padding: 1rem;
-}
-
-.detail-map,
-#listingDetailMap,
-#detailMap {
-  width: 100%;
-  min-height: 180px;
-  height: 200px;
-  border-radius: 12px;
-  background: #e5e7eb;
-}
-
-.screen.active {
-  display: flex !important;
-  flex-direction: column;
-  min-height: 100dvh;
-  max-height: 100dvh;
-  overflow: hidden;
-}
-
-.screen.active > .top-bar {
-  flex-shrink: 0;
-  position: relative;
-  z-index: 40;
-  background: rgba(255, 255, 255, 0.98);
-}
-
-.screen.active > .container {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  padding: 0.75rem 0.9rem;
-  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
-}
-
-/* Error lines */
-.show {
-  display: block;
-}
-[id$="Error"],
-.err {
-  color: var(--danger);
-  font-size: 0.85rem;
-  margin: 0.35rem 0;
-}
-
-/* Search row */
+/* ========== MISC ========== */
 .search-row {
   display: flex;
   gap: 0.45rem;
   margin-bottom: 0.65rem;
 }
-.search-row input {
-  flex: 1;
-}
+.search-row input { flex: 1; }
 
-/* Dial chip on register */
 .dial-chip {
   display: inline-flex;
   align-items: center;
@@ -1150,9 +848,38 @@ body.has-nav .screen.active > .bottom-nav {
   color: var(--primary);
 }
 
-/* Leaflet inside our map boxes */
-.leaflet-container {
-  width: 100%;
-  height: 100%;
-  z-index: 1;
+.photo-row { margin: 0.5rem 0; }
+.photo-actions {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  margin: 0.35rem 0;
+}
+.img-preview img {
+  max-width: 100%;
+  border-radius: 10px;
+  margin-top: 0.35rem;
+}
+
+[id$="Error"].show,
+.err.show {
+  display: block;
+  color: var(--danger);
+  font-size: 0.85rem;
+  margin: 0.35rem 0;
+}
+
+.card-owner-edit {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.card-owner-edit .row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
 }
