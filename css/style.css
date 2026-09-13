@@ -615,6 +615,138 @@ body.has-nav .screen.active {
   background: #ecfdf5;
 }
 
+/* ===== Shortcut screens: sticky header + visible content ===== */
+
+#fairly-used.screen.active,
+#banqueue.screen.active,
+#emergency.screen.active,
+#checkout-assist.screen.active,
+#checkout.screen.active,
+#premium.screen.active,
+#documents.screen.active,
+#calculator.screen.active,
+#invoice.screen.active,
+#dashboard.screen.active,
+#rules.screen.active,
+#about.screen.active,
+#trust.screen.active,
+#admin-contact.screen.active,
+#saved.screen.active,
+#search.screen.active,
+#shop.screen.active,
+#messages.screen.active,
+#news.screen.active,
+#home.screen.active {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+}
+
+/* Header always visible at top — no scroll-to-find */
+#fairly-used.screen.active > .top-bar,
+#banqueue.screen.active > .top-bar,
+#emergency.screen.active > .top-bar,
+#checkout-assist.screen.active > .top-bar,
+#checkout.screen.active > .top-bar,
+#premium.screen.active > .top-bar,
+#documents.screen.active > .top-bar,
+#calculator.screen.active > .top-bar,
+#invoice.screen.active > .top-bar,
+#dashboard.screen.active > .top-bar,
+#rules.screen.active > .top-bar,
+#about.screen.active > .top-bar,
+#trust.screen.active > .top-bar,
+#admin-contact.screen.active > .top-bar,
+#saved.screen.active > .top-bar,
+#search.screen.active > .top-bar,
+#shop.screen.active > .top-bar,
+#messages.screen.active > .top-bar,
+#news.screen.active > .top-bar,
+#home.screen.active > .top-bar {
+  position: relative;
+  flex-shrink: 0;
+  z-index: 40;
+  background: rgba(255, 255, 255, 0.98);
+}
+
+/* Only the body scrolls */
+#fairly-used.screen.active > .container,
+#banqueue.screen.active > .container,
+#emergency.screen.active > .container,
+#checkout-assist.screen.active > .container,
+#checkout.screen.active > .container,
+#premium.screen.active > .container,
+#documents.screen.active > .container,
+#calculator.screen.active > .container,
+#invoice.screen.active > .container,
+#dashboard.screen.active > .container,
+#rules.screen.active > .container,
+#about.screen.active > .container,
+#trust.screen.active > .container,
+#admin-contact.screen.active > .container,
+#saved.screen.active > .container,
+#search.screen.active > .container,
+#shop.screen.active > .container,
+#messages.screen.active > .container,
+#messages.screen.active > .msg-layout,
+#news.screen.active > .container,
+#home.screen.active > .container,
+#home.screen.active > .home-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-top: 0.75rem;
+}
+
+/* Footer nav stays on screen */
+body.has-nav .screen.active > .bottom-nav {
+  display: flex !important;
+  flex-shrink: 0;
+  position: relative; /* inside column — not fighting fixed stack */
+  left: auto;
+  transform: none;
+  width: 100%;
+  max-width: 480px;
+}
+
+/* If you prefer fixed footer bar, use this instead of position:relative above:
+body.has-nav .screen.active > .bottom-nav {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+}
+*/
+
+/* ===== App footer (Powered by Guru Innovations) ===== */
+.app-footer,
+.footer-line {
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #14532d;
+  letter-spacing: 0.02em;
+  padding: 0.65rem 0.75rem calc(0.5rem + env(safe-area-inset-bottom, 0px));
+  opacity: 0.85;
+}
+
+.app-footer {
+  max-width: 480px;
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.75);
+  border-top: 1px solid rgba(20, 83, 45, 0.1);
+}
+
+/* In-screen footers inside scroll area */
+.container .footer-line,
+.home-body .footer-line,
+.stack .footer-line {
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
 /* ===== Side dropdown menu (hamburger) ===== 
 */
 #menuSheet.top-menu,
