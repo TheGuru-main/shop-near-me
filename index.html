@@ -267,10 +267,19 @@
           </label>
         </div>
         <div id="setup-driver" class="setup-panel hidden">
-          <label>Vehicle / coverage
-            <input id="setup-driver-coverage" placeholder="Bike · Eneka–PH" />
-          </label>
-          <label class="check-row"><input type="checkbox" id="setup-driver-active" /> Active for jobs</label>
+       <label>Service/Coverage area
+  <input id="setup-driver-coverage" type="text" placeholder="LGA / routes you cover" />
+</label>
+<label>Primary location (text)
+  <input id="setup-driver-primary" type="text" placeholder="Stand / park / base" />
+</label>
+<label class="check-row">
+  <input type="checkbox" id="setup-driver-use-gps" checked />
+  Use live GPS while active (For precise listing pin)
+</label>
+<label class="check-row">
+  <input type="checkbox" id="setup-driver-active" /> Active for jobs
+</label>
         </div>
         <div id="setup-emergency" class="setup-panel hidden">
           <label>Unit type
@@ -304,14 +313,27 @@
         </button>
       </header>
       <div class="container home-body">
-        <div class="chip-row" id="homeChips">
-          <button type="button" class="chip-btn" data-go="fairly-used">Fairly used</button>
-          <button type="button" class="chip-btn" data-go="banqueue">Banqueue</button>
-          <button type="button" class="chip-btn" data-go="emergency">Emergency</button>
-          <button type="button" class="chip-btn" data-go="news">News</button>
-          <button type="button" class="chip-btn" id="btnPerishables">Perishables</button>
-          <button type="button" class="chip-btn" data-go="checkout-assist">Checkout assist</button>
-        </div>
+
+    <div class="chip-row home-quick-nav" id="homeChips">
+  <button type="button" class="quick-nav-btn" data-go="fairly-used">
+    <i class="fa-solid fa-shirt"></i><span>Fairly used</span>
+  </button>
+  <button type="button" class="quick-nav-btn" data-go="banqueue">
+    <i class="fa-solid fa-scale-balanced"></i><span>Banqueue</span>
+  </button>
+  <button type="button" class="quick-nav-btn" data-go="emergency">
+    <i class="fa-solid fa-truck-medical"></i><span>Emergency</span>
+  </button>
+  <button type="button" class="quick-nav-btn" data-go="news">
+    <i class="fa-solid fa-newspaper"></i><span>News</span>
+  </button>
+  <button type="button" class="quick-nav-btn" id="btnPerishables">
+    <i class="fa-solid fa-carrot"></i><span>Perishables</span>
+  </button>
+  <button type="button" class="quick-nav-btn" data-go="checkout-assist">
+    <i class="fa-solid fa-cart-shopping"></i><span>Checkout-Assist</span>
+  </button>
+</div>
         <div class="map-wrap">
           <div id="gsgMap" class="map-stub" role="img" aria-label="Map"></div>
         </div>
@@ -535,8 +557,14 @@
             <input type="checkbox" id="drv-active" /> Active for jobs (heartbeat)
           </label>
           <label>Coverage note
-            <input id="drv-coverage" placeholder="Bike · areas you cover" />
-          </label>
+            <input id="drv-coverage" placeholder="Bike, Bus, Keke, Pickup-Truck.. · Areas you cover: Eneka - Diobu." />
+         <label>Primary location (text)
+        <input id="setup-driver-primary" type="text" placeholder="Stand / park / base" />
+         </label>
+     <label class="check-row">
+      <input type="checkbox" id="setup-driver-use-gps" checked />
+        Use live GPS while active (precise listing pin)
+     </label>
           <button type="button" class="btn block" id="btnDrvSave">Save status</button>
           <p id="drvStatusMsg" class="muted small"></p>
           <div id="drvJobs" class="feed-list"></div>
@@ -555,6 +583,8 @@
       </div>
       <nav class="bottom-nav" id="bottomNavShop"></nav>
     </section>
+
+
 
     <!-- ========== N0 MESSAGES ========== -->
     <section id="messages" class="screen" data-screen="messages">
@@ -671,10 +701,27 @@
         <span class="screen-title">Banqueue</span>
         <span class="spacer"></span>
       </header>
-      <div class="container stack">
-        <p class="muted">Live queues for banks, clinics, and service points near you.</p>
-        <div id="banqueueList" class="feed-list"></div>
-      </div>
+<div class="card banqueue-status-card">
+  <h3 class="section-h">Line status</h3>
+  <p class="muted small">Stub — report or update a public line / queue status.</p>
+  <label>Place / office
+    <input id="bq-place" type="text" placeholder="e.g. LGA secretariat, bank branch" />
+  </label>
+  <label>Status
+    <select id="bq-status">
+      <option value="open">Open / moving</option>
+      <option value="slow">Slow</option>
+      <option value="closed">Closed</option>
+      <option value="unknown">Unknown</option>
+    </select>
+  </label>
+  <label>Note
+    <input id="bq-note" type="text" placeholder="Optional short note" />
+  </label>
+  <button type="button" class="btn block" id="btnBqUpdateStatus">Update line status</button>
+  <p id="bqStatusMsg" class="muted small"></p>
+</div>
+
     </section>
 
     <!-- ========== H0 EMERGENCY ========== -->

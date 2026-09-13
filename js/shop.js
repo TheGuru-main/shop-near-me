@@ -571,6 +571,16 @@ SNM.bindShop = function () {
     };
   }
 
+var useGps = !!((document.getElementById("drv-use-gps") || {}).checked);
+if (useGps && typeof SNM._geo === "function") {
+  SNM._geo().then(function (g) {
+    if (g.lat != null) {
+      SNM._lastLat = g.lat;
+      SNM._lastLng = g.lng;
+      // optional: POST presence with lat/lng when API supports it
+    }
+  });
+}
   var emgSave = document.getElementById("btnEmgSave");
   if (emgSave) {
     emgSave.onclick = function () {

@@ -142,3 +142,36 @@ document.addEventListener("click", function (e) {
     SNM.promptInstall();
   }
 });
+
+(function wireBanqueueStatus() {
+  var btn = document.getElementById("btnBqUpdateStatus");
+  if (!btn || btn._snmWired) return;
+  btn._snmWired = true;
+  btn.onclick = function () {
+    var place = ((document.getElementById("bq-place") || {}).value || "").trim();
+    var status = ((document.getElementById("bq-status") || {}).value || "unknown");
+    var note = ((document.getElementById("bq-note") || {}).value || "").trim();
+    var msg = document.getElementById("bqStatusMsg");
+    if (!place) {
+      if (msg) msg.textContent = "Enter a place.";
+      return;
+    }
+    // Stub: local only until API exists
+    try {
+      var row = {
+        place: place,
+        status: status,
+        note: note,
+        at: new Date().toISOString()
+      };
+      var list = JSON.parse(localStorage.getItem("snm_bq_status") || "[]");
+      list.unshift(row);
+      localStorage.setItem("snm_bq_status", JSON.stringify(list.slice(0, 30)));
+      if (msg)
+        msg.textContent =
+          "Saved locally: " + place + " → " + status + " (API later)";
+    } catch (e) {
+      if (msg) msg.textContent = "Could not save stub.";
+    }
+  };
+})();
