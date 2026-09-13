@@ -670,10 +670,13 @@ body.has-nav .screen.active {
 #messages.screen.active > .top-bar,
 #news.screen.active > .top-bar,
 #home.screen.active > .top-bar {
-  position: relative;
+  position: fixed;
   flex-shrink: 0;
   z-index: 40;
-  background: rgba(255, 255, 255, 0.98);
+  background: whitesmoke;
+  color: black;
+  text-transform: uppercase;
+  text-align: relative;
 }
 
 /* Only the body scrolls */
@@ -903,17 +906,27 @@ body.has-nav .screen.active > .bottom-nav {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   padding-bottom: 0.25rem;
+  text-transform : uppercase;
+  font-family: monospace;
+  font-style: italic;
+  height: 37px;
+  background-color: darkgrey;
 }
 
 .news-card a {
   color: var(--primary);
   font-weight: 700;
   text-decoration: none;
+  text-transform: uppercase;
+  font-family: monospace;
+  font-style: italic;
+  background-color: darkgrey;
 }
 .news-body {
   font-size: 0.85rem;
   color: var(--muted);
   margin-top: 0.35rem;
+  font-family: monospace;
 }
 
 /* ----- Setup panels ----- */
@@ -1103,16 +1116,6 @@ body.has-nav .screen.active > .bottom-nav {
   -webkit-overflow-scrolling: touch;
   padding: 0.75rem 0.9rem;
   padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
-}
-
-.app-footer,
-.footer-line {
-  text-align: center;
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: #14532d;
-  padding: 0.65rem;
-  opacity: 0.85;
 }
 
 /* Error lines */
