@@ -607,23 +607,50 @@ input:focus, select:focus, textarea:focus {
 }
 
 /* ========== NEWS ========== */
+
 #newsCats {
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
+  display: flex;
+  flex-wrap: wrap;          /* keep all visible */
+  gap: 0.45rem;
+  margin: 0.25rem 0 0.75rem;
+  max-height: none;
+  height: auto;
+  overflow: visible;
+  background: transparent;
 }
+
+#newsCats .chip-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(20, 83, 45, 0.22);
+  background: #f0fdf4;
+  color: #14532d;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+#newsCats .chip-btn.active {
+  background: #14532d;
+  color: #fff;
+}
+
 #newsCats::-webkit-scrollbar { display: none; }
 .news-card a {
-  color: var(--primary);
+  color: black;
   font-weight: 700;
   text-decoration: none;
+  background-color: whitesmoke;
+  
 }
 .news-body {
   font-size: 0.85rem;
-  color: var(--muted);
+  color: lightcyan;
   margin-top: 0.35rem;
+  background-color: black;
 }
+
 
 /* ========== SETUP / SHOP PANELS ========== */
 .setup-panel.hidden,
