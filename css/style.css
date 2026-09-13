@@ -545,6 +545,40 @@ input:focus, select:focus, textarea:focus {
   scroll-snap-align: start;
 }
 
+/* ===== Simpler screen chrome ===== */
+.screen {
+  max-height: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.screen.active {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.screen.active > .top-bar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  flex-shrink: 0;
+}
+
+.screen.active > .container,
+.screen.active > .home-body,
+.screen.active > .stack,
+.screen.active > .msg-layout {
+  flex: 1 1 auto;
+  overflow: visible;
+  min-height: auto;
+}
+
+body.has-nav .screen.active {
+  padding-bottom: calc(var(--nav-h) + var(--safe-bottom));
+}
+
 /* ----- Chips (news, prefs, general) ----- */
 .chip-row,
 #newsCats,
@@ -579,6 +613,66 @@ input:focus, select:focus, textarea:focus {
 
 #buyerPrefs .chip {
   background: #ecfdf5;
+}
+
+/* ===== Side dropdown menu (hamburger) ===== */
+#menuSheet.top-menu,
+.top-menu {
+  position: fixed;
+  top: calc(var(--bar-h) + var(--safe-top) + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(280px, calc(100% - 2rem));
+  max-width: 480px;
+  margin-left: 0;
+  /* pin under app column */
+  right: auto;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  background: #fff;
+  border: 1px solid rgba(20, 83, 45, 0.15);
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+}
+
+/* Prefer right side of the 480px app column */
+@media (min-width: 480px) {
+  #menuSheet.top-menu {
+    left: auto;
+    right: calc(50% - 240px + 0.75rem);
+    transform: none;
+  }
+}
+
+#menuSheet.top-menu.hidden {
+  display: none !important;
+}
+
+#menuSheet.top-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: #f0fdf4;
+  color: #14532d;
+  font-weight: 600;
+  font-size: 0.9rem;
+  font-family: inherit;
+  padding: 0.7rem 0.85rem;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+#menuSheet.top-menu button:active {
+  background: #bbf7d0;
+}
+
+#menuSheet.top-menu button.danger {
+  background: #fef2f2;
+  color: #b91c1c;
 }
 
 /* ----- News ----- */
