@@ -692,7 +692,8 @@
       </div>
     </section>
 
-    <!-- ========== G0 BANQUEUE ========== -->
+  
+<!-- ========== G0 BANQUEUE ========== -->
     <section id="banqueue" class="screen" data-screen="banqueue">
       <header class="top-bar">
         <button type="button" class="icon-btn" data-back="home" aria-label="Back">
@@ -701,27 +702,29 @@
         <span class="screen-title">Banqueue</span>
         <span class="spacer"></span>
       </header>
-<div class="card banqueue-status-card">
-  <h3 class="section-h">Line status</h3>
-  <p class="muted small">Stub — report or update a public line / queue status.</p>
-  <label>Place / office
-    <input id="bq-place" type="text" placeholder="e.g. LGA secretariat, bank branch" />
-  </label>
-  <label>Status
-    <select id="bq-status">
-      <option value="open">Open / moving</option>
-      <option value="slow">Slow</option>
-      <option value="closed">Closed</option>
-      <option value="unknown">Unknown</option>
-    </select>
-  </label>
-  <label>Note
-    <input id="bq-note" type="text" placeholder="Optional short note" />
-  </label>
-  <button type="button" class="btn block" id="btnBqUpdateStatus">Update line status</button>
-  <p id="bqStatusMsg" class="muted small"></p>
-</div>
-
+      <div class="container stack">
+        <div class="card banqueue-status-card">
+          <h3 class="section-h">Line status</h3>
+          <p class="muted small">Report or update a public line / queue status.</p>
+          <label>Place / office
+            <input id="bq-place" type="text" placeholder="e.g. LGA secretariat, bank branch" />
+          </label>
+          <label>Status
+            <select id="bq-status">
+              <option value="open">Open / moving</option>
+              <option value="slow">Slow</option>
+              <option value="closed">Closed</option>
+              <option value="unknown">Unknown</option>
+            </select>
+          </label>
+          <label>Note
+            <input id="bq-note" type="text" placeholder="Optional short note" />
+          </label>
+          <button type="button" class="btn block" id="btnBqUpdateStatus">Update line status</button>
+          <p id="bqStatusMsg" class="muted small"></p>
+        </div>
+        <div id="banqueueList" class="feed-list"></div>
+      </div>
     </section>
 
     <!-- ========== H0 EMERGENCY ========== -->
