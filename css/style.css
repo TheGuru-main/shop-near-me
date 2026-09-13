@@ -718,19 +718,6 @@ body.has-nav .screen.active > .bottom-nav {
   left: 50%;
   transform: translateX(-50%);
 }
-*/
-
-/* ===== App footer (Powered by Guru Innovations) ===== */
-.app-footer,
-.footer-line {
-  text-align: center;
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: #14532d;
-  letter-spacing: 0.02em;
-  padding: 0.65rem 0.75rem calc(0.5rem + env(safe-area-inset-bottom, 0px));
-  opacity: 0.85;
-}
 
 .app-footer {
   max-width: 480px;
