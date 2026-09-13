@@ -86,18 +86,15 @@ SNM.collectSetupPayload = function () {
     ).checked;
     extra.hours =
       (document.getElementById("setup-service-hours") || {}).value || "";
-
-   } else if (role === "driver") {
-  extra.coverage =
-    (document.getElementById("setup-driver-coverage") || {}).value || "";
-  extra.primary_location =
-    (document.getElementById("setup-driver-primary") || {}).value || "";
-  extra.use_gps = !!(document.getElementById("setup-driver-use-gps") || {})
-    .checked;
-  extra.active = !!(document.getElementById("setup-driver-active") || {})
-    .checked;
-}
-
+  } else if (role === "driver") {
+    extra.coverage =
+      (document.getElementById("setup-driver-coverage") || {}).value || "";
+    extra.primary_location =
+      (document.getElementById("setup-driver-primary") || {}).value || "";
+    extra.use_gps = !!(document.getElementById("setup-driver-use-gps") || {})
+      .checked;
+    extra.active = !!(document.getElementById("setup-driver-active") || {})
+      .checked;
   } else if (role === "emergency") {
     extra.emerg_type =
       (document.getElementById("setup-emerg-type") || {}).value || "";
@@ -110,7 +107,6 @@ SNM.collectSetupPayload = function () {
   return extra;
 };
 
-/** Force home UI even if showScreen is broken this session */
 SNM.goHomeNow = function () {
   try {
     document.querySelectorAll(".screen").forEach(function (s) {
@@ -152,7 +148,6 @@ SNM.finishSetup = function () {
 
   SNM.markSetupDone();
 
-  /* Prefer router; always fall back to forced home */
   var navigated = false;
   try {
     if (typeof SNM.showScreen === "function") {
@@ -173,7 +168,6 @@ SNM.finishSetup = function () {
     SNM.goHomeNow();
   }
 
-  /* presence offline from navigation */
   try {
     if (data && data.active && typeof SNM.setPresence === "function") {
       var p = SNM.setPresence({
@@ -192,7 +186,7 @@ SNM.wireSetupDoneButton = function () {
     console.warn("btnSetupDone missing");
     return;
   }
-  /* always rebind — do not use one-shot flags */
+  btn.type = "button";
   btn.onclick = function (e) {
     if (e) {
       e.preventDefault();
@@ -205,9 +199,10 @@ SNM.wireSetupDoneButton = function () {
 SNM.renderBuyerPrefs = function () {
   var box = document.getElementById("buyerPrefs");
   if (!box) return;
-  if (box.dataset.ready === "1") return;
-  box.dataset.ready = "1";
+
+  box.classList.add("chip-row");
   box.innerHTML = "";
+  box.dataset.ready = "1";
 
   function addChip(label) {
     var b = document.createElement("button");
@@ -248,7 +243,6 @@ SNM.showSetupForRole = function (role) {
 };
 
 SNM.initSetupScreens = function () {
-  SNM.renderBuyerPrefs();
   SNM.wireSetupDoneButton();
 };
 
