@@ -65,9 +65,16 @@ SNM.showScreen = function (id) {
     document.body.classList.remove("has-nav");
   }
 
-  try {
+ try {
     window.scrollTo(0, 0);
   } catch (e) {}
+
+  /* reset body scroll inside the screen */
+  var scrollBody =
+    target.querySelector(":scope > .container") ||
+    target.querySelector(":scope > .home-body") ||
+    target.querySelector(":scope > .msg-layout");
+  if (scrollBody) scrollBody.scrollTop = 0;
 
   if (id === "register") {
     if (typeof SNM.bindCascade === "function") SNM.bindCascade();
