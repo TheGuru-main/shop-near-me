@@ -7,14 +7,12 @@ SNM.NEWS_CATS = [
   "agriculture",
   "retail",
   "local",
-  "fashion"
+  "fashion",
   "production"
-  "travel"
 ];
 
 SNM.loadNews = async function (category) {
   category = category || SNM._newsCat || "business";
-
   SNM._newsCat = category;
   var list = document.getElementById("newsList");
   var ai = document.getElementById("newsAssistant");
