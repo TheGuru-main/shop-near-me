@@ -429,16 +429,16 @@ input:focus, select:focus, textarea:focus {
 }
 .listing-card.cat-merchant,
 .listing-card.cat-retail {
-  background: linear-gradient(246deg, #f0fdf4, #bbf7d0);
+  background: linear-gradient(246deg, #f0fdf4, #bbf7d0, cyan);
 }
 .listing-card.cat-service {
-  background: linear-gradient(320deg, #eff6ff, #bfdbfe);
+  background: linear-gradient(320deg, #eff6ff, #bfdbfe, grey);
 }
 .listing-card.cat-driver {
-  background: linear-gradient(278deg, #fff7ed, #fed7aa);
+  background: linear-gradient(278deg, #fff7ed, #fed7aa, black);
 }
 .listing-card.cat-fairly_used {
-  background: linear-gradient(325deg, #faf5ff, #e9d5ff);
+  background: linear-gradient(325deg, #faf5ff, #e9d5ff, lightcyan);
 }
 .listing-card .title {
   font-weight: 700;
@@ -646,11 +646,11 @@ input:focus, select:focus, textarea:focus {
 
 #newsCats::-webkit-scrollbar { display: none; }
 .news-card a {
-  color: lightcyan;
+  color: black;
   font-weight: 700;
   text-decoration: none;
   font-style: italic;
-  background-color: black;
+  background-color: lightcyan;
   font-family: monospace;
   text-transform: uppercase;
   justify-content: left;
@@ -659,7 +659,7 @@ input:focus, select:focus, textarea:focus {
   font-size: 0.85rem;
   color: black;
   margin-top: 0.35rem;
-  background-color: grey;
+  background-color: lightcyan;
   font-family: monospace;
   text-transform: uppercase;
 }
