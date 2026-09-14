@@ -107,33 +107,43 @@ SNM.collectSetupPayload = function () {
   return extra;
 };
 
+/** Always paint home — do not rely on showScreen alone */
 SNM.goHomeNow = function () {
   try {
     document.querySelectorAll(".screen").forEach(function (s) {
       s.classList.remove("active");
       s.style.display = "none";
     });
+
     var home = document.getElementById("home");
     if (home) {
       home.classList.add("active");
       home.style.display = "flex";
     }
+
     document.body.classList.add("has-nav");
+
     try {
-      location.hash = "#home";
-    } catch (e) {}
+      history.replaceState(null, "", "#home");
+    } catch (e) {
+      try {
+        location.hash = "#home";
+      } catch (e2) {}
+    }
+
     if (typeof SNM.renderTabbar === "function") SNM.renderTabbar("home");
     if (typeof SNM.fillHomeHeader === "function") SNM.fillHomeHeader();
+
     setTimeout(function () {
       if (typeof SNM.loadFeed === "function") SNM.loadFeed();
       if (typeof SNM.initHomeMap === "function") SNM.initHomeMap();
-    }, 0);
+    }, 50);
   } catch (err) {
     console.error("goHomeNow", err);
     try {
       location.hash = "#home";
       location.reload();
-    } catch (e2) {}
+    } catch (e3) {}
   }
 };
 
@@ -148,25 +158,12 @@ SNM.finishSetup = function () {
 
   SNM.markSetupDone();
 
-  var navigated = false;
+  /* Prefer router, then always force home UI */
   try {
-    if (typeof SNM.showScreen === "function") {
-      SNM.showScreen("home");
-      navigated = true;
-    }
-  } catch (e2) {
-    console.error(e2);
-  }
+    if (typeof SNM.showScreen === "function") SNM.showScreen("home");
+  } catch (e2) {}
 
-  var home = document.getElementById("home");
-  var homeVisible =
-    home &&
-    (home.classList.contains("active") ||
-      (home.style && home.style.display === "flex"));
-
-  if (!navigated || !homeVisible) {
-    SNM.goHomeNow();
-  }
+  SNM.goHomeNow();
 
   try {
     if (data && data.active && typeof SNM.setPresence === "function") {
