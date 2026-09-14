@@ -967,3 +967,70 @@ input:focus, select:focus, textarea:focus {
 }
 
 
+
+
+#fairly-used.screen.active,
+#banqueue.screen.active,
+#emergency.screen.active,
+#checkout-assist.screen.active,
+#premium.screen.active,
+#documents.screen.active,
+#calculator.screen.active,
+#invoice.screen.active,
+#dashboard.screen.active,
+#shop.screen.active,
+#search.screen.active,
+#saved.screen.active,
+#news.screen.active,
+#home.screen.active,
+#messages.screen.active {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  overflow: hidden !important;
+}
+
+#fairly-used.screen.active > .top-bar,
+#banqueue.screen.active > .top-bar,
+#emergency.screen.active > .top-bar,
+#checkout-assist.screen.active > .top-bar,
+#premium.screen.active > .top-bar,
+#documents.screen.active > .top-bar,
+#calculator.screen.active > .top-bar,
+#invoice.screen.active > .top-bar,
+#dashboard.screen.active > .top-bar,
+#shop.screen.active > .top-bar,
+#search.screen.active > .top-bar,
+#saved.screen.active > .top-bar,
+#news.screen.active > .top-bar,
+#home.screen.active > .top-bar,
+#messages.screen.active > .top-bar {
+  flex: 0 0 52px !important;
+  position: relative !important;
+  z-index: 100 !important;
+  background: #fff !important;
+}
+
+#fairly-used.screen.active > .container,
+#banqueue.screen.active > .container,
+#emergency.screen.active > .container,
+#checkout-assist.screen.active > .container,
+#premium.screen.active > .container,
+#documents.screen.active > .container,
+#calculator.screen.active > .container,
+#invoice.screen.active > .container,
+#dashboard.screen.active > .container,
+#shop.screen.active > .container,
+#search.screen.active > .container,
+#saved.screen.active > .container,
+#news.screen.active > .container,
+#home.screen.active > .container,
+#home.screen.active > .home-body,
+#messages.screen.active > .container,
+#messages.screen.active > .msg-layout {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+}
+
