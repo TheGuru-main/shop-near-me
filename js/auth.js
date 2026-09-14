@@ -55,7 +55,6 @@ SNM._showErr = function (id, msg) {
   el.classList.add("show");
 };
 
-/** True if user already finished setup or has a real profile place */
 SNM._profileLooksComplete = function (user) {
   if (typeof SNM.setupDone === "function" && SNM.setupDone()) return true;
   user = user || (typeof SNM.getUser === "function" && SNM.getUser()) || {};
@@ -74,32 +73,48 @@ SNM._openSetup = function (role) {
   try {
     sessionStorage.setItem("snm_role", role);
   } catch (e) {}
+
   if (typeof SNM.showSetupForRole === "function") {
     SNM.showSetupForRole(role);
   }
   if (typeof SNM.showScreen === "function") SNM.showScreen("setup");
+
+  /* Wire Continue immediately and again next tick (DOM paint) */
   if (typeof SNM.wireSetupDoneButton === "function") {
     SNM.wireSetupDoneButton();
   }
   if (typeof SNM.initSetupScreens === "function") {
     SNM.initSetupScreens();
   }
+  setTimeout(function () {
+    if (typeof SNM.wireSetupDoneButton === "function") {
+      SNM.wireSetupDoneButton();
+    }
+  }, 0);
+  setTimeout(function () {
+    if (typeof SNM.wireSetupDoneButton === "function") {
+      SNM.wireSetupDoneButton();
+    }
+  }, 100);
 };
 
 SNM._goHomeAfterAuth = function () {
+  if (typeof SNM.goHomeNow === "function") {
+    SNM.goHomeNow();
+    return;
+  }
   if (typeof SNM.showScreen === "function") {
     SNM.showScreen("home");
-  } else {
-    try {
-      location.hash = "#home";
-    } catch (e) {}
+    return;
   }
+  try {
+    location.hash = "#home";
+  } catch (e) {}
 };
 
-/* Only define if setup.js has not already set it */
 if (typeof SNM.showSetupForRole !== "function") {
   SNM.showSetupForRole = function (role) {
-    role = String(role || SNM.getRole() || "buyer")
+    role = String(role || "buyer")
       .toLowerCase()
       .trim();
     if (role === "logistics") role = "driver";
@@ -267,7 +282,6 @@ SNM.bindAuth = function () {
           );
         } catch (e) {}
         SNM.setPending(null);
-        /* New account only — preferences / role setup once */
         if (typeof SNM.setSetupDone === "function") SNM.setSetupDone(false);
         SNM._openSetup((user && user.role) || pending.role || "buyer");
       } catch (err) {
@@ -328,7 +342,6 @@ SNM.bindAuth = function () {
         } catch (e) {}
         SNM._showErr("loginError", "");
 
-        /* Returning user: never force category prefs again */
         if (SNM._profileLooksComplete(user)) {
           if (typeof SNM.setSetupDone === "function") SNM.setSetupDone(true);
           SNM._goHomeAfterAuth();
