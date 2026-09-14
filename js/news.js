@@ -81,8 +81,22 @@ SNM.loadNews = async function (category) {
         var title = a.title || a.name || a.headline || "Article";
         var url = a.url || a.link || "#";
         var desc = a.description || a.summary || "";
+        var img =
+          a.image ||
+          a.image_url ||
+          a.urlToImage ||
+          a.thumbnail ||
+          a.thumb ||
+          (a.enclosure && a.enclosure.url) ||
+          "";
+        var imgHtml = img
+          ? '<img class="news-thumb" src="' +
+            esc(img) +
+            '" alt="" loading="lazy" onerror="this.style.display=\'none\'" />'
+          : "";
         return (
           '<article class="card news-card">' +
+          imgHtml +
           '<a href="' +
           esc(url) +
           '" target="_blank" rel="noopener">' +
@@ -104,7 +118,6 @@ SNM.loadNews = async function (category) {
 SNM.bindNews = function () {
   if (SNM._newsBound) return;
   SNM._newsBound = true;
-  /* chips are wired inside loadNews */
 };
 
 SNM.onNewsEnter = function () {
