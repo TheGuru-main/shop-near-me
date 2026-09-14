@@ -246,6 +246,19 @@ SNM.bindShell = function () {
         return;
       }
 
+    if (target) {
+    target.scrollTop = 0;
+    var scrollBody =
+      target.querySelector(":scope > .container") ||
+      target.querySelector(":scope > .home-body") ||
+      target.querySelector(":scope > .msg-layout");
+    if (scrollBody) scrollBody.scrollTop = 0;
+  }
+  try {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  } catch (e) {}
       if (e.target.closest("#btnSearchTop")) {
         e.preventDefault();
         SNM.showScreen("search");
