@@ -62,6 +62,14 @@ SNM._cleanTitle = function (title, fallback) {
   return t;
 };
 
+SNM._rowThreadId = function (t) {
+  if (!t) return null;
+  if (t.thread && t.thread.id != null) return t.thread.id;
+  if (t.id != null) return t.id;
+  if (t.thread_id != null) return t.thread_id;
+  return null;
+};
+
 SNM.closeThread = function () {
   SNM._threadId = null;
   SNM._threadPeer = null;
@@ -96,38 +104,12 @@ SNM.closeThread = function () {
 SNM.renderMessageBubble = function (m, me) {
   me = me || {};
   var mine =
+    (m.from_user_id && me.id && String(m.from_user_id) === String(me.id)) ||
     (m.sender_id && me.id && String(m.sender_id) === String(me.id)) ||
-    (m.from_phone && me.phone && m.from_phone === me.phone) ||
     !!m.mine;
 
-  var type = (m.type || m.msg_type || "text").toLowerCase();
   var body = m.body || m.text || "";
-  var media = m.media_url || m.image_url || m.audio_url || "";
-  var who =
-    m.sender_name ||
-    m.from_name ||
-    (mine ? me.name || "You" : m.peer_name || "");
-
-  var inner = "";
-  if (type === "image" && media) {
-    inner =
-      '<img class="msg-media" src="' +
-      SNM.escapeHtml(media) +
-      '" alt="image" />' +
-      (body
-        ? '<div class="msg-caption">' + SNM.escapeHtml(body) + "</div>"
-        : "");
-  } else if ((type === "voice" || type === "audio") && media) {
-    inner =
-      '<audio class="msg-audio" controls src="' +
-      SNM.escapeHtml(media) +
-      '"></audio>' +
-      (body
-        ? '<div class="msg-caption">' + SNM.escapeHtml(body) + "</div>"
-        : "");
-  } else {
-    inner = SNM.escapeHtml(body || "");
-  }
+  var who = mine ? me.name || "You" : "";
 
   return (
     '<div class="msg-bubble ' +
@@ -139,33 +121,30 @@ SNM.renderMessageBubble = function (m, me) {
       ? '<div class="msg-who">' + SNM.escapeHtml(String(who)) + "</div>"
       : "") +
     '<div class="msg-payload">' +
-    inner +
+    SNM.escapeHtml(body) +
     "</div></div>"
   );
 };
 
+/** Backend MessageCreate = { body: str min_length=1 } only */
 SNM.dropMessagePayload = async function (payload) {
   payload = payload || {};
-  if (!SNM._validThreadId(SNM._threadId) && !SNM._threadPeer) {
+  if (!SNM._validThreadId(SNM._threadId)) {
     throw new Error("Open a thread first");
   }
-  var body = {
-    type: payload.type || "text",
-    body: payload.body != null ? payload.body : payload.text || "",
-    text: payload.body != null ? payload.body : payload.text || ""
-  };
-  if (payload.media_url) body.media_url = payload.media_url;
-  if (SNM._threadPeerId) body.to_user_id = SNM._threadPeerId;
-
-  if (SNM._validThreadId(SNM._threadId)) {
-    return SNM.api(
-      "/messages/threads/" + encodeURIComponent(String(SNM._threadId)),
-      { method: "POST", body: body }
-    );
+  var text = "";
+  if (payload.body != null) text = String(payload.body).trim();
+  if (!text && payload.text != null) text = String(payload.text).trim();
+  if (!text) {
+    if (payload.type === "image") text = "[image]";
+    else if (payload.type === "voice" || payload.type === "audio")
+      text = "[voice]";
+    else throw new Error("Type a message first");
   }
-  body.to_phone = SNM._threadPeer;
-  body.phone = SNM._threadPeer;
-  return SNM.api("/messages/send", { method: "POST", body: body });
+  return SNM.api(
+    "/messages/threads/" + encodeURIComponent(String(SNM._threadId)),
+    { method: "POST", body: { body: text } }
+  );
 };
 
 SNM.reloadOpenThread = async function () {
@@ -205,24 +184,8 @@ SNM.toggleVoiceNote = async function () {
       var blob = new Blob(SNM._voiceChunks, { type: mime });
       SNM._voiceChunks = [];
       if (blob.size < 500) return;
-      if (blob.size > 900000) {
-        alert("Voice note too long/large.");
-        return;
-      }
       try {
-        var dataUrl = await new Promise(function (resolve, reject) {
-          var r = new FileReader();
-          r.onload = function () {
-            resolve(r.result);
-          };
-          r.onerror = reject;
-          r.readAsDataURL(blob);
-        });
-        await SNM.dropMessagePayload({
-          type: "voice",
-          body: "",
-          media_url: dataUrl
-        });
+        await SNM.dropMessagePayload({ type: "voice", body: "[voice]" });
         await SNM.reloadOpenThread();
       } catch (err) {
         alert(SNM._msgErr(err));
@@ -276,15 +239,14 @@ SNM.loadInbox = async function (opts) {
   try {
     var data = await SNM.api("/messages/inbox");
     var rows =
-      data.items ||
       data.threads ||
+      data.items ||
       data.results ||
       (Array.isArray(data) ? data : []);
     if (!Array.isArray(rows)) rows = [];
 
     rows = rows.filter(function (t) {
-      var id = t && (t.id != null ? t.id : t.thread_id);
-      return SNM._validThreadId(id);
+      return SNM._validThreadId(SNM._rowThreadId(t));
     });
 
     if (!rows.length) {
@@ -295,13 +257,26 @@ SNM.loadInbox = async function (opts) {
 
     box.innerHTML = rows
       .map(function (t) {
-        var id = t.id != null ? t.id : t.thread_id;
+        var id = SNM._rowThreadId(t);
         var title = SNM._cleanTitle(
-          t.title || t.peer_name || t.name || t.phone || t.peer_phone,
+          t.title ||
+            t.peer_name ||
+            t.name ||
+            (t.thread && t.thread.context_type) ||
+            t.phone ||
+            t.peer_phone,
           "Chat"
         );
         var phone = t.phone || t.peer_phone || "";
-        var preview = t.last_message || t.preview || t.last_body || "";
+        var preview = "";
+        if (t.last_message) {
+          preview =
+            typeof t.last_message === "string"
+              ? t.last_message
+              : t.last_message.body || t.last_message.text || "";
+        } else {
+          preview = t.preview || t.last_body || "";
+        }
         return (
           '<div class="card" data-thread="' +
           SNM.escapeHtml(String(id)) +
@@ -453,25 +428,27 @@ SNM.startDmByPhone = async function (phone) {
       return;
     }
 
+    /* ThreadCreate requires body min_length=1 */
     var created = await SNM.api("/messages/threads", {
       method: "POST",
       body: {
         to_user_id: userId,
+        body: "…",
         context_type: "direct"
       }
     });
 
     tid =
+      (created.thread && created.thread.id) ||
       created.thread_id ||
-      created.id ||
-      (created.thread && created.thread.id);
+      created.id;
 
     if (SNM._validThreadId(tid)) {
       await SNM.openThread(String(tid), looked.name || phone, {
         phone: phone,
         user_id: userId
       });
-    } else if (typeof SNM.loadInbox === "function") {
+    } else {
       await SNM.loadInbox({ keepThread: true });
     }
   } catch (err) {
@@ -517,7 +494,7 @@ SNM.bindMessages = function () {
       var text = input ? (input.value || "").trim() : "";
       if (!text) return;
       try {
-        await SNM.dropMessagePayload({ type: "text", body: text });
+        await SNM.dropMessagePayload({ body: text });
         if (input) input.value = "";
         await SNM.reloadOpenThread();
       } catch (e) {
@@ -536,27 +513,8 @@ SNM.bindMessages = function () {
       imgInput.click();
     };
     imgInput.onchange = async function () {
-      var f = imgInput.files && imgInput.files[0];
-      if (!f) return;
-      if (f.size > 900000) {
-        alert("Image too large (keep under \~900KB).");
-        imgInput.value = "";
-        return;
-      }
       try {
-        var dataUrl = await new Promise(function (resolve, reject) {
-          var r = new FileReader();
-          r.onload = function () {
-            resolve(r.result);
-          };
-          r.onerror = reject;
-          r.readAsDataURL(f);
-        });
-        await SNM.dropMessagePayload({
-          type: "image",
-          body: "",
-          media_url: dataUrl
-        });
+        await SNM.dropMessagePayload({ type: "image", body: "[image]" });
         imgInput.value = "";
         await SNM.reloadOpenThread();
       } catch (e) {
