@@ -969,61 +969,29 @@ input:focus, select:focus, textarea:focus {
 
 
 
-/* ===== Kill blank zone above headers ===== */
 html, body {
   height: 100%;
-  overflow: hidden !important;
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-#app {
-  height: 100dvh;
-  max-height: 100dvh;
   overflow: hidden;
   margin: 0;
-  padding: 0;
 }
-
-/* No safe-area padding on the section itself (it was creating the empty band) */
-.screen,
-.screen.active {
-  padding-top: 0 !important;
-  margin-top: 0 !important;
-}
-
 .screen.active {
   display: flex !important;
   flex-direction: column !important;
   height: 100dvh !important;
-  max-height: 100dvh !important;
   overflow: hidden !important;
-  top: 0 !important;
+  padding-top: 0 !important;
 }
-
-/* Header = first pixel of the screen */
 .screen.active > .top-bar {
   flex: 0 0 auto !important;
-  order: 0 !important;
-  margin: 0 !important;
-  top: 0 !important;
-  padding-top: max(0.4rem, env(safe-area-inset-top, 0px)) !important;
-  padding-bottom: 0.4rem !important;
-  padding-left: 0.75rem !important;
-  padding-right: 0.75rem !important;
-  min-height: 52px !important;
   background: #fff !important;
-  border-bottom: 1px solid rgba(20, 83, 45, 0.14) !important;
-  z-index: 100 !important;
+  z-index: 50 !important;
+  padding-top: max(0.35rem, env(safe-area-inset-top, 0px)) !important;
 }
-
 .screen.active > .container,
-.screen.active > .home-body,
-.screen.active > .msg-layout {
+.screen.active > .home-body {
   flex: 1 1 auto !important;
   min-height: 0 !important;
   overflow-y: auto !important;
-  margin: 0 !important;
-  padding-top: 0.75rem !important;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.75rem 0.9rem !important;
 }
-
