@@ -969,29 +969,3 @@ input:focus, select:focus, textarea:focus {
 
 
 
-html, body {
-  height: 100%;
-  overflow: hidden;
-  margin: 0;
-}
-.screen.active {
-  display: flex !important;
-  flex-direction: column !important;
-  height: 100dvh !important;
-  overflow: hidden !important;
-  padding-top: 0 !important;
-}
-.screen.active > .top-bar {
-  flex: 0 0 auto !important;
-  background: #fff !important;
-  z-index: 50 !important;
-  padding-top: max(0.35rem, env(safe-area-inset-top, 0px)) !important;
-}
-.screen.active > .container,
-.screen.active > .home-body {
-  flex: 1 1 auto !important;
-  min-height: 0 !important;
-  overflow-y: auto !important;
-  -webkit-overflow-scrolling: touch;
-  padding: 0.75rem 0.9rem !important;
-}
