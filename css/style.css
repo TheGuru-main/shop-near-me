@@ -969,3 +969,50 @@ input:focus, select:focus, textarea:focus {
 
 
 
+/* Light sticky headers — does NOT blank the screen */
+
+.screen {
+  display: none;
+  min-height: 100dvh;
+  flex-direction: column;
+  padding-top: 0;
+}
+
+.screen.active {
+  display: block; /* not a locked flex viewport */
+}
+
+.screen.active > .top-bar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: #fff;
+  border-bottom: 1px solid rgba(20, 83, 45, 0.14);
+  padding: 0.5rem 0.75rem;
+  padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
+}
+
+.screen.active > .container,
+.screen.active > .home-body,
+.screen.active > .msg-layout {
+  padding: 0.75rem 0.9rem;
+  padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+}
+
+body.has-nav .screen.active > .bottom-nav {
+  display: flex !important;
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 0;
+  width: 100%;
+  max-width: 480px;
+  z-index: 100;
+  background: #fff;
+  border-top: 1px solid rgba(20, 83, 45, 0.14);
+  min-height: 56px;
+}
+
+body:not(.has-nav) .bottom-nav {
+  display: none !important;
+}
