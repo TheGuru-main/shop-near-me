@@ -1,5 +1,33 @@
 window.SNM = window.SNM || {};
 
+SNM.compressImageFile = function (file, maxSide, quality) {
+  maxSide = maxSide || 800;
+  quality = quality || 0.72;
+  return new Promise(function (resolve, reject) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      var img = new Image();
+      img.onload = function () {
+        var w = img.width;
+        var h = img.height;
+        var scale = Math.min(1, maxSide / Math.max(w, h));
+        var cw = Math.round(w * scale);
+        var ch = Math.round(h * scale);
+        var canvas = document.createElement("canvas");
+        canvas.width = cw;
+        canvas.height = ch;
+        var ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, cw, ch);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
+
 SNM._shopItems = [];
 
 SNM.showShopPanels = function () {
