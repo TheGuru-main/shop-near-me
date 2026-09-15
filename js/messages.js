@@ -6,11 +6,30 @@ SNM._threadPeerId = null;
 SNM._voiceRec = null;
 SNM._voiceChunks = [];
 
+SNM.escapeHtml =
+  SNM.escapeHtml ||
+  SNM.esc ||
+  function (s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  };
+SNM.esc = SNM.esc || SNM.escapeHtml;
+
 SNM._validThreadId = function (id) {
   if (id == null) return false;
   id = String(id).trim();
   if (!id || id === "undefined" || id === "null") return false;
+  if (/^thread$/i.test(id)) return false;
   return true;
+};
+
+SNM._cleanTitle = function (title, fallback) {
+  var t = (title && String(title).trim()) || "";
+  if (!t || /^thread$/i.test(t)) return fallback || "Chat";
+  return t;
 };
 
 SNM.closeThread = function () {
@@ -41,7 +60,7 @@ SNM.closeThread = function () {
     document.getElementById("msgInput");
   if (input) input.value = "";
   var tt = document.getElementById("threadTitle");
-  if (tt) tt.textContent = "Thread";
+  if (tt) tt.textContent = "Chat";
 };
 
 SNM.renderMessageBubble = function (m, me) {
@@ -95,7 +114,6 @@ SNM.renderMessageBubble = function (m, me) {
   );
 };
 
-/** Startrow drop: sender from token; receiver = thread peer */
 SNM.dropMessagePayload = async function (payload) {
   payload = payload || {};
   if (!SNM._validThreadId(SNM._threadId) && !SNM._threadPeer) {
@@ -125,7 +143,7 @@ SNM.reloadOpenThread = async function () {
   var titleEl = document.getElementById("threadTitle");
   await SNM.openThread(
     SNM._threadId,
-    titleEl ? titleEl.textContent : "Thread"
+    titleEl ? titleEl.textContent : "Chat"
   );
 };
 
@@ -248,13 +266,10 @@ SNM.loadInbox = async function (opts) {
     box.innerHTML = rows
       .map(function (t) {
         var id = t.id != null ? t.id : t.thread_id;
-        var title =
-          t.title ||
-          t.peer_name ||
-          t.name ||
-          t.phone ||
-          t.peer_phone ||
-          "Thread";
+        var title = SNM._cleanTitle(
+          t.title || t.peer_name || t.name || t.phone || t.peer_phone,
+          "Chat"
+        );
         var phone = t.phone || t.peer_phone || "";
         var preview = t.last_message || t.preview || t.last_body || "";
         return (
@@ -280,10 +295,11 @@ SNM.loadInbox = async function (opts) {
       el.onclick = function () {
         var tid = el.getAttribute("data-thread");
         if (!SNM._validThreadId(tid)) return;
-        SNM.openThread(
-          tid,
-          (el.querySelector("strong") || {}).textContent || "Thread"
+        var label = SNM._cleanTitle(
+          (el.querySelector("strong") || {}).textContent,
+          "Chat"
         );
+        SNM.openThread(tid, label);
       };
     });
   } catch (e) {
@@ -323,7 +339,7 @@ SNM.openThread = async function (id, title, peerMeta) {
     list.style.display = "none";
   }
   var tt = document.getElementById("threadTitle");
-  if (tt) tt.textContent = title || "Thread";
+  if (tt) tt.textContent = SNM._cleanTitle(title, "Chat");
 
   var box =
     document.getElementById("threadMessages") ||
@@ -351,7 +367,7 @@ SNM.openThread = async function (id, title, peerMeta) {
     if (box) {
       box.innerHTML =
         "<p class='soft'>" +
-        SNM.escapeHtml((e && e.message) || "Thread error") +
+        SNM.escapeHtml((e && e.message) || "Could not open chat") +
         "</p>";
     }
   }
@@ -411,7 +427,6 @@ SNM.startDmByPhone = async function (phone) {
       return;
     }
 
-    /* Create thread only — no auto "Hi" */
     var created = await SNM.api("/messages/threads", {
       method: "POST",
       body: {
