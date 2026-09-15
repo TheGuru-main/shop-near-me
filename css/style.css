@@ -158,6 +158,7 @@ body {
 /* ========== TOP BAR (fixed in column, never scrolls) ========== */
 .screen.active > .top-bar {
   flex-shrink: 0;
+  position: fixed;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -173,6 +174,7 @@ body {
 .top-bar {
   display: flex;
   align-items: center;
+  position: fixed;
   gap: 0.5rem;
   min-height: var(--bar-h);
   padding: 0.45rem 0.85rem;
@@ -267,7 +269,7 @@ body.has-nav .screen.active > .bottom-nav {
   align-items: center;
   min-height: var(--nav-h);
   padding: 0.35rem 0.35rem calc(0.35rem + var(--safe-bottom));
-  background: rgba(255, 255, 255, 0.97);
+  background: cyan;
   border-top: 1px solid var(--card-border);
   backdrop-filter: blur(12px);
   box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06);
@@ -419,8 +421,9 @@ input:focus, select:focus, textarea:focus {
 }
 .card.assistant,
 .ai-card {
- background: linear-gradient(331deg, #6b7280 0%, #16a34a 50%, #a5f3fc 100%); 
+ background: linear-gradient(331deg, #6b7280 16%, #16a34a 45%, #a5f3fc 49%); 
   border-color: rgba(20, 83, 45, 0.2);
+  border-radius: var(--radius);
   color: black;
 }
 
@@ -633,7 +636,7 @@ input:focus, select:focus, textarea:focus {
   border-radius: 999px;
   border: 1px solid grey;
   background: linear-gradient(160deg, #ffffff33 20%, #455560 80%);
-  color: #14532d;
+  color: black;
   font-size: 0.8rem;
   font-weight: 600;
   font-family : monospace;
@@ -641,8 +644,8 @@ input:focus, select:focus, textarea:focus {
 }
 
 #newsCats .chip-btn.active {
-  background: grey;
-  color: whitesmoke;
+  background: cyan;
+  color: black;
 }
 
 #newsCats::-webkit-scrollbar { display: none; }
@@ -651,10 +654,11 @@ input:focus, select:focus, textarea:focus {
   font-weight: 700;
   text-decoration: none;
   font-style: italic;
-  background: linear-gradient(294deg, lightcyan 20%, #455560 70%);
+  background: linear-gradient(294deg, grey 20%, #455560 70%);
   font-family: monospace;
   text-transform: uppercase;
-  justify-content: left;
+  border-radius: 1000px;
+  justify-content: center;
 }
 .news-body {
   font-size: 0.85rem;
@@ -663,6 +667,7 @@ input:focus, select:focus, textarea:focus {
   background-color: white;
   font-family: monospace;
   text-transform: uppercase;
+  border-radius: var(--radius);
 }
 
 
@@ -958,71 +963,4 @@ input:focus, select:focus, textarea:focus {
   margin-bottom: 0.5rem;
   display: block;
   background: #e5e7eb;
-}
-.news-card a {
-  display: block;
-  color: #14532d;
-  font-weight: 700;
-  text-decoration: none;
-  margin-bottom: 0.25rem;
-}
-
-
-.screen.active {
-  display: block;
-  min-height: 100dvh;
-}
-.screen.active > .top-bar {
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  background: #fff;
-  border-bottom: 1px solid rgba(20, 83, 45, 0.14);
-  padding: 0.5rem 0.75rem;
-  padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
-}
-.screen.active > .container {
-  padding: 0.75rem 0.9rem 5rem;
-}
-
-
-
-.screen.active {
-  display: block;
-  min-height: 100dvh;
-}
-
-.screen.active > .top-bar {
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  background: #fff;
-  border-bottom: 1px solid rgba(20, 83, 45, 0.14);
-  padding: 0.5rem 0.75rem;
-  padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
-}
-
-.screen.active > .container,
-.screen.active > .home-body,
-.screen.active > .msg-layout {
-  padding: 0.75rem 0.9rem;
-  padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
-}
-
-body.has-nav .screen.active > .bottom-nav {
-  display: flex !important;
-  position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: 0;
-  width: 100%;
-  max-width: 480px;
-  z-index: 100;
-  background: #fff;
-  border-top: 1px solid rgba(20, 83, 45, 0.14);
-  min-height: 56px;
-}
-
-body:not(.has-nav) .bottom-nav {
-  display: none !important;
 }
