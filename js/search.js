@@ -268,16 +268,22 @@ SNM.onSearchEnter = function () {
 };
 
 SNM.bindSearch = function () {
+  if (SNM._searchBound) return;
+  SNM._searchBound = true;
   var btn = document.getElementById("btnDoSearch");
+  var input = document.getElementById("searchQ");
   if (btn) {
     btn.onclick = function () {
-      SNM.doSearch();
+      if (typeof SNM.doSearch === "function") SNM.doSearch();
+      else if (typeof SNM.runSearch === "function") SNM.runSearch();
     };
   }
-  var input = document.getElementById("searchQ");
   if (input) {
     input.addEventListener("keydown", function (e) {
-      if (e.key === "Enter") SNM.doSearch();
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (btn) btn.click();
+      }
     });
   }
 };
