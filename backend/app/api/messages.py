@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
@@ -18,6 +18,21 @@ router = APIRouter(prefix="/messages", tags=["messages"])
 
 def _pair(a: uuid.UUID, b: uuid.UUID) -> tuple[uuid.UUID, uuid.UUID]:
     return (a, b) if str(a) < str(b) else (b, a)
+
+
+def _msg_type(body_obj) -> str:
+    t = (getattr(body_obj, "msg_type", None) or "text").strip().lower()
+    if t in ("text", "image", "voice", "audio"):
+        return "voice" if t == "audio" else t
+    return "text"
+
+
+def _media_url(body_obj) -> str | None:
+    u = getattr(body_obj, "media_url", None)
+    if u is None:
+        return None
+    u = str(u).strip()
+    return u or None
 
 
 @router.get("/inbox")
@@ -50,7 +65,9 @@ async def inbox(
         out.append(
             {
                 "thread": ThreadPublic.model_validate(t).model_dump(mode="json"),
-                "last_message": MessagePublic.model_validate(last).model_dump(mode="json")
+                "last_message": MessagePublic.model_validate(last).model_dump(
+                    mode="json"
+                )
                 if last
                 else None,
             }
@@ -110,6 +127,8 @@ async def start_thread(
         from_start_row=from_row,
         to_start_row=to_row,
         body=body.body,
+        msg_type="text",
+        media_url=None,
         context_type=body.context_type,
         product_id=body.product_id,
         fairly_used_post_id=body.fairly_used_post_id,
@@ -188,6 +207,8 @@ async def send_in_thread(
         from_start_row=from_row,
         to_start_row=to_row,
         body=body.body,
+        msg_type=_msg_type(body),
+        media_url=_media_url(body),
         context_type=thread.context_type,
         product_id=thread.product_id,
         fairly_used_post_id=thread.fairly_used_post_id,
@@ -199,6 +220,7 @@ async def send_in_thread(
     db.refresh(msg)
     return MessagePublic.model_validate(msg).model_dump(mode="json")
 
+
 @router.get("/lookup")
 @limiter.limit("30/minute")
 async def lookup_by_phone(
@@ -208,6 +230,7 @@ async def lookup_by_phone(
     db: Session = Depends(get_db),
 ):
     from app.services.phone import normalize_e164
+
     try:
         p = normalize_e164(phone)
     except Exception:
@@ -221,11 +244,14 @@ async def lookup_by_phone(
         raise HTTPException(status_code=404, detail="No user with that phone")
     return {
         "id": str(other.id),
+        "user_id": str(other.id),
         "name": other.name,
         "phone": other.phone,
         "role": other.role,
         "primary_location": other.primary_location,
+        "registered": True,
     }
+
 
 @router.delete("/{message_id}")
 @limiter.limit("30/minute")
@@ -244,4 +270,3 @@ async def delete_message(
     db.add(msg)
     db.commit()
     return {"id": str(message_id), "deleted": True}
-
