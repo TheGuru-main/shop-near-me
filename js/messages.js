@@ -18,6 +18,36 @@ SNM.escapeHtml =
   };
 SNM.esc = SNM.esc || SNM.escapeHtml;
 
+SNM._msgErr = function (err) {
+  if (!err) return "Request failed";
+  if (typeof err === "string") return err;
+  if (err.data) {
+    var d = err.data.detail != null ? err.data.detail : err.data.message;
+    if (d == null) d = err.data;
+    if (typeof d === "string") return d;
+    if (Array.isArray(d)) {
+      return d
+        .map(function (x) {
+          return (x && (x.msg || x.message)) || JSON.stringify(x);
+        })
+        .join("; ");
+    }
+    if (typeof d === "object") {
+      try {
+        return JSON.stringify(d);
+      } catch (e) {}
+    }
+  }
+  if (typeof err.message === "string" && err.message !== "[object Object]") {
+    return err.message;
+  }
+  try {
+    return JSON.stringify(err);
+  } catch (e2) {
+    return "Request failed";
+  }
+};
+
 SNM._validThreadId = function (id) {
   if (id == null) return false;
   id = String(id).trim();
@@ -195,7 +225,7 @@ SNM.toggleVoiceNote = async function () {
         });
         await SNM.reloadOpenThread();
       } catch (err) {
-        alert((err && err.message) || "Voice send failed");
+        alert(SNM._msgErr(err));
       }
     };
     SNM._voiceRec.start();
@@ -304,9 +334,7 @@ SNM.loadInbox = async function (opts) {
     });
   } catch (e) {
     box.innerHTML =
-      "<p class='soft'>" +
-      SNM.escapeHtml((e && e.message) || "Inbox error") +
-      "</p>";
+      "<p class='soft'>" + SNM.escapeHtml(SNM._msgErr(e)) + "</p>";
   }
 };
 
@@ -366,9 +394,7 @@ SNM.openThread = async function (id, title, peerMeta) {
   } catch (e) {
     if (box) {
       box.innerHTML =
-        "<p class='soft'>" +
-        SNM.escapeHtml((e && e.message) || "Could not open chat") +
-        "</p>";
+        "<p class='soft'>" + SNM.escapeHtml(SNM._msgErr(e)) + "</p>";
     }
   }
 };
@@ -449,17 +475,7 @@ SNM.startDmByPhone = async function (phone) {
       await SNM.loadInbox({ keepThread: true });
     }
   } catch (err) {
-    var msg =
-      (err && err.message) ||
-      (err && err.data && (err.data.detail || err.data.message)) ||
-      "DM failed";
-    if (typeof msg !== "string") {
-      try {
-        msg = JSON.stringify(msg);
-      } catch (e) {
-        msg = "DM failed";
-      }
-    }
+    var msg = SNM._msgErr(err);
     if (typeof SNM.toast === "function") SNM.toast(msg);
     else alert(msg);
   }
@@ -505,9 +521,9 @@ SNM.bindMessages = function () {
         if (input) input.value = "";
         await SNM.reloadOpenThread();
       } catch (e) {
-        if (typeof SNM.toast === "function")
-          SNM.toast(e.message || "Send failed");
-        else alert(e.message || "Send failed");
+        var msg = SNM._msgErr(e);
+        if (typeof SNM.toast === "function") SNM.toast(msg);
+        else alert(msg);
       }
     };
   }
@@ -544,7 +560,7 @@ SNM.bindMessages = function () {
         imgInput.value = "";
         await SNM.reloadOpenThread();
       } catch (e) {
-        alert((e && e.message) || "Image send failed");
+        alert(SNM._msgErr(e));
       }
     };
   }
