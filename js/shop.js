@@ -350,10 +350,24 @@ SNM.addShopItem = async function () {
     return;
   }
 
-  var image_url = await SNM.readItemImageFrom(
-    "shop-item-image-cam",
-    "shop-item-image-file"
-  );
+  var image_url = null;
+  var cam = document.getElementById("shop-item-image-cam");
+  var fileIn = document.getElementById("shop-item-image-file");
+  var file =
+    (cam && cam.files && cam.files[0]) ||
+    (fileIn && fileIn.files && fileIn.files[0]) ||
+    null;
+  if (file) {
+    try {
+      var dataUrl = await SNM.compressImageFile(file, 800, 0.72);
+      if (dataUrl.length > 400000) {
+        dataUrl = await SNM.compressImageFile(file, 600, 0.6);
+      }
+      image_url = dataUrl;
+    } catch (imgErr) {
+      console.warn("image compress failed", imgErr);
+    }
+  }
 
   var desc = typeof SNM.geoStamp === "function" ? SNM.geoStamp("") : "";
   var g = typeof SNM.posterGeo === "function" ? SNM.posterGeo() : {};
