@@ -2,26 +2,29 @@ window.SNM = window.SNM || {};
 
 /* Local fallback when API dictionary is empty */
 SNM.LOCAL_SYNONYMS = SNM.LOCAL_SYNONYMS || {
-  rice: ["ofada", "grain", "paddy", "fried rice"],
-  beans: ["oily bean", "protein", "ewa"],
+  rice: ["ofada", "grain", "paddy", "fried rice", "food"],
+  beans: ["oily bean", "protein", "ewa", "food"],
   hotel: ["lodge", "guest house", "short-let", "hospitality", "room"],
-  food: ["eatery", "restaurant", "kitchen", "meal"],
-  phone: ["mobile", "handset", "smartphone" "electronics" ],
+  room: ["hotel", "suite", "lodge", "house", "bnb", "short-let"],
+  food: [
+    "eatery", "restaurant", "kitchen", "meal", "rice", "beans", "oil",
+    "bread", "indomie", "yam", "egg", "fish", "meat", "snacks"
+  ],
+  groceries: ["rice", "beans", "oil", "bread", "water", "gas"],
+  phone: ["mobile", "handset", "smartphone", "electronics"],
   ride: ["driver", "logistics", "bike", "delivery"],
   water: ["pure water", "sachet", "bottle"],
-  gas: ["cooking gas", "lpg", "cylinder"]
-  food: ["rice", "beans", "oil", "bread", "meal", "eatery", "restaurant", "kitchen", "indomie", "yam", "egg", "fish", "meat", "biscuit", "snacks", "pizza", "shawarma", "mishai" ],
-  groceries: ["rice", "beans", "oil", "bread", "water", "gas"],
-  rice: ["ofada", "grain", "fried rice", "food"],
-  beans: ["ewa", "protein", "food"],
-  hotel: ["lodge", "guest house", "short-let", "hospitality", "room"],
-  room: ["hotel", "suite", "lodge" "house agent" "house" "bedroom flat" "BNB" "short-let"],
-  fashion: ["clothes", "shoe", "wear" "shirts" "polo" "trouser" "okirika" "bend-down-select"],
-  pharmacy: ["drug", "medicine", "chemist" "hospital" ],
-  footwear: ["slipper", "shoe", "pams", "shoes", "baby shoes", "adult shoes"],
-  appliances: ["bed", "pot", "wheelbarrow", "stove","knife", "cup","building materials"],
-  building_materials:["cement", "iron", "gravel", "shovel", "spade", "throwel", "headpan", "taperule", "line", "saw", "hammer", "nail"],
-  work: ["plumber", "capenter", "barber", "mechanic", "fix", "auto repair", "electrician", "painter", "car painter", "rewire", "engineer", "vulcanizer"],
+  gas: ["cooking gas", "lpg", "cylinder"],
+  fashion: ["clothes", "shoe", "wear", "shirts", "polo", "trouser", "okirika"],
+  pharmacy: ["drug", "medicine", "chemist", "hospital"],
+  footwear: ["slipper", "shoe", "pams", "shoes"],
+  appliances: ["bed", "pot", "stove", "knife", "cup"],
+  building_materials: [
+    "cement", "iron", "gravel", "shovel", "spade", "hammer", "nail"
+  ],
+  work: [
+    "plumber", "carpenter", "barber", "mechanic", "electrician", "painter"
+  ],
   perishable: ["fruit", "pawpaw", "vegetable", "orange", "food"]
 };
 
