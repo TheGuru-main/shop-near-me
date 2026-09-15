@@ -147,6 +147,7 @@ SNM.renderMessageBubble = function (m, me) {
 };
 
 /** MessageCreate: body + msg_type + optional media_url */
+
 SNM.dropMessagePayload = async function (payload) {
   payload = payload || {};
   if (!SNM._validThreadId(SNM._threadId)) {
@@ -162,11 +163,19 @@ SNM.dropMessagePayload = async function (payload) {
     else if (msgType === "voice") text = "[voice]";
     else throw new Error("Type a message first");
   }
-  var body = {
-    body: text,
-    msg_type: msgType
-  };
-  if (payload.media_url) body.media_url = payload.media_url;
+
+  var body = { body: text, msg_type: msgType };
+
+  if (payload.media_url) {
+    var u = String(payload.media_url);
+    // \~120KB data URL max — above this many mobiles fail the whole request
+    if (u.length > 120000) {
+      throw new Error(
+        "Media too large for this connection. Send text only, or use a smaller image."
+      );
+    }
+    body.media_url = u;
+  }
 
   return SNM.api(
     "/messages/threads/" + encodeURIComponent(String(SNM._threadId)),
