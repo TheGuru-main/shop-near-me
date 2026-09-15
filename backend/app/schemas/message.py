@@ -14,6 +14,8 @@ class ThreadCreate(BaseModel):
 
 class MessageCreate(BaseModel):
     body: str = Field(min_length=1)
+    msg_type: str = "text"  # text | image | voice
+    media_url: str | None = None
 
 
 class MessagePublic(BaseModel):
@@ -24,6 +26,8 @@ class MessagePublic(BaseModel):
     from_start_row: int | None
     to_start_row: int | None
     body: str
+    msg_type: str = "text"
+    media_url: str | None = None
     context_type: str
     product_id: UUID | None
     fairly_used_post_id: UUID | None
