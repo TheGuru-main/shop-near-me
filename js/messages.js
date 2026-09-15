@@ -569,10 +569,11 @@ SNM.bindMessages = function () {
       try {
         var dataUrl;
         if (typeof SNM.compressImageFile === "function") {
-          dataUrl = await SNM.compressImageFile(f, 800, 0.72);
-          if (dataUrl.length > 400000) {
-            dataUrl = await SNM.compressImageFile(f, 480, 0.55);
-          }
+          dataUrl = await SNM.compressImageFile(f, 400, 0.5);
+if (dataUrl.length > 120000) {
+  alert("Image still too large after compress. Try a smaller photo.");
+  return;
+}
         } else {
           dataUrl = await new Promise(function (resolve, reject) {
             var r = new FileReader();
