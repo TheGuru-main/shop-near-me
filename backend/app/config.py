@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     api_prefix: str = "/api/v1"
 
     database_url: str = "postgresql+psycopg://user:pass@localhost:5432/shopnearme"
-    cors_origins: str = "*"
+    cors_origins: str = "https://shop-near-me-apiv1-0-0-1b.onrender.com,http://localhost:5500"
 
     jwt_secret: str = "change-me-in-production"
     jwt_algorithm: str = "HS256"
