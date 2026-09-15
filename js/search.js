@@ -156,6 +156,7 @@ SNM.buildSearchAssist = function (q, rows) {
   );
 };
 
+
 SNM.doSearch = async function () {
   var input = document.getElementById("searchQ");
   var out = document.getElementById("searchResults");
@@ -175,44 +176,44 @@ SNM.doSearch = async function () {
   try {
     var expanded = await SNM.expandSearchTerms(q);
 
-var apiQ = q;
-if (expanded.expanded && expanded.expanded.length) {
-  apiQ = [q].concat(expanded.expanded.slice(0, 6)).join(" ");
-}
+    var apiQ = q;
+    if (expanded.expanded && expanded.expanded.length) {
+      apiQ = [q].concat(expanded.expanded.slice(0, 6)).join(" ");
+    }
 
-var data = await SNM.api(
-  "/search/products" +
-    SNM.qs({
-      q: apiQ,
-      lat: geo.lat != null ? geo.lat : u.lat,
-      lng: geo.lng != null ? geo.lng : u.lng,
-      community: u.community || "",
-      city: u.city || "",
-      region: u.region || "",
-      country: u.country || "",
-      max_km: SNM.MAX_KM || 2000,
-      limit: 40
-    })
-);
+    var data = await SNM.api(
+      "/search/products" +
+        SNM.qs({
+          q: apiQ,
+          lat: geo.lat != null ? geo.lat : u.lat,
+          lng: geo.lng != null ? geo.lng : u.lng,
+          community: u.community || "",
+          city: u.city || "",
+          region: u.region || "",
+          country: u.country || "",
+          max_km: SNM.MAX_KM || 80,
+          limit: 40
+        })
+    );
 
     var rows = data.results || data.items || [];
     if (!Array.isArray(rows)) rows = [];
 
-    var terms = expanded.all;
+    var terms = expanded.all || [];
     var strict = rows;
-    if (expanded.tokens.length) {
-  strict = rows.filter(function (r) {
-    var h = SNM.haystackListing(r);
-    var typedOk = expanded.tokens.every(function (t) {
-      return SNM.termHits(h, t);
-    });
-    if (typedOk) return true;
-    // category / synonym path
-    return expanded.expanded.some(function (t) {
-      return SNM.termHits(h, t);
-    });
-  });
-}
+
+    if (expanded.tokens && expanded.tokens.length) {
+      strict = rows.filter(function (r) {
+        var h = SNM.haystackListing(r);
+        var typedOk = expanded.tokens.every(function (t) {
+          return SNM.termHits(h, t);
+        });
+        if (typedOk) return true;
+        return (expanded.expanded || []).some(function (t) {
+          return SNM.termHits(h, t);
+        });
+      });
+
       /* if too strict emptied list, relax: any expanded term */
       if (!strict.length && terms.length) {
         strict = rows.filter(function (r) {
@@ -233,8 +234,10 @@ var data = await SNM.api(
         typeof SNM.normalizeListing === "function"
           ? SNM.normalizeListing(b)
           : b;
-      var ka = na.km != null && !isNaN(Number(na.km)) ? Number(na.km) : 999999;
-      var kb = nb.km != null && !isNaN(Number(nb.km)) ? Number(nb.km) : 999999;
+      var ka =
+        na.km != null && !isNaN(Number(na.km)) ? Number(na.km) : 999999;
+      var kb =
+        nb.km != null && !isNaN(Number(nb.km)) ? Number(nb.km) : 999999;
       return ka - kb;
     });
 
@@ -243,7 +246,7 @@ var data = await SNM.api(
     if (!strict.length) {
       out.innerHTML =
         "<p class='muted'>No matches for “" +
-        SNM.esc(q || "your search") +
+        (typeof SNM.esc === "function" ? SNM.esc(q || "your search") : q || "your search") +
         "”.</p>";
       return;
     }
@@ -261,7 +264,9 @@ var data = await SNM.api(
   } catch (err) {
     out.innerHTML =
       "<p class='muted'>Search failed. " +
-      SNM.esc((err && err.message) || "") +
+      (typeof SNM.esc === "function"
+        ? SNM.esc((err && err.message) || "")
+        : (err && err.message) || "") +
       "</p>";
   }
 };
@@ -273,21 +278,23 @@ SNM.onSearchEnter = function () {
 SNM.bindSearch = function () {
   if (SNM._searchBound) return;
   SNM._searchBound = true;
-  var btn = document.getElementById("btnDoSearch");
-  var input = document.getElementById("searchQ");
+  var btn =
+    document.getElementById("btnDoSearch") ||
+    document.getElementById("btnSearchGo");
+  var input =
+    document.getElementById("searchQ") ||
+    document.getElementById("search-input");
   if (btn) {
     btn.onclick = function () {
-      if (typeof SNM.doSearch === "function") SNM.doSearch();
-      else if (typeof SNM.runSearch === "function") SNM.runSearch();
+      SNM.doSearch();
     };
   }
   if (input) {
     input.addEventListener("keydown", function (e) {
       if (e.key === "Enter") {
         e.preventDefault();
-        if (btn) btn.click();
+        SNM.doSearch();
       }
     });
   }
 };
-
