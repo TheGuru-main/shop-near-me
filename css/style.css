@@ -967,17 +967,6 @@ input:focus, select:focus, textarea:focus {
 }
 
 
-
-
-/* Light sticky headers — does NOT blank the screen */
-
-.screen {
-  display: none;
-  min-height: 100dvh;
-  flex-direction: column;
-  padding-top: 0;
-}
-
 .screen.active {
   display: block;
   min-height: 100dvh;
@@ -992,6 +981,5 @@ input:focus, select:focus, textarea:focus {
   padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
 }
 .screen.active > .container {
-  padding: 0.75rem 0.9rem;
-  padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  padding: 0.75rem 0.9rem 5rem;
 }
