@@ -964,3 +964,22 @@ input:focus, select:focus, textarea:focus {
   display: block;
   background: #e5e7eb;
 }
+
+
+.screen { padding-top: 0 !important; }
+.screen.active {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100dvh !important;
+  overflow: hidden !important;
+}
+.screen.active > .top-bar {
+  flex: 0 0 auto !important;
+  padding-top: max(0.4rem, env(safe-area-inset-top, 0px)) !important;
+  background: #fff !important;
+}
+.screen.active > .container {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+}
