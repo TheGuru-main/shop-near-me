@@ -4,9 +4,9 @@
 */
 
 :root {
-  --bg: linear-gradient(331deg, #6b7280 0%, #16a34a 50%, #a5f3fc 100%);
-  --card: #f8fafc;
-  --card-border: rgba(20, 83, 45, 0.14);
+ --bg: linear-gradient(352deg, lightcyan 3%, #ffffff33 23%, lightcyan 74%);
+  --card: linear-gradient(160deg, #ffffff33 20%, whitesmoke 80%);
+  --card-border: rgba(22, 101, 52, 0.12);
   --text: #1f2937;
   --muted: #4b5563;
   --primary: #14532d;
@@ -419,7 +419,7 @@ input:focus, select:focus, textarea:focus {
 }
 .card.assistant,
 .ai-card {
-  background: linear-gradient(322deg, lightcyan, whitesmoke);
+ background: linear-gradient(331deg, #6b7280 0%, #16a34a 50%, #a5f3fc 100%); 
   border-color: rgba(20, 83, 45, 0.2);
   color: black;
 }
@@ -510,6 +510,7 @@ input:focus, select:focus, textarea:focus {
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   z-index: 5;
+  background-color: linear-gradient(331deg, #6b7280 16%, #16a34a 20%, #a5f3fc 74%);
 }
 .home-quick-nav::-webkit-scrollbar { display: none; }
 
@@ -630,8 +631,8 @@ input:focus, select:focus, textarea:focus {
   display: inline-flex;
   padding: 0.4rem 0.75rem;
   border-radius: 999px;
-  border: 1px solid rgba(20, 83, 45, 0.22);
-  background: #f0fdf4;
+  border: 1px solid grey;
+  background: linear-gradient(160deg, #ffffff33 20%, #455560 80%);
   color: #14532d;
   font-size: 0.8rem;
   font-weight: 600;
@@ -650,7 +651,7 @@ input:focus, select:focus, textarea:focus {
   font-weight: 700;
   text-decoration: none;
   font-style: italic;
-  background-color: lightcyan;
+  background: linear-gradient(294deg, lightcyan 20%, #455560 70%);
   font-family: monospace;
   text-transform: uppercase;
   justify-content: left;
@@ -659,7 +660,7 @@ input:focus, select:focus, textarea:focus {
   font-size: 0.85rem;
   color: black;
   margin-top: 0.35rem;
-  background-color: lightcyan;
+  background-color: white;
   font-family: monospace;
   text-transform: uppercase;
 }
@@ -726,7 +727,7 @@ input:focus, select:focus, textarea:focus {
 }
 .msg-bubble.me {
   align-self: flex-end;
-  background: linear-gradient(145deg, #166534, #14532d);
+  background: linear-gradient(205deg, blue, #14532d);
   color: #fff;
 }
 .msg-bubble.them {
@@ -982,4 +983,46 @@ input:focus, select:focus, textarea:focus {
 }
 .screen.active > .container {
   padding: 0.75rem 0.9rem 5rem;
+}
+
+
+
+.screen.active {
+  display: block;
+  min-height: 100dvh;
+}
+
+.screen.active > .top-bar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: #fff;
+  border-bottom: 1px solid rgba(20, 83, 45, 0.14);
+  padding: 0.5rem 0.75rem;
+  padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
+}
+
+.screen.active > .container,
+.screen.active > .home-body,
+.screen.active > .msg-layout {
+  padding: 0.75rem 0.9rem;
+  padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+}
+
+body.has-nav .screen.active > .bottom-nav {
+  display: flex !important;
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 0;
+  width: 100%;
+  max-width: 480px;
+  z-index: 100;
+  background: #fff;
+  border-top: 1px solid rgba(20, 83, 45, 0.14);
+  min-height: 56px;
+}
+
+body:not(.has-nav) .bottom-nav {
+  display: none !important;
 }
