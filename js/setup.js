@@ -1,6 +1,6 @@
 window.SNM = window.SNM || {};
 
-SNM.BUYER_PREF_CATS = SNM.BUYER_PREF_CATS || [
+SNM.BUYER_PREF_CATS = [
   "Food",
   "Groceries",
   "Fashion",
@@ -11,7 +11,7 @@ SNM.BUYER_PREF_CATS = SNM.BUYER_PREF_CATS || [
   "Logistics"
 ];
 
-SNM.BUYER_PREF_ITEMS = SNM.BUYER_PREF_ITEMS || [
+SNM.BUYER_PREF_ITEMS = [
   "Rice",
   "Beans",
   "Oil",
@@ -41,18 +41,17 @@ SNM.saveSetupData = function (data) {
 };
 
 SNM.markSetupDone = function () {
+  try {
+    localStorage.setItem("snm_setup_done", "1");
+  } catch (e) {}
   if (typeof SNM.setSetupDone === "function") SNM.setSetupDone(true);
-  else {
-    try {
-      localStorage.setItem("snm_setup_done", "1");
-    } catch (e) {}
-  }
 };
 
 SNM.collectSetupPayload = function () {
   var role = (
     ((typeof SNM.getUser === "function" && SNM.getUser()) || {}).role ||
     (typeof SNM.getRole === "function" && SNM.getRole()) ||
+    sessionStorage.getItem("snm_role") ||
     "buyer"
   )
     .toString()
@@ -65,7 +64,7 @@ SNM.collectSetupPayload = function () {
   if (role === "buyer") {
     var prefs = [];
     document.querySelectorAll("#buyerPrefs .chip.active").forEach(function (c) {
-      prefs.push(c.textContent);
+      prefs.push((c.textContent || "").trim());
     });
     extra.prefs = prefs;
   } else if (role === "merchant") {
@@ -107,62 +106,75 @@ SNM.collectSetupPayload = function () {
   return extra;
 };
 
-/** Always paint home — do not rely on showScreen alone */
 SNM.goHomeNow = function () {
+  SNM.markSetupDone();
+
+  document.querySelectorAll(".screen").forEach(function (s) {
+    s.classList.remove("active");
+    s.style.display = "none";
+  });
+
+  var home = document.getElementById("home");
+  if (home) {
+    home.classList.add("active");
+    home.style.display = "flex";
+  }
+
+  document.body.classList.add("has-nav");
+
   try {
-    document.querySelectorAll(".screen").forEach(function (s) {
-      s.classList.remove("active");
-      s.style.display = "none";
-    });
-
-    var home = document.getElementById("home");
-    if (home) {
-      home.classList.add("active");
-      home.style.display = "flex";
-    }
-
-    document.body.classList.add("has-nav");
-
-    try {
-      history.replaceState(null, "", "#home");
-    } catch (e) {
-      try {
-        location.hash = "#home";
-      } catch (e2) {}
-    }
-
-    if (typeof SNM.renderTabbar === "function") SNM.renderTabbar("home");
-    if (typeof SNM.fillHomeHeader === "function") SNM.fillHomeHeader();
-
-    setTimeout(function () {
-      if (typeof SNM.loadFeed === "function") SNM.loadFeed();
-      if (typeof SNM.initHomeMap === "function") SNM.initHomeMap();
-    }, 50);
-  } catch (err) {
-    console.error("goHomeNow", err);
+    history.replaceState(null, "", "#home");
+  } catch (e) {
     try {
       location.hash = "#home";
-      location.reload();
+    } catch (e2) {}
+  }
+
+  if (typeof SNM.renderTabbar === "function") {
+    try {
+      SNM.renderTabbar("home");
     } catch (e3) {}
   }
+  if (typeof SNM.fillHomeHeader === "function") {
+    try {
+      SNM.fillHomeHeader();
+    } catch (e4) {}
+  }
+
+  setTimeout(function () {
+    if (typeof SNM.enterHome === "function") {
+      try {
+        SNM.enterHome(true);
+      } catch (e5) {}
+    } else {
+      if (typeof SNM.loadFeed === "function") {
+        try {
+          SNM.loadFeed();
+        } catch (e6) {}
+      }
+      if (typeof SNM.initHomeMap === "function") {
+        try {
+          SNM.initHomeMap();
+        } catch (e7) {}
+      }
+    }
+  }, 40);
+
+  try {
+    window.scrollTo(0, 0);
+  } catch (e8) {}
 };
 
 SNM.finishSetup = function () {
-  var data = null;
+  var data = {};
   try {
-    data = SNM.collectSetupPayload();
+    data = SNM.collectSetupPayload() || {};
     SNM.saveSetupData(data);
   } catch (e) {
     console.error("setup save", e);
   }
 
   SNM.markSetupDone();
-
-  /* Prefer router, then always force home UI */
-  try {
-    if (typeof SNM.showScreen === "function") SNM.showScreen("home");
-  } catch (e2) {}
-
   SNM.goHomeNow();
 
   try {
@@ -179,10 +191,7 @@ SNM.finishSetup = function () {
 
 SNM.wireSetupDoneButton = function () {
   var btn = document.getElementById("btnSetupDone");
-  if (!btn) {
-    console.warn("btnSetupDone missing");
-    return;
-  }
+  if (!btn) return;
   btn.type = "button";
   btn.onclick = function (e) {
     if (e) {
@@ -195,8 +204,10 @@ SNM.wireSetupDoneButton = function () {
 
 SNM.renderBuyerPrefs = function () {
   var box = document.getElementById("buyerPrefs");
-  if (!box) return;
-
+  if (!box) {
+    console.warn("buyerPrefs missing");
+    return;
+  }
   box.classList.add("chip-row");
   box.innerHTML = "";
   box.dataset.ready = "1";
@@ -212,31 +223,41 @@ SNM.renderBuyerPrefs = function () {
     box.appendChild(b);
   }
 
-  (SNM.BUYER_PREF_CATS || []).forEach(addChip);
-  (SNM.BUYER_PREF_ITEMS || []).forEach(addChip);
+  SNM.BUYER_PREF_CATS.forEach(addChip);
+  SNM.BUYER_PREF_ITEMS.forEach(addChip);
 };
 
 SNM.showSetupForRole = function (role) {
-  role = String(role || "buyer").toLowerCase().trim();
+  role = String(role || "buyer")
+    .toLowerCase()
+    .trim();
   if (role === "logistics") role = "driver";
+
+  try {
+    sessionStorage.setItem("snm_role", role);
+  } catch (e) {}
 
   var label = document.getElementById("setupRoleLabel");
   if (label) label.textContent = role;
 
   ["buyer", "merchant", "service", "driver", "emergency"].forEach(function (r) {
     var panel = document.getElementById("setup-" + r);
-    if (panel) {
-      if (r === role) {
-        panel.classList.remove("hidden");
-        panel.style.display = "";
-      } else {
-        panel.classList.add("hidden");
-      }
+    if (!panel) return;
+    if (r === role) {
+      panel.classList.remove("hidden");
+      panel.style.display = "";
+    } else {
+      panel.classList.add("hidden");
+      panel.style.display = "none";
     }
   });
 
   if (role === "buyer") SNM.renderBuyerPrefs();
   SNM.wireSetupDoneButton();
+  setTimeout(function () {
+    if (role === "buyer") SNM.renderBuyerPrefs();
+    SNM.wireSetupDoneButton();
+  }, 50);
 };
 
 SNM.initSetupScreens = function () {
