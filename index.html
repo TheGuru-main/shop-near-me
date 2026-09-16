@@ -584,9 +584,8 @@
       <nav class="bottom-nav" id="bottomNavShop"></nav>
     </section>
 
+<!-- ========== N0 MESSAGES ========== -->
 
-
-    <!-- ========== N0 MESSAGES ========== -->
     <section id="messages" class="screen" data-screen="messages">
       <header class="top-bar">
         <button type="button" class="icon-btn" data-back="home" aria-label="Back">
@@ -603,7 +602,10 @@
           <button type="button" class="btn" id="btnDmStart">Open chat</button>
         </div>
         <div id="contactRail" class="contact-rail"></div>
-        <div id="threadList" class="feed-list thread-scroll"></div>
+        <!-- inbox list (messages.js uses inboxList || threadList) -->
+        <div id="inboxList" class="feed-list thread-scroll"></div>
+        <div id="threadList" class="feed-list thread-scroll hidden"></div>
+
         <div id="threadView" class="thread-panel hidden">
           <div class="thread-head">
             <button type="button" class="icon-btn" id="btnThreadBack" aria-label="Back to list">
@@ -618,24 +620,18 @@
             </button>
           </div>
           <div id="msgList" class="msg-bubbles"></div>
-      <div class="compose-row">
-  <button type="button" id="btnMsgImage" class="btn icon" aria-label="Image">
-    <i class="fa-solid fa-image"></i>
-  </button>
-  <input type="file" id="msg-image" accept="image/*" class="hidden" />
-
-  <button type="button" id="btnMsgVoice" class="btn icon" aria-label="Voice note">
-    <i class="fa-solid fa-microphone"></i>
-  </button>
-
-  <input id="msgInput" placeholder="Type a message…" autocomplete="off" />
-  <button type="button" class="btn" id="btnMsgSend">Send</button>
-</div>
-     
-      <input type="file" id="msg-image" accept="image/*" class="hidden" />
-      <input id="msgInput" placeholder="Type a message…" autocomplete="off" />
-      <button type="button" class="btn" id="btnMsgSend">Send</button>
-    </div>
+          <div id="threadMessages" class="msg-bubbles hidden"></div>
+          <div class="compose-row">
+            <button type="button" id="btnMsgImage" class="btn icon" aria-label="Image">
+              <i class="fa-solid fa-image"></i>
+            </button>
+            <input type="file" id="msg-image" accept="image/*" class="hidden" />
+            <button type="button" id="btnMsgVoice" class="btn icon" aria-label="Voice note">
+              <i class="fa-solid fa-microphone"></i>
+            </button>
+            <input id="msgInput" type="text" placeholder="Type a message…" autocomplete="off" />
+            <button type="button" class="btn" id="btnMsgSend">Send</button>
+          </div>
         </div>
       </div>
       <nav class="bottom-nav" id="bottomNavMsg"></nav>
