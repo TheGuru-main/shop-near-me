@@ -57,48 +57,72 @@ SNM._showErr = function (id, msg) {
 
 SNM._profileLooksComplete = function (user) {
   if (typeof SNM.setupDone === "function" && SNM.setupDone()) return true;
+  try {
+    if (localStorage.getItem("snm_setup_done") === "1") return true;
+  } catch (e) {}
   user = user || (typeof SNM.getUser === "function" && SNM.getUser()) || {};
   if (!user || !user.role) return false;
   if (user.primary_location || user.community || user.city) return true;
   try {
     var setup = JSON.parse(localStorage.getItem("snm_setup_data") || "null");
     if (setup && (setup.prefs || setup.shop_name || setup.coverage)) return true;
-  } catch (e) {}
+  } catch (e2) {}
   return false;
 };
 
 SNM._openSetup = function (role) {
-  role = String(role || "buyer").toLowerCase().trim();
+  role = String(role || "buyer")
+    .toLowerCase()
+    .trim();
   if (role === "logistics") role = "driver";
   try {
     sessionStorage.setItem("snm_role", role);
   } catch (e) {}
 
-  if (typeof SNM.showSetupForRole === "function") {
-    SNM.showSetupForRole(role);
-  }
   if (typeof SNM.showScreen === "function") SNM.showScreen("setup");
 
-  /* Wire Continue immediately and again next tick (DOM paint) */
-  if (typeof SNM.wireSetupDoneButton === "function") {
-    SNM.wireSetupDoneButton();
+  if (typeof SNM.showSetupForRole === "function") {
+    SNM.showSetupForRole(role);
+  } else {
+    var label = document.getElementById("setupRoleLabel");
+    if (label) label.textContent = role;
+    ["buyer", "merchant", "service", "driver", "emergency"].forEach(function (
+      r
+    ) {
+      var panel = document.getElementById("setup-" + r);
+      if (!panel) return;
+      if (r === role) {
+        panel.classList.remove("hidden");
+        panel.style.display = "";
+      } else {
+        panel.classList.add("hidden");
+      }
+    });
+    if (role === "buyer" && typeof SNM.renderBuyerPrefs === "function") {
+      SNM.renderBuyerPrefs();
+    }
   }
-  if (typeof SNM.initSetupScreens === "function") {
-    SNM.initSetupScreens();
-  }
-  setTimeout(function () {
+
+  function rewire() {
     if (typeof SNM.wireSetupDoneButton === "function") {
       SNM.wireSetupDoneButton();
     }
-  }, 0);
-  setTimeout(function () {
-    if (typeof SNM.wireSetupDoneButton === "function") {
-      SNM.wireSetupDoneButton();
+    if (role === "buyer" && typeof SNM.renderBuyerPrefs === "function") {
+      SNM.renderBuyerPrefs();
     }
-  }, 100);
+  }
+  rewire();
+  setTimeout(rewire, 0);
+  setTimeout(rewire, 80);
 };
 
 SNM._goHomeAfterAuth = function () {
+  if (typeof SNM.markSetupDone === "function") SNM.markSetupDone();
+  else {
+    try {
+      localStorage.setItem("snm_setup_done", "1");
+    } catch (e) {}
+  }
   if (typeof SNM.goHomeNow === "function") {
     SNM.goHomeNow();
     return;
@@ -109,30 +133,8 @@ SNM._goHomeAfterAuth = function () {
   }
   try {
     location.hash = "#home";
-  } catch (e) {}
+  } catch (e2) {}
 };
-
-if (typeof SNM.showSetupForRole !== "function") {
-  SNM.showSetupForRole = function (role) {
-    role = String(role || "buyer")
-      .toLowerCase()
-      .trim();
-    if (role === "logistics") role = "driver";
-    var label = document.getElementById("setupRoleLabel");
-    if (label) label.textContent = role;
-    ["buyer", "merchant", "service", "driver", "emergency"].forEach(function (
-      r
-    ) {
-      var panel = document.getElementById("setup-" + r);
-      if (!panel) return;
-      if (r === role) panel.classList.remove("hidden");
-      else panel.classList.add("hidden");
-    });
-    if (role === "buyer" && typeof SNM.renderBuyerPrefs === "function") {
-      SNM.renderBuyerPrefs();
-    }
-  };
-}
 
 SNM.bindAuth = function () {
   if (SNM._authBound) return;
@@ -143,7 +145,7 @@ SNM.bindAuth = function () {
     btnRegister.onclick = async function () {
       SNM._showErr("regError", "");
       var role =
-        SNM.getRole() ||
+        (typeof SNM.getRole === "function" && SNM.getRole()) ||
         sessionStorage.getItem("snm_role") ||
         sessionStorage.getItem("snm_reg_role") ||
         "buyer";
@@ -283,6 +285,9 @@ SNM.bindAuth = function () {
         } catch (e) {}
         SNM.setPending(null);
         if (typeof SNM.setSetupDone === "function") SNM.setSetupDone(false);
+        try {
+          localStorage.removeItem("snm_setup_done");
+        } catch (e2) {}
         SNM._openSetup((user && user.role) || pending.role || "buyer");
       } catch (err) {
         SNM._showErr("otpError", SNM._errText(err) || "Invalid OTP");
@@ -343,7 +348,6 @@ SNM.bindAuth = function () {
         SNM._showErr("loginError", "");
 
         if (SNM._profileLooksComplete(user)) {
-          if (typeof SNM.setSetupDone === "function") SNM.setSetupDone(true);
           SNM._goHomeAfterAuth();
         } else if (typeof SNM.setupDone === "function" && SNM.setupDone()) {
           SNM._goHomeAfterAuth();
