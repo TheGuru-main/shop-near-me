@@ -146,8 +146,7 @@ SNM.renderMessageBubble = function (m, me) {
   );
 };
 
-/** MessageCreate: body + msg_type + optional media_url */
-
+/** POST body: { body } only until msg_type/media_url columns are live */
 SNM.dropMessagePayload = async function (payload) {
   payload = payload || {};
   if (!SNM._validThreadId(SNM._threadId)) {
@@ -156,26 +155,25 @@ SNM.dropMessagePayload = async function (payload) {
   var text = "";
   if (payload.body != null) text = String(payload.body).trim();
   if (!text && payload.text != null) text = String(payload.text).trim();
-  var msgType = (payload.type || payload.msg_type || "text").toLowerCase();
-  if (msgType === "audio") msgType = "voice";
   if (!text) {
-    if (msgType === "image") text = "[image]";
-    else if (msgType === "voice") text = "[voice]";
+    var t = (payload.type || payload.msg_type || "text").toLowerCase();
+    if (t === "image") text = "[image]";
+    else if (t === "voice" || t === "audio") text = "[voice]";
     else throw new Error("Type a message first");
   }
 
-  var body = { body: text, msg_type: msgType };
-
+  var body = { body: text };
+  /*
+  // enable after migration:
+  var msgType = (payload.type || payload.msg_type || "text").toLowerCase();
+  if (msgType === "audio") msgType = "voice";
+  body.msg_type = msgType;
   if (payload.media_url) {
     var u = String(payload.media_url);
-    // \~120KB data URL max — above this many mobiles fail the whole request
-    if (u.length > 120000) {
-      throw new Error(
-        "Media too large for this connection. Send text only, or use a smaller image."
-      );
-    }
+    if (u.length > 120000) throw new Error("Media too large");
     body.media_url = u;
   }
+  */
 
   return SNM.api(
     "/messages/threads/" + encodeURIComponent(String(SNM._threadId)),
@@ -193,61 +191,7 @@ SNM.reloadOpenThread = async function () {
 };
 
 SNM.toggleVoiceNote = async function () {
-  var btn = document.getElementById("btnMsgVoice");
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    alert("Voice notes need mic permission on this device.");
-    return;
-  }
-  if (SNM._voiceRec && SNM._voiceRec.state === "recording") {
-    SNM._voiceRec.stop();
-    if (btn) btn.classList.remove("recording");
-    return;
-  }
-  try {
-    var stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    SNM._voiceChunks = [];
-    var mime = MediaRecorder.isTypeSupported("audio/webm")
-      ? "audio/webm"
-      : "audio/mp4";
-    SNM._voiceRec = new MediaRecorder(stream, { mimeType: mime });
-    SNM._voiceRec.ondataavailable = function (e) {
-      if (e.data && e.data.size) SNM._voiceChunks.push(e.data);
-    };
-    SNM._voiceRec.onstop = async function () {
-      stream.getTracks().forEach(function (t) {
-        t.stop();
-      });
-      var blob = new Blob(SNM._voiceChunks, { type: mime });
-      SNM._voiceChunks = [];
-      if (blob.size < 500) return;
-      if (blob.size > 900000) {
-        alert("Voice note too long/large.");
-        return;
-      }
-      try {
-        var dataUrl = await new Promise(function (resolve, reject) {
-          var r = new FileReader();
-          r.onload = function () {
-            resolve(r.result);
-          };
-          r.onerror = reject;
-          r.readAsDataURL(blob);
-        });
-        await SNM.dropMessagePayload({
-          type: "voice",
-          body: "[voice]",
-          media_url: dataUrl
-        });
-        await SNM.reloadOpenThread();
-      } catch (err) {
-        alert(SNM._msgErr(err));
-      }
-    };
-    SNM._voiceRec.start();
-    if (btn) btn.classList.add("recording");
-  } catch (e) {
-    alert("Mic blocked or unavailable.");
-  }
+  alert("Voice notes need media columns on the server. Send text for now.");
 };
 
 SNM.openCallSheet = function (mode, peerLabel) {
@@ -545,7 +489,7 @@ SNM.bindMessages = function () {
       var text = input ? (input.value || "").trim() : "";
       if (!text) return;
       try {
-        await SNM.dropMessagePayload({ body: text, type: "text" });
+        await SNM.dropMessagePayload({ body: text });
         if (input) input.value = "";
         await SNM.reloadOpenThread();
       } catch (e) {
@@ -557,43 +501,10 @@ SNM.bindMessages = function () {
   }
 
   var imgBtn = document.getElementById("btnMsgImage");
-  var imgInput = document.getElementById("msg-image");
-  if (imgBtn && imgInput && !imgBtn._snmWired) {
+  if (imgBtn && !imgBtn._snmWired) {
     imgBtn._snmWired = true;
     imgBtn.onclick = function () {
-      imgInput.click();
-    };
-    imgInput.onchange = async function () {
-      var f = imgInput.files && imgInput.files[0];
-      if (!f) return;
-      try {
-        var dataUrl;
-        if (typeof SNM.compressImageFile === "function") {
-          dataUrl = await SNM.compressImageFile(f, 400, 0.5);
-if (dataUrl.length > 120000) {
-  alert("Image still too large after compress. Try a smaller photo.");
-  return;
-}
-        } else {
-          dataUrl = await new Promise(function (resolve, reject) {
-            var r = new FileReader();
-            r.onload = function () {
-              resolve(r.result);
-            };
-            r.onerror = reject;
-            r.readAsDataURL(f);
-          });
-        }
-        await SNM.dropMessagePayload({
-          type: "image",
-          body: "[image]",
-          media_url: dataUrl
-        });
-        imgInput.value = "";
-        await SNM.reloadOpenThread();
-      } catch (e) {
-        alert(SNM._msgErr(e));
-      }
+      alert("Images need media columns on the server. Send text for now.");
     };
   }
 
