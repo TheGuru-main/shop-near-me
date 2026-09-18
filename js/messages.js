@@ -48,6 +48,12 @@ SNM._msgErr = function (err) {
   }
 };
 
+SNM._isUuid = function (id) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    String(id || "").trim()
+  );
+};
+
 SNM._validThreadId = function (id) {
   if (id == null) return false;
   id = String(id).trim();
@@ -68,6 +74,45 @@ SNM._rowThreadId = function (t) {
   if (t.id != null) return t.id;
   if (t.thread_id != null) return t.thread_id;
   return null;
+};
+
+/** Show messages screen + thread panel (compose visible) before any send */
+SNM._showThreadUi = function (title) {
+  if (typeof SNM.showScreen === "function") SNM.showScreen("messages");
+
+  var tv = document.getElementById("threadView");
+  var inbox = document.getElementById("inboxList");
+  var list = document.getElementById("threadList");
+  if (tv) {
+    tv.classList.remove("hidden");
+    tv.style.display = "";
+  }
+  if (inbox) {
+    inbox.classList.add("hidden");
+    inbox.style.display = "none";
+  }
+  if (list) {
+    list.classList.add("hidden");
+    list.style.display = "none";
+  }
+  var tt = document.getElementById("threadTitle");
+  if (tt) tt.textContent = SNM._cleanTitle(title, "Chat");
+
+  var box =
+    document.getElementById("msgList") ||
+    document.getElementById("threadMessages");
+  if (box && !box.innerHTML) {
+    box.innerHTML = "<p class='soft'>Loading chat…</p>";
+  }
+
+  var input =
+    document.getElementById("msgInput") ||
+    document.getElementById("threadInput");
+  if (input) {
+    try {
+      input.focus();
+    } catch (e) {}
+  }
 };
 
 SNM.closeThread = function () {
@@ -146,38 +191,19 @@ SNM.renderMessageBubble = function (m, me) {
   );
 };
 
-/** POST body: { body } only until msg_type/media_url columns are live */
 SNM.dropMessagePayload = async function (payload) {
   payload = payload || {};
   if (!SNM._validThreadId(SNM._threadId)) {
-    throw new Error("Open a thread first");
+    throw new Error("Open a chat first");
   }
   var text = "";
   if (payload.body != null) text = String(payload.body).trim();
   if (!text && payload.text != null) text = String(payload.text).trim();
-  if (!text) {
-    var t = (payload.type || payload.msg_type || "text").toLowerCase();
-    if (t === "image") text = "[image]";
-    else if (t === "voice" || t === "audio") text = "[voice]";
-    else throw new Error("Type a message first");
-  }
-
-  var body = { body: text };
-  /*
-  // enable after migration:
-  var msgType = (payload.type || payload.msg_type || "text").toLowerCase();
-  if (msgType === "audio") msgType = "voice";
-  body.msg_type = msgType;
-  if (payload.media_url) {
-    var u = String(payload.media_url);
-    if (u.length > 120000) throw new Error("Media too large");
-    body.media_url = u;
-  }
-  */
+  if (!text) throw new Error("Type a message first");
 
   return SNM.api(
     "/messages/threads/" + encodeURIComponent(String(SNM._threadId)),
-    { method: "POST", body: body }
+    { method: "POST", body: { body: text } }
   );
 };
 
@@ -188,10 +214,6 @@ SNM.reloadOpenThread = async function () {
     SNM._threadId,
     titleEl ? titleEl.textContent : "Chat"
   );
-};
-
-SNM.toggleVoiceNote = async function () {
-  alert("Voice notes need media columns on the server. Send text for now.");
 };
 
 SNM.openCallSheet = function (mode, peerLabel) {
@@ -247,7 +269,7 @@ SNM.loadInbox = async function (opts) {
 
     if (!rows.length) {
       box.innerHTML =
-        "<p class='soft'>No conversations yet. Message a seller from a listing or DM with +phone.</p>";
+        "<p class='soft'>No conversations yet. Tap Message on a listing or open chat with +phone / user id.</p>";
       return;
     }
 
@@ -322,27 +344,11 @@ SNM.openThread = async function (id, title, peerMeta) {
   if (peerMeta.phone) SNM._threadPeer = peerMeta.phone;
   if (peerMeta.user_id) SNM._threadPeerId = peerMeta.user_id;
 
-  var tv = document.getElementById("threadView");
-  var inbox = document.getElementById("inboxList");
-  var list = document.getElementById("threadList");
-  if (tv) {
-    tv.classList.remove("hidden");
-    tv.style.display = "";
-  }
-  if (inbox) {
-    inbox.classList.add("hidden");
-    inbox.style.display = "none";
-  }
-  if (list) {
-    list.classList.add("hidden");
-    list.style.display = "none";
-  }
-  var tt = document.getElementById("threadTitle");
-  if (tt) tt.textContent = SNM._cleanTitle(title, "Chat");
+  SNM._showThreadUi(title);
 
   var box =
-    document.getElementById("threadMessages") ||
-    document.getElementById("msgList");
+    document.getElementById("msgList") ||
+    document.getElementById("threadMessages");
   if (box) box.innerHTML = "<p class='soft'>Loading…</p>";
 
   try {
@@ -370,11 +376,108 @@ SNM.openThread = async function (id, title, peerMeta) {
   }
 };
 
+/** Create or reuse thread, then open compose UI (no message required yet) */
+SNM._ensureThreadWithUser = async function (userId, title, phone) {
+  userId = String(userId || "").trim();
+  if (!SNM._isUuid(userId)) {
+    throw new Error("Invalid seller id (need UUID)");
+  }
+
+  SNM._threadPeerId = userId;
+  if (phone) SNM._threadPeer = phone;
+
+  SNM._showThreadUi(title || "Chat");
+
+  var created = await SNM.api("/messages/threads", {
+    method: "POST",
+    body: {
+      to_user_id: userId,
+      body: "…",
+      context_type: "direct"
+    }
+  });
+
+  var tid =
+    (created.thread && created.thread.id) ||
+    created.thread_id ||
+    created.id;
+
+  if (!SNM._validThreadId(tid)) {
+    throw new Error("Could not open thread");
+  }
+
+  await SNM.openThread(String(tid), title || "Chat", {
+    phone: phone || null,
+    user_id: userId
+  });
+  return tid;
+};
+
+/**
+ * From listing card: seller name + user id (and optional phone).
+ * Call: SNM.openChatWithSeller({ user_id, name, phone })
+ */
+SNM.openChatWithSeller = async function (meta) {
+  meta = meta || {};
+  var userId =
+    meta.user_id ||
+    meta.seller_id ||
+    meta.owner_id ||
+    meta.from_user_id ||
+    meta.id ||
+    null;
+  var phone = (meta.phone || meta.owner_phone || meta.seller_phone || "")
+    .toString()
+    .trim();
+  var name =
+    meta.name ||
+    meta.seller_name ||
+    meta.owner_name ||
+    meta.title ||
+    phone ||
+    "Seller";
+
+  if (typeof SNM.showScreen === "function") SNM.showScreen("messages");
+
+  try {
+    if (SNM._isUuid(userId)) {
+      await SNM._ensureThreadWithUser(userId, name, phone || null);
+      return;
+    }
+    if (phone) {
+      await SNM.startDmByPhone(phone);
+      return;
+    }
+    alert("No seller id or phone on this listing.");
+  } catch (err) {
+    var msg = SNM._msgErr(err);
+    if (typeof SNM.toast === "function") SNM.toast(msg);
+    else alert(msg);
+  }
+};
+
+/** Phone (+234…) or UUID in the DM field */
+SNM.startDmFromInput = async function (raw) {
+  raw = (raw || "").trim();
+  if (!raw) {
+    alert("Enter +phone or user id");
+    return;
+  }
+  if (SNM._isUuid(raw)) {
+    try {
+      await SNM._ensureThreadWithUser(raw, "Chat", null);
+    } catch (err) {
+      alert(SNM._msgErr(err));
+    }
+    return;
+  }
+  await SNM.startDmByPhone(raw);
+};
+
 SNM.startDmByPhone = async function (phone) {
   phone = (phone || "").trim();
   if (!phone) {
-    if (typeof SNM.toast === "function") SNM.toast("Phone required (+…)");
-    else alert("Phone required");
+    alert("Phone required");
     return;
   }
   if (phone.charAt(0) !== "+") phone = "+" + phone.replace(/\D/g, "");
@@ -382,16 +485,16 @@ SNM.startDmByPhone = async function (phone) {
 
   var dmInput = document.getElementById("dm-phone");
   if (dmInput) dmInput.value = phone;
+
   if (typeof SNM.showScreen === "function") SNM.showScreen("messages");
+  SNM._showThreadUi(phone);
 
   try {
     var looked = await SNM.api(
       "/messages/lookup" + SNM.qs({ phone: phone })
     );
     if (looked && looked.registered === false) {
-      if (typeof SNM.toast === "function")
-        SNM.toast("Number not registered on Shop Near Me");
-      else alert("Number not registered");
+      alert("Number not registered on Shop Near Me");
       return;
     }
 
@@ -401,51 +504,30 @@ SNM.startDmByPhone = async function (phone) {
       (looked.user && looked.user.id) ||
       looked.to_user_id ||
       null;
+    userId = userId != null ? String(userId).trim() : "";
 
     var tid =
       looked.thread_id ||
       (looked.thread && looked.thread.id) ||
       null;
 
-    SNM._threadPeerId = userId || null;
+    var title = looked.name || phone;
 
     if (SNM._validThreadId(tid)) {
-      await SNM.openThread(String(tid), looked.name || phone, {
+      SNM._threadPeerId = userId || null;
+      await SNM.openThread(String(tid), title, {
         phone: phone,
-        user_id: userId
+        user_id: userId || null
       });
       return;
     }
 
-    if (!userId) {
-      if (typeof SNM.toast === "function")
-        SNM.toast("Could not resolve user for " + phone);
-      else alert("Could not resolve user for " + phone);
+    if (!SNM._isUuid(userId)) {
+      alert("Lookup did not return a valid user id");
       return;
     }
 
-    var created = await SNM.api("/messages/threads", {
-      method: "POST",
-      body: {
-        to_user_id: userId,
-        body: "…",
-        context_type: "direct"
-      }
-    });
-
-    tid =
-      (created.thread && created.thread.id) ||
-      created.thread_id ||
-      created.id;
-
-    if (SNM._validThreadId(tid)) {
-      await SNM.openThread(String(tid), looked.name || phone, {
-        phone: phone,
-        user_id: userId
-      });
-    } else {
-      await SNM.loadInbox({ keepThread: true });
-    }
+    await SNM._ensureThreadWithUser(userId, title, phone);
   } catch (err) {
     var msg = SNM._msgErr(err);
     if (typeof SNM.toast === "function") SNM.toast(msg);
@@ -483,6 +565,10 @@ SNM.bindMessages = function () {
   if (send && !send._snmSendWired) {
     send._snmSendWired = true;
     send.onclick = async function () {
+      if (!SNM._validThreadId(SNM._threadId)) {
+        alert("Open a chat first");
+        return;
+      }
       var input =
         document.getElementById("threadInput") ||
         document.getElementById("msgInput");
@@ -493,9 +579,7 @@ SNM.bindMessages = function () {
         if (input) input.value = "";
         await SNM.reloadOpenThread();
       } catch (e) {
-        var msg = SNM._msgErr(e);
-        if (typeof SNM.toast === "function") SNM.toast(msg);
-        else alert(msg);
+        alert(SNM._msgErr(e));
       }
     };
   }
@@ -504,7 +588,7 @@ SNM.bindMessages = function () {
   if (imgBtn && !imgBtn._snmWired) {
     imgBtn._snmWired = true;
     imgBtn.onclick = function () {
-      alert("Images need media columns on the server. Send text for now.");
+      alert("Send text for now. Image attach next.");
     };
   }
 
@@ -512,7 +596,7 @@ SNM.bindMessages = function () {
   if (voiceBtn && !voiceBtn._snmWired) {
     voiceBtn._snmWired = true;
     voiceBtn.onclick = function () {
-      SNM.toggleVoiceNote();
+      alert("Send text for now.");
     };
   }
 
@@ -550,10 +634,10 @@ SNM.bindMessages = function () {
   if (dmBtn && !dmBtn._snmDmWired) {
     dmBtn._snmDmWired = true;
     dmBtn.onclick = function () {
-      var phone = (
+      var raw = (
         (document.getElementById("dm-phone") || {}).value || ""
       ).trim();
-      SNM.startDmByPhone(phone);
+      SNM.startDmFromInput(raw);
     };
   }
 };
