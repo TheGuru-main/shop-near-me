@@ -48,10 +48,16 @@ SNM._msgErr = function (err) {
   }
 };
 
-SNM._isUuid = function (id) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-    String(id || "").trim()
-  );
+/** Normalize to E.164-ish +digits for API to_phone */
+SNM._normPhone = function (phone) {
+  phone = String(phone || "").trim().replace(/\s/g, "");
+  if (!phone) return "";
+  if (phone.charAt(0) === "+") {
+    return "+" + phone.slice(1).replace(/\D/g, "");
+  }
+  var digits = phone.replace(/\D/g, "");
+  if (digits.indexOf("234") === 0) return "+" + digits;
+  return digits ? "+" + digits : "";
 };
 
 SNM._validThreadId = function (id) {
@@ -76,7 +82,17 @@ SNM._rowThreadId = function (t) {
   return null;
 };
 
-/** Show messages screen + thread panel (compose visible) before any send */
+SNM._rowPeerPhone = function (t) {
+  if (!t) return "";
+  return (
+    t.peer_phone ||
+    t.phone ||
+    (t.thread &&
+      (t.thread.participant_b_phone || t.thread.participant_a_phone)) ||
+    ""
+  );
+};
+
 SNM._showThreadUi = function (title) {
   if (typeof SNM.showScreen === "function") SNM.showScreen("messages");
 
@@ -149,8 +165,8 @@ SNM.closeThread = function () {
 SNM.renderMessageBubble = function (m, me) {
   me = me || {};
   var mine =
+    (m.from_phone && me.phone && String(m.from_phone) === String(me.phone)) ||
     (m.from_user_id && me.id && String(m.from_user_id) === String(me.id)) ||
-    (m.sender_id && me.id && String(m.sender_id) === String(me.id)) ||
     !!m.mine;
 
   var type = (m.msg_type || m.type || "text").toLowerCase();
@@ -269,23 +285,22 @@ SNM.loadInbox = async function (opts) {
 
     if (!rows.length) {
       box.innerHTML =
-        "<p class='soft'>No conversations yet. Tap Message on a listing or open chat with +phone / user id.</p>";
+        "<p class='soft'>No conversations yet. Message a seller from a listing or open chat with +phone.</p>";
       return;
     }
 
     box.innerHTML = rows
       .map(function (t) {
         var id = SNM._rowThreadId(t);
+        var phone = SNM._rowPeerPhone(t);
         var title = SNM._cleanTitle(
           t.title ||
             t.peer_name ||
             t.name ||
-            (t.thread && t.thread.context_type) ||
-            t.phone ||
-            t.peer_phone,
+            phone ||
+            (t.thread && t.thread.context_type),
           "Chat"
         );
-        var phone = t.phone || t.peer_phone || "";
         var preview = "";
         if (t.last_message) {
           preview =
@@ -322,7 +337,8 @@ SNM.loadInbox = async function (opts) {
           (el.querySelector("strong") || {}).textContent,
           "Chat"
         );
-        SNM.openThread(tid, label);
+        var phone = el.getAttribute("data-phone") || "";
+        SNM.openThread(tid, label, { phone: phone });
       };
     });
   } catch (e) {
@@ -342,7 +358,6 @@ SNM.openThread = async function (id, title, peerMeta) {
   SNM._threadId = id;
   peerMeta = peerMeta || {};
   if (peerMeta.phone) SNM._threadPeer = peerMeta.phone;
-  if (peerMeta.user_id) SNM._threadPeerId = peerMeta.user_id;
 
   SNM._showThreadUi(title);
 
@@ -376,22 +391,18 @@ SNM.openThread = async function (id, title, peerMeta) {
   }
 };
 
-/** Create or reuse thread, then open compose UI (no message required yet) */
-SNM._ensureThreadWithUser = async function (userId, title, phone) {
-  userId = String(userId || "").trim();
-  if (!SNM._isUuid(userId)) {
-    throw new Error("Invalid seller id (need UUID)");
-  }
+/** Open/create thread by peer phone UID — matches ThreadCreate.to_phone */
+SNM._ensureThreadWithPhone = async function (phone, title) {
+  phone = SNM._normPhone(phone);
+  if (!phone) throw new Error("Phone required");
 
-  SNM._threadPeerId = userId;
-  if (phone) SNM._threadPeer = phone;
-
-  SNM._showThreadUi(title || "Chat");
+  SNM._threadPeer = phone;
+  SNM._showThreadUi(title || phone);
 
   var created = await SNM.api("/messages/threads", {
     method: "POST",
     body: {
-      to_user_id: userId,
+      to_phone: phone,
       body: "…",
       context_type: "direct"
     }
@@ -406,49 +417,41 @@ SNM._ensureThreadWithUser = async function (userId, title, phone) {
     throw new Error("Could not open thread");
   }
 
-  await SNM.openThread(String(tid), title || "Chat", {
-    phone: phone || null,
-    user_id: userId
-  });
+  await SNM.openThread(String(tid), title || phone, { phone: phone });
   return tid;
 };
 
 /**
- * From listing card: seller name + user id (and optional phone).
- * Call: SNM.openChatWithSeller({ user_id, name, phone })
+ * From listing / fairly-used card.
+ * SNM.openChatWithSeller({ phone, name })  — phone is the UID
  */
 SNM.openChatWithSeller = async function (meta) {
   meta = meta || {};
-  var userId =
-    meta.user_id ||
-    meta.seller_id ||
-    meta.owner_id ||
-    meta.from_user_id ||
-    meta.id ||
-    null;
-  var phone = (meta.phone || meta.owner_phone || meta.seller_phone || "")
+  var phone = (
+    meta.phone ||
+    meta.owner_phone ||
+    meta.seller_phone ||
+    meta.author_phone ||
+    ""
+  )
     .toString()
     .trim();
   var name =
     meta.name ||
     meta.seller_name ||
     meta.owner_name ||
-    meta.title ||
+    meta.author_name ||
     phone ||
     "Seller";
 
   if (typeof SNM.showScreen === "function") SNM.showScreen("messages");
 
   try {
-    if (SNM._isUuid(userId)) {
-      await SNM._ensureThreadWithUser(userId, name, phone || null);
+    if (!phone) {
+      alert("No seller phone on this listing.");
       return;
     }
-    if (phone) {
-      await SNM.startDmByPhone(phone);
-      return;
-    }
-    alert("No seller id or phone on this listing.");
+    await SNM.startDmByPhone(phone, name);
   } catch (err) {
     var msg = SNM._msgErr(err);
     if (typeof SNM.toast === "function") SNM.toast(msg);
@@ -456,78 +459,46 @@ SNM.openChatWithSeller = async function (meta) {
   }
 };
 
-/** Phone (+234…) or UUID in the DM field */
 SNM.startDmFromInput = async function (raw) {
   raw = (raw || "").trim();
   if (!raw) {
-    alert("Enter +phone or user id");
-    return;
-  }
-  if (SNM._isUuid(raw)) {
-    try {
-      await SNM._ensureThreadWithUser(raw, "Chat", null);
-    } catch (err) {
-      alert(SNM._msgErr(err));
-    }
+    alert("Enter phone (+234…)");
     return;
   }
   await SNM.startDmByPhone(raw);
 };
 
-SNM.startDmByPhone = async function (phone) {
-  phone = (phone || "").trim();
+SNM.startDmByPhone = async function (phone, titleHint) {
+  phone = SNM._normPhone(phone);
   if (!phone) {
     alert("Phone required");
     return;
   }
-  if (phone.charAt(0) !== "+") phone = "+" + phone.replace(/\D/g, "");
   SNM._threadPeer = phone;
 
   var dmInput = document.getElementById("dm-phone");
   if (dmInput) dmInput.value = phone;
 
   if (typeof SNM.showScreen === "function") SNM.showScreen("messages");
-  SNM._showThreadUi(phone);
+  SNM._showThreadUi(titleHint || phone);
 
   try {
-    var looked = await SNM.api(
-      "/messages/lookup" + SNM.qs({ phone: phone })
-    );
-    if (looked && looked.registered === false) {
-      alert("Number not registered on Shop Near Me");
-      return;
+    var title = titleHint || phone;
+    try {
+      var looked = await SNM.api(
+        "/messages/lookup" + SNM.qs({ phone: phone })
+      );
+      if (looked && looked.registered === false) {
+        alert("Number not registered on Shop Near Me");
+        return;
+      }
+      if (looked && looked.name) title = looked.name;
+      if (looked && looked.phone) phone = SNM._normPhone(looked.phone);
+    } catch (lookupErr) {
+      // still try create — API will 404 if unknown
     }
 
-    var userId =
-      looked.user_id ||
-      looked.id ||
-      (looked.user && looked.user.id) ||
-      looked.to_user_id ||
-      null;
-    userId = userId != null ? String(userId).trim() : "";
-
-    var tid =
-      looked.thread_id ||
-      (looked.thread && looked.thread.id) ||
-      null;
-
-    var title = looked.name || phone;
-
-    if (SNM._validThreadId(tid)) {
-      SNM._threadPeerId = userId || null;
-      await SNM.openThread(String(tid), title, {
-        phone: phone,
-        user_id: userId || null
-      });
-      return;
-    }
-
-    if (!SNM._isUuid(userId)) {
-      alert("Lookup did not return a valid user id");
-      return;
-    }
-
-    await SNM._ensureThreadWithUser(userId, title, phone);
+    await SNM._ensureThreadWithPhone(phone, title);
   } catch (err) {
     var msg = SNM._msgErr(err);
     if (typeof SNM.toast === "function") SNM.toast(msg);
