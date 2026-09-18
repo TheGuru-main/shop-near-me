@@ -12,6 +12,7 @@ from app.models.message import Message, MessageThread
 from app.models.user import User
 from app.schemas.message import MessageCreate, MessagePublic, ThreadCreate, ThreadPublic
 from app.services.placement import messaging_start_row
+from app.services.phone import normalize_e164
 
 router = APIRouter(prefix="/messages", tags=["messages"])
 
@@ -33,6 +34,24 @@ def _media_url(body_obj) -> str | None:
         return None
     u = str(u).strip()
     return u or None
+
+
+def _start_row(u: User) -> int:
+    if u.start_row is not None:
+        return int(u.start_row)
+    return int(messaging_start_row(u.name, u.phone))
+
+
+def _user_by_phone(db: Session, phone: str) -> User | None:
+    try:
+        p = normalize_e164(phone)
+    except Exception:
+        return None
+    return (
+        db.query(User)
+        .filter(User.phone == p, User.deleted_at.is_(None))
+        .first()
+    )
 
 
 @router.get("/inbox")
@@ -62,9 +81,18 @@ async def inbox(
             .order_by(Message.created_at.desc())
             .first()
         )
+        peer_phone = None
+        if getattr(t, "participant_a_phone", None) or getattr(
+            t, "participant_b_phone", None
+        ):
+            if t.participant_a == user.id:
+                peer_phone = t.participant_b_phone
+            else:
+                peer_phone = t.participant_a_phone
         out.append(
             {
                 "thread": ThreadPublic.model_validate(t).model_dump(mode="json"),
+                "peer_phone": peer_phone,
                 "last_message": MessagePublic.model_validate(last).model_dump(
                     mode="json"
                 )
@@ -83,13 +111,20 @@ async def start_thread(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if body.to_user_id == user.id:
-        raise HTTPException(status_code=400, detail="Cannot message yourself")
-    other = db.get(User, body.to_user_id)
-    if not other or other.deleted_at is not None:
+    """Create/open thread by peer phone UID (to_phone)."""
+    other = _user_by_phone(db, body.to_phone)
+    if not other:
         raise HTTPException(status_code=404, detail="Recipient not found")
+    if other.id == user.id:
+        raise HTTPException(status_code=400, detail="Cannot message yourself")
 
     a, b = _pair(user.id, other.id)
+    # stable phone slots matching pair order
+    if a == user.id:
+        a_phone, b_phone = user.phone, other.phone
+    else:
+        a_phone, b_phone = other.phone, user.phone
+
     thread = (
         db.query(MessageThread)
         .filter(
@@ -104,6 +139,8 @@ async def start_thread(
             id=uuid.uuid4(),
             participant_a=a,
             participant_b=b,
+            participant_a_phone=a_phone,
+            participant_b_phone=b_phone,
             context_type=body.context_type,
             product_id=body.product_id,
             fairly_used_post_id=body.fairly_used_post_id,
@@ -111,19 +148,25 @@ async def start_thread(
         db.add(thread)
         db.commit()
         db.refresh(thread)
+    else:
+        # backfill phones if columns new
+        if getattr(thread, "participant_a_phone", None) is None:
+            thread.participant_a_phone = a_phone
+            thread.participant_b_phone = b_phone
+            db.add(thread)
+            db.commit()
+            db.refresh(thread)
 
-    to_row = other.start_row
-    if to_row is None:
-        to_row = messaging_start_row(other.name, other.phone)
-    from_row = user.start_row
-    if from_row is None:
-        from_row = messaging_start_row(user.name, user.phone)
+    from_row = _start_row(user)
+    to_row = _start_row(other)
 
     msg = Message(
         id=uuid.uuid4(),
         thread_id=thread.id,
         from_user_id=user.id,
         to_user_id=other.id,
+        from_phone=user.phone,
+        to_phone=other.phone,
         from_start_row=from_row,
         to_start_row=to_row,
         body=body.body,
@@ -196,16 +239,15 @@ async def send_in_thread(
     if not other:
         raise HTTPException(status_code=404, detail="Recipient missing")
 
-    to_row = other.start_row or messaging_start_row(other.name, other.phone)
-    from_row = user.start_row or messaging_start_row(user.name, user.phone)
-
     msg = Message(
         id=uuid.uuid4(),
         thread_id=thread.id,
         from_user_id=user.id,
         to_user_id=other.id,
-        from_start_row=from_row,
-        to_start_row=to_row,
+        from_phone=user.phone,
+        to_phone=other.phone,
+        from_start_row=_start_row(user),
+        to_start_row=_start_row(other),
         body=body.body,
         msg_type=_msg_type(body),
         media_url=_media_url(body),
@@ -229,27 +271,19 @@ async def lookup_by_phone(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    from app.services.phone import normalize_e164
-
-    try:
-        p = normalize_e164(phone)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid phone")
-    other = (
-        db.query(User)
-        .filter(User.phone == p, User.deleted_at.is_(None))
-        .first()
-    )
+    other = _user_by_phone(db, phone)
     if not other:
         raise HTTPException(status_code=404, detail="No user with that phone")
     return {
-        "id": str(other.id),
-        "user_id": str(other.id),
-        "name": other.name,
         "phone": other.phone,
+        "name": other.name,
         "role": other.role,
         "primary_location": other.primary_location,
+        "start_row": _start_row(other),
         "registered": True,
+        # internal — optional; clients should use phone
+        "id": str(other.id),
+        "user_id": str(other.id),
     }
 
 
