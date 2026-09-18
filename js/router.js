@@ -22,7 +22,7 @@ SNM.AUTHED = {
   calculator: 1,
   invoice: 1,
   dashboard: 1
-  /* setup intentionally NOT authed-nav — no bottom bar during setup */
+  /* setup intentionally NOT here — no bottom nav during setup */
 };
 
 SNM.hideSplash = function () {
@@ -67,9 +67,12 @@ SNM.showScreen = function (id) {
 
   try {
     window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
   } catch (e) {}
 
   if (target) {
+    target.scrollTop = 0;
     var scrollBody =
       target.querySelector(":scope > .container") ||
       target.querySelector(":scope > .home-body") ||
@@ -90,21 +93,28 @@ SNM.showScreen = function (id) {
     SNM.enterHome(false);
   }
   if (id === "shop") {
-    if (typeof SNM.loadMyProducts === "function") SNM.loadMyProducts();
     if (typeof SNM.loadShop === "function") SNM.loadShop();
+    else if (typeof SNM.loadMyProducts === "function") SNM.loadMyProducts();
   }
   if (id === "messages") {
     if (typeof SNM.bindMessages === "function") SNM.bindMessages();
-    if (typeof SNM.loadInbox === "function") {
+    if (typeof SNM.onMessagesEnter === "function") SNM.onMessagesEnter();
+    else if (typeof SNM.loadInbox === "function") {
       SNM.loadInbox({ closeThread: true });
     }
   }
-  if (id === "search" && typeof SNM.bindSearch === "function") SNM.bindSearch();
-  if (id === "news" && typeof SNM.loadNews === "function") {
-    SNM.loadNews(SNM._newsCat || "business");
+  if (id === "search") {
+    if (typeof SNM.bindSearch === "function") SNM.bindSearch();
   }
-  if (id === "fairly-used" && typeof SNM.loadFairlyUsed === "function") {
-    SNM.loadFairlyUsed();
+  if (id === "news") {
+    if (typeof SNM.onNewsEnter === "function") SNM.onNewsEnter();
+    else if (typeof SNM.loadNews === "function") {
+      SNM.loadNews(SNM._newsCat || "business");
+    }
+  }
+  if (id === "fairly-used") {
+    if (typeof SNM.onFairlyUsedEnter === "function") SNM.onFairlyUsedEnter();
+    else if (typeof SNM.loadFairlyUsed === "function") SNM.loadFairlyUsed();
   }
   if (id === "premium" && typeof SNM.loadPremium === "function") {
     SNM.loadPremium();
@@ -123,7 +133,7 @@ SNM.showScreen = function (id) {
     if (location.hash !== "#" + id) {
       history.replaceState(null, "", "#" + id);
     }
-  } catch (e) {}
+  } catch (e2) {}
 };
 
 SNM.go = function (id) {
@@ -246,19 +256,6 @@ SNM.bindShell = function () {
         return;
       }
 
-    if (target) {
-    target.scrollTop = 0;
-    var scrollBody =
-      target.querySelector(":scope > .container") ||
-      target.querySelector(":scope > .home-body") ||
-      target.querySelector(":scope > .msg-layout");
-    if (scrollBody) scrollBody.scrollTop = 0;
-  }
-  try {
-    window.scrollTo(0, 0);
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-  } catch (e) {}
       if (e.target.closest("#btnSearchTop")) {
         e.preventDefault();
         SNM.showScreen("search");
@@ -348,7 +345,7 @@ SNM.bindRouter = function () {
     true
   );
 
-  if (typeof SNM.bindShell === "function") SNM.bindShell();
+  SNM.bindShell();
 
   window.addEventListener("hashchange", function () {
     var hid = (location.hash || "").replace(/^#/, "");
