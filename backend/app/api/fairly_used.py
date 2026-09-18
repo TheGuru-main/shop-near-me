@@ -16,12 +16,34 @@ from app.schemas.fairly_used import (
     FairlyUsedPublic,
 )
 from app.services.phone import phone_digits
+from app.services.placement import messaging_start_row
 from app.services.relationship import register_entity
 
 router = APIRouter(prefix="/fairly-used", tags=["fairly-used"])
 
 
-@router.post("", response_model=FairlyUsedPublic)
+def _author_start_row(user: User) -> int:
+    if user.start_row is not None:
+        return int(user.start_row)
+    return int(messaging_start_row(user.name, user.phone))
+
+
+def _media_from_body(body: FairlyUsedCreate) -> tuple[str | None, str | None]:
+    url = body.media_url or getattr(body, "image_url", None)
+    if url is not None:
+        url = str(url).strip() or None
+    mtype = body.media_type
+    if url and not mtype:
+        if str(url).startswith("data:image"):
+            mtype = "image"
+        elif str(url).startswith("data:audio"):
+            mtype = "audio"
+        else:
+            mtype = "image"
+    return url, mtype
+
+
+@router.post("")
 @limiter.limit("20/minute")
 async def create_post(
     request: Request,
@@ -29,20 +51,27 @@ async def create_post(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if not body.media_url and not (body.body or body.title):
+    media_url, media_type = _media_from_body(body)
+    if not media_url and not (body.body or body.title):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Provide media and/or text",
         )
+
     post = FairlyUsedPost(
         id=uuid.uuid4(),
         author_id=user.id,
-        title=body.title or "",
+        author_phone=user.phone,
+        author_name=user.name,
+        author_start_row=_author_start_row(user),
+        title=(body.title or "").strip() or "Fairly used",
         body=body.body,
         price=body.price,
-        currency=body.currency,
-        media_url=body.media_url,
-        media_type=body.media_type,
+        currency=body.currency or "NGN",
+        media_url=media_url,
+        media_type=media_type,
+        lat=getattr(body, "lat", None),
+        lng=getattr(body, "lng", None),
     )
     db.add(post)
     db.commit()
@@ -59,9 +88,18 @@ async def create_post(
         community=user.community or "",
         primary_location=user.primary_location or "",
         category="fairly_used",
-        extra={"author_id": str(user.id)},
+        extra={
+            "author_id": str(user.id),
+            "author_phone": user.phone,
+            "author_start_row": post.author_start_row,
+        },
     )
-    return post
+
+    payload = FairlyUsedPublic.model_validate(post).model_dump(mode="json")
+    payload["image_url"] = post.media_url
+    payload["author_phone"] = post.author_phone
+    payload["author_name"] = post.author_name
+    return payload
 
 
 @router.get("")
@@ -81,15 +119,32 @@ async def feed(
     )
     results = []
     for post, author in posts:
+        phone = post.author_phone or author.phone
+        name = post.author_name or author.name
+        start_row = post.author_start_row
+        if start_row is None:
+            start_row = _author_start_row(author)
+
+        post_public = FairlyUsedPublic.model_validate(post).model_dump(mode="json")
+        post_public["image_url"] = post.media_url
+        post_public["author_phone"] = phone
+        post_public["author_name"] = name
+        post_public["author_start_row"] = start_row
+
         results.append(
             {
-                "post": FairlyUsedPublic.model_validate(post).model_dump(mode="json"),
+                "post": post_public,
                 "author": {
                     "id": str(author.id),
-                    "name": author.name,
+                    "name": name,
+                    "phone": phone,
+                    "start_row": start_row,
                     "role": author.role,
                     "city": author.city,
+                    "community": author.community,
                     "primary_location": author.primary_location,
+                    "lat": author.lat,
+                    "lng": author.lng,
                 },
                 "actions": ["comment", "share", "message_seller"],
             }
@@ -113,6 +168,8 @@ async def add_comment(
         id=uuid.uuid4(),
         post_id=post_id,
         author_id=user.id,
+        author_phone=user.phone,
+        author_name=user.name,
         body=body.body,
     )
     db.add(c)
