@@ -1,8 +1,9 @@
 window.SNM = window.SNM || {};
 
+/** Card-thumb size: a bit larger than icon, small enough for mobile POST */
 SNM.compressImageFile = function (file, maxSide, quality) {
-  maxSide = maxSide || 800;
-  quality = quality || 0.72;
+  maxSide = maxSide || 320;
+  quality = quality || 0.55;
   return new Promise(function (resolve, reject) {
     var reader = new FileReader();
     reader.onload = function () {
@@ -11,8 +12,8 @@ SNM.compressImageFile = function (file, maxSide, quality) {
         var w = img.width;
         var h = img.height;
         var scale = Math.min(1, maxSide / Math.max(w, h));
-        var cw = Math.round(w * scale);
-        var ch = Math.round(h * scale);
+        var cw = Math.max(1, Math.round(w * scale));
+        var ch = Math.max(1, Math.round(h * scale));
         var canvas = document.createElement("canvas");
         canvas.width = cw;
         canvas.height = ch;
@@ -27,6 +28,39 @@ SNM.compressImageFile = function (file, maxSide, quality) {
     reader.readAsDataURL(file);
   });
 };
+
+/** Read + compress from cam/gallery inputs. Returns data URL or null. */
+SNM.readCompressedItemImage = async function (camId, fileId) {
+  var cam = document.getElementById(camId);
+  var fileIn = document.getElementById(fileId);
+  var file =
+    (cam && cam.files && cam.files[0]) ||
+    (fileIn && fileIn.files && fileIn.files[0]) ||
+    null;
+  if (!file) return null;
+
+  var dataUrl = await SNM.compressImageFile(file, 320, 0.55);
+  if (dataUrl.length > 90000) {
+    dataUrl = await SNM.compressImageFile(file, 240, 0.45);
+  }
+  if (dataUrl.length > 90000) {
+    throw new Error(
+      "Photo still too large. Use a smaller picture or post without image."
+    );
+  }
+  return dataUrl;
+};
+
+SNM.esc =
+  SNM.esc ||
+  SNM.escapeHtml ||
+  function (s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  };
 
 SNM._shopItems = [];
 
@@ -91,16 +125,19 @@ SNM.renderShopList = function (items) {
         var qty =
           it.quantity != null ? it.quantity : it.qty != null ? it.qty : "";
         var avail = it.available !== false;
-        var img = it.image_url
-          ? '<img class="card-thumb" src="' +
-            SNM.esc(String(it.image_url)) +
-            '" alt="" />'
+        var img = it.image_url || it.media_url || "";
+        var thumb = img
+          ? '<div class="shop-card-media">' +
+            '<img class="card-thumb shop-thumb" src="' +
+            SNM.esc(String(img)) +
+            '" alt="" loading="lazy" />' +
+            "</div>"
           : "";
         return (
           '<article class="card shop-item-card" data-product-id="' +
           SNM.esc(String(id)) +
           '">' +
-          img +
+          thumb +
           '<div class="shop-edit-row">' +
           '<input type="text" class="shop-edit-name" value="' +
           SNM.esc(String(name)) +
@@ -221,7 +258,6 @@ SNM.loadShop = async function () {
   role = String(role).toLowerCase().trim();
   if (role === "logistics") role = "driver";
 
-  /* Drivers / emergency: status panel only — no catalogue fetch required */
   if (role === "driver" || role === "emergency") {
     try {
       var meta = JSON.parse(localStorage.getItem("snm_driver_meta") || "null");
@@ -261,34 +297,6 @@ SNM.loadShop = async function () {
 
 SNM.loadMyProducts = SNM.loadShop;
 
-SNM.readItemImageFrom = async function (camId, fileId, maxBytes) {
-  maxBytes = maxBytes || 900000;
-  var cam = document.getElementById(camId);
-  var file = document.getElementById(fileId);
-  var input =
-    cam && cam.files && cam.files[0]
-      ? cam
-      : file && file.files && file.files[0]
-        ? file
-        : null;
-  if (!input || !input.files[0]) return null;
-  var f = input.files[0];
-  if (f.size > maxBytes) {
-    alert("Photo too large. Use under \~900KB.");
-    return null;
-  }
-  return await new Promise(function (resolve) {
-    var r = new FileReader();
-    r.onload = function () {
-      resolve(r.result || null);
-    };
-    r.onerror = function () {
-      resolve(null);
-    };
-    r.readAsDataURL(f);
-  });
-};
-
 SNM.wirePhotoButtons = function (
   camBtnId,
   fileBtnId,
@@ -311,7 +319,12 @@ SNM.wirePhotoButtons = function (
       return;
     }
     var url = URL.createObjectURL(f);
-    box.innerHTML = '<img src="' + url + '" alt="Item preview" />';
+    box.innerHTML =
+      '<div class="shop-card-media preview">' +
+      '<img class="card-thumb shop-thumb" src="' +
+      url +
+      '" alt="Item preview" />' +
+      "</div>";
     box.classList.remove("hidden");
   }
 
@@ -335,6 +348,18 @@ SNM.wirePhotoButtons = function (
   }
 };
 
+SNM._clearShopImageInputs = function () {
+  ["shop-item-image-cam", "shop-item-image-file"].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+  var prev = document.getElementById("shop-item-preview");
+  if (prev) {
+    prev.innerHTML = "";
+    prev.classList.add("hidden");
+  }
+};
+
 SNM.addShopItem = async function () {
   var nameEl = document.getElementById("shop-name");
   var priceEl = document.getElementById("shop-price");
@@ -351,22 +376,14 @@ SNM.addShopItem = async function () {
   }
 
   var image_url = null;
-  var cam = document.getElementById("shop-item-image-cam");
-  var fileIn = document.getElementById("shop-item-image-file");
-  var file =
-    (cam && cam.files && cam.files[0]) ||
-    (fileIn && fileIn.files && fileIn.files[0]) ||
-    null;
-  if (file) {
-    try {
-      var dataUrl = await SNM.compressImageFile(file, 800, 0.72);
-      if (dataUrl.length > 400000) {
-        dataUrl = await SNM.compressImageFile(file, 600, 0.6);
-      }
-      image_url = dataUrl;
-    } catch (imgErr) {
-      console.warn("image compress failed", imgErr);
-    }
+  try {
+    image_url = await SNM.readCompressedItemImage(
+      "shop-item-image-cam",
+      "shop-item-image-file"
+    );
+  } catch (imgErr) {
+    alert((imgErr && imgErr.message) || "Image failed");
+    return;
   }
 
   var desc = typeof SNM.geoStamp === "function" ? SNM.geoStamp("") : "";
@@ -384,26 +401,18 @@ SNM.addShopItem = async function () {
     available: !availEl || !!availEl.checked,
     business_type: "merchant",
     category: perEl && perEl.checked ? "food" : "retail",
-    description: desc,
-    image_url: image_url
+    description: desc
   };
-  if (g.lat != null) body.lat = g.lat;
-  if (g.lng != null) body.lng = g.lng;
+  if (image_url) body.image_url = image_url;
+  if (g && g.lat != null) body.lat = g.lat;
+  if (g && g.lng != null) body.lng = g.lng;
 
   try {
     await SNM.api("/products", { method: "POST", body: body });
     if (nameEl) nameEl.value = "";
     if (priceEl) priceEl.value = "";
     if (qtyEl) qtyEl.value = "";
-    ["shop-item-image-cam", "shop-item-image-file"].forEach(function (id) {
-      var el = document.getElementById(id);
-      if (el) el.value = "";
-    });
-    var prev = document.getElementById("shop-item-preview");
-    if (prev) {
-      prev.innerHTML = "";
-      prev.classList.add("hidden");
-    }
+    SNM._clearShopImageInputs();
     await SNM.loadShop();
   } catch (e) {
     alert("Add listing failed: " + ((e && e.message) || "check API"));
@@ -453,10 +462,17 @@ SNM.addServiceItem = async function () {
   var fullDesc = [desc, scheduleBits.join(" | ")].filter(Boolean).join("\n");
   if (typeof SNM.geoStamp === "function") fullDesc = SNM.geoStamp(fullDesc);
 
-  var image_url = await SNM.readItemImageFrom(
-    "svc-item-image-cam",
-    "svc-item-image-file"
-  );
+  var image_url = null;
+  try {
+    image_url = await SNM.readCompressedItemImage(
+      "svc-item-image-cam",
+      "svc-item-image-file"
+    );
+  } catch (imgErr) {
+    alert((imgErr && imgErr.message) || "Image failed");
+    return;
+  }
+
   var g = typeof SNM.posterGeo === "function" ? SNM.posterGeo() : {};
 
   var body = {
@@ -468,11 +484,11 @@ SNM.addServiceItem = async function () {
     perishable: false,
     business_type: "service",
     category: ((typeEl && typeEl.value) || "service").trim(),
-    description: fullDesc,
-    image_url: image_url
+    description: fullDesc
   };
-  if (g.lat != null) body.lat = g.lat;
-  if (g.lng != null) body.lng = g.lng;
+  if (image_url) body.image_url = image_url;
+  if (g && g.lat != null) body.lat = g.lat;
+  if (g && g.lng != null) body.lng = g.lng;
 
   try {
     await SNM.api("/products", { method: "POST", body: body });
@@ -598,12 +614,25 @@ SNM.bindShop = function () {
       var coverage = (
         (document.getElementById("drv-coverage") || {}).value || ""
       ).trim();
+      var useGps = !!((document.getElementById("drv-use-gps") || {}).checked);
       try {
         localStorage.setItem(
           "snm_driver_meta",
-          JSON.stringify({ coverage: coverage, active: active })
+          JSON.stringify({
+            coverage: coverage,
+            active: active,
+            use_gps: useGps
+          })
         );
       } catch (e) {}
+      if (useGps && typeof SNM._geo === "function") {
+        SNM._geo().then(function (g) {
+          if (g && g.lat != null) {
+            SNM._lastLat = g.lat;
+            SNM._lastLng = g.lng;
+          }
+        });
+      }
       SNM.setPresence({
         active: active,
         heartbeat: active,
@@ -613,16 +642,6 @@ SNM.bindShop = function () {
     };
   }
 
-var useGps = !!((document.getElementById("drv-use-gps") || {}).checked);
-if (useGps && typeof SNM._geo === "function") {
-  SNM._geo().then(function (g) {
-    if (g.lat != null) {
-      SNM._lastLat = g.lat;
-      SNM._lastLng = g.lng;
-      // optional: POST presence with lat/lng when API supports it
-    }
-  });
-}
   var emgSave = document.getElementById("btnEmgSave");
   if (emgSave) {
     emgSave.onclick = function () {
