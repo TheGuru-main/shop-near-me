@@ -20,31 +20,27 @@ SNM._fuReadImage = async function () {
     null;
   if (!file) return null;
 
-  var dataUrl;
   if (typeof SNM.compressImageFile === "function") {
-    dataUrl = await SNM.compressImageFile(file, 400, 0.5);
-    if (dataUrl.length > 100000) {
-      dataUrl = await SNM.compressImageFile(file, 320, 0.4);
+    var dataUrl = await SNM.compressImageFile(file, 320, 0.5);
+    if (dataUrl.length > 90000) {
+      dataUrl = await SNM.compressImageFile(file, 240, 0.4);
     }
-    if (dataUrl.length > 100000) {
-      throw new Error("Photo too large. Try a smaller image or post without photo.");
+    if (dataUrl.length > 90000) {
+      throw new Error(
+        "Photo too large. Try a smaller image or post without photo."
+      );
     }
-  } else if (typeof SNM.readItemImageFrom === "function") {
-    dataUrl = await SNM.readItemImageFrom(
-      "fu-item-image-cam",
-      "fu-item-image-file"
-    );
-  } else {
-    dataUrl = await new Promise(function (resolve, reject) {
-      var r = new FileReader();
-      r.onload = function () {
-        resolve(r.result);
-      };
-      r.onerror = reject;
-      r.readAsDataURL(file);
-    });
+    return dataUrl;
   }
-  return dataUrl;
+
+  return await new Promise(function (resolve, reject) {
+    var r = new FileReader();
+    r.onload = function () {
+      resolve(r.result);
+    };
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
 };
 
 SNM._fuClearImage = function () {
@@ -63,12 +59,22 @@ SNM._unwrapFairly = function (row) {
   row = row || {};
   var post = row.post || row;
   var author = row.author || row.owner || {};
+
+  var phone =
+    author.phone ||
+    post.author_phone ||
+    post.owner_phone ||
+    post.phone ||
+    row.phone ||
+    "";
+
   var img =
     post.image_url ||
     post.media_url ||
     post.photo_url ||
     row.image_url ||
     "";
+
   return {
     id: post.id || post.post_id || row.id || "",
     title: post.title || post.name || "Fairly used",
@@ -80,31 +86,47 @@ SNM._unwrapFairly = function (row) {
     created_at: post.created_at || "",
     image_url: img,
     media_url: img,
-    phone: author.phone || post.phone || row.phone || "",
-    owner_phone: author.phone || post.phone || "",
-    owner_name: author.name || post.owner_name || "",
-    seller_name: author.name || "",
+    phone: phone,
+    owner_phone: phone,
+    author_phone: phone,
+    owner_name: author.name || post.author_name || post.owner_name || "",
+    seller_name: author.name || post.author_name || "",
+    author_start_row:
+      author.start_row != null
+        ? author.start_row
+        : post.author_start_row != null
+          ? post.author_start_row
+          : null,
     primary_location: author.primary_location || "",
     city: author.city || "",
     community: author.community || "",
-    lat: author.lat != null ? author.lat : post.lat,
-    lng: author.lng != null ? author.lng : post.lng,
+    lat: post.lat != null ? post.lat : author.lat,
+    lng: post.lng != null ? post.lng : author.lng,
     kind: "fairly_used"
   };
 };
 
 SNM._fuCardHtml = function (it) {
   var img = it.image_url || it.media_url || "";
+  var phone = it.phone || it.owner_phone || it.author_phone || "";
   var price =
     it.price != null && it.price !== ""
-      ? SNM.esc(String(it.currency || "NGN")) + " " + SNM.esc(String(it.price))
+      ? SNM.esc(String(it.currency || "NGN")) +
+        " " +
+        SNM.esc(String(it.price))
       : "";
   return (
-    '<article class="card listing-card cat-fairly_used">' +
+    '<article class="card listing-card cat-fairly_used" data-id="' +
+    SNM.esc(String(it.id || "")) +
+    '" data-phone="' +
+    SNM.esc(String(phone)) +
+    '" data-seller-name="' +
+    SNM.esc(it.owner_name || it.seller_name || "") +
+    '">' +
     (img
-      ? '<img class="card-thumb" src="' +
+      ? '<div class="shop-card-media"><img class="card-thumb shop-thumb" src="' +
         SNM.esc(img) +
-        '" alt="" loading="lazy" />'
+        '" alt="" loading="lazy" /></div>'
       : "") +
     '<div class="title">' +
     SNM.esc(it.title || it.name || "Fairly used") +
@@ -115,10 +137,13 @@ SNM._fuCardHtml = function (it) {
     (price ? "<p class='meta'><strong>" + price + "</strong></p>" : "") +
     '<div class="meta">' +
     SNM.esc(it.owner_name || it.seller_name || "") +
-    (it.phone || it.owner_phone
-      ? " · " + SNM.esc(it.phone || it.owner_phone)
-      : "") +
-    "</div></article>"
+    (phone ? " · " + SNM.esc(phone) : "") +
+    "</div>" +
+    '<div class="card-actions">' +
+    '<button type="button" data-act="message">Message seller</button>' +
+    '<button type="button" data-act="detail">Details</button>' +
+    "</div>" +
+    "</article>"
   );
 };
 
@@ -150,10 +175,10 @@ SNM.loadFairlyUsed = async function () {
           return SNM.cardHtml(it);
         })
         .join("");
-      if (typeof SNM.bindCardActions === "function") SNM.bindCardActions(list);
     } else {
       list.innerHTML = items.map(SNM._fuCardHtml).join("");
     }
+    if (typeof SNM.bindCardActions === "function") SNM.bindCardActions(list);
   } catch (e) {
     if (list) {
       list.innerHTML =
@@ -198,9 +223,7 @@ SNM.createFairlyUsed = async function () {
 
   var payload = {
     title: title,
-    name: title,
     body: bodyText,
-    note: bodyText,
     price: price,
     currency: "NGN"
   };
