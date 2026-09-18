@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Float, String, Text, UniqueConstraint, func
+from sqlalchemy import Boolean, DateTime, Float, Integer, String, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -9,6 +9,12 @@ from app.db import Base
 
 
 class User(Base):
+    """
+    id          → internal SQL UUID only
+    phone       → unique Shop Near Me UID (E.164, e.g. +234…)
+    start_row   → ((L + S - 1) % 64) + 1 for messaging / GSP
+    """
+
     __tablename__ = "users"
     __table_args__ = (UniqueConstraint("phone", name="uq_users_phone"),)
 
@@ -17,6 +23,7 @@ class User(Base):
     )
     role: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
+    # Canonical UID for login, cards, messaging lookup
     phone: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
 
@@ -36,13 +43,21 @@ class User(Base):
     gsg: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     live: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    hb_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    hb_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
-    start_row: Mapped[int | None] = mapped_column(nullable=True)
-    version: Mapped[str] = mapped_column(String(32), default="1.0.0.1p", nullable=False)
+    # Messaging / GSP start row: 1..64
+    start_row: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    version: Mapped[str] = mapped_column(
+        String(32), default="1.0.0.1p", nullable=False
+    )
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
