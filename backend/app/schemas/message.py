@@ -23,10 +23,10 @@ def _normalize_phone(v: str) -> str:
 
 
 class ThreadCreate(BaseModel):
-    """Open / continue chat by peer phone UID (not client-supplied UUID)."""
+    """Open / continue chat by peer phone UID. body optional."""
 
     to_phone: str = Field(..., min_length=10, max_length=32)
-    body: str = Field(min_length=1)
+    body: str | None = None  # optional — only insert Message if non-empty
     context_type: str = "direct"
     product_id: UUID | None = None
     fairly_used_post_id: UUID | None = None
