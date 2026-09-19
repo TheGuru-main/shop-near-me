@@ -1,3 +1,4 @@
+import logging
 import uuid
 from datetime import datetime, timezone
 
@@ -9,21 +10,18 @@ from app.core.limiter import limiter
 from app.db import get_db
 from app.models.fairly_used import FairlyUsedComment, FairlyUsedPost
 from app.models.user import User
-from app.schemas.fairly_used import (
-    CommentCreate,
-    CommentPublic,
-    FairlyUsedCreate,
-    FairlyUsedPublic,
-)
+from app.schemas.fairly_used import CommentCreate, CommentPublic, FairlyUsedCreate
 from app.services.phone import phone_digits
 from app.services.placement import messaging_start_row
 from app.services.relationship import register_entity
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/fairly-used", tags=["fairly-used"])
 
 
 def _author_start_row(user: User) -> int:
-    if user.start_row is not None:
+    if getattr(user, "start_row", None) is not None:
         return int(user.start_row)
     return int(messaging_start_row(user.name, user.phone))
 
@@ -41,6 +39,26 @@ def _media_from_body(body: FairlyUsedCreate) -> tuple[str | None, str | None]:
         else:
             mtype = "image"
     return url, mtype
+
+
+def _post_public(post: FairlyUsedPost, phone: str | None, name: str | None) -> dict:
+    return {
+        "id": str(post.id),
+        "author_id": str(post.author_id),
+        "author_phone": phone,
+        "author_name": name,
+        "author_start_row": getattr(post, "author_start_row", None),
+        "title": post.title or "",
+        "body": post.body,
+        "price": post.price,
+        "currency": post.currency,
+        "media_url": post.media_url,
+        "image_url": post.media_url,
+        "media_type": post.media_type,
+        "lat": getattr(post, "lat", None),
+        "lng": getattr(post, "lng", None),
+        "created_at": post.created_at.isoformat() if post.created_at else None,
+    }
 
 
 @router.post("")
@@ -77,29 +95,29 @@ async def create_post(
     db.commit()
     db.refresh(post)
 
-    register_entity(
-        entity_type="fairly_used",
-        entity_id=str(post.id),
-        name=post.title or post.body or "fairly-used",
-        uid_for_s=phone_digits(user.phone),
-        country=user.country or "",
-        region=user.region or "",
-        city=user.city or "",
-        community=user.community or "",
-        primary_location=user.primary_location or "",
-        category="fairly_used",
-        extra={
-            "author_id": str(user.id),
-            "author_phone": user.phone,
-            "author_start_row": post.author_start_row,
-        },
-    )
+    try:
+        register_entity(
+            entity_type="fairly_used",
+            entity_id=str(post.id),
+            name=post.title or post.body or "fairly-used",
+            uid_for_s=phone_digits(user.phone),
+            country=user.country or "",
+            region=user.region or "",
+            city=user.city or "",
+            community=user.community or "",
+            primary_location=user.primary_location or "",
+            category="fairly_used",
+            extra={
+                "author_id": str(user.id),
+                "author_phone": user.phone,
+                "author_start_row": post.author_start_row,
+            },
+        )
+    except Exception:
+        logger.exception("register_entity failed for fairly-used %s", post.id)
 
-    payload = FairlyUsedPublic.model_validate(post).model_dump(mode="json")
-    payload["image_url"] = post.media_url
-    payload["author_phone"] = post.author_phone
-    payload["author_name"] = post.author_name
-    return payload
+    return _post_public(post, user.phone, user.name)
+
 
 @router.get("")
 @limiter.limit("60/minute")
@@ -108,60 +126,52 @@ async def feed(
     limit: int = 40,
     db: Session = Depends(get_db),
 ):
-    rows = (
-        db.query(FairlyUsedPost, User)
-        .join(User, User.id == FairlyUsedPost.author_id)
-        .filter(
-            FairlyUsedPost.deleted_at.is_(None),
-            User.deleted_at.is_(None),
+    try:
+        rows = (
+            db.query(FairlyUsedPost, User)
+            .join(User, User.id == FairlyUsedPost.author_id)
+            .filter(
+                FairlyUsedPost.deleted_at.is_(None),
+                User.deleted_at.is_(None),
+            )
+            .order_by(FairlyUsedPost.created_at.desc())
+            .limit(min(limit, 100))
+            .all()
         )
-        .order_by(FairlyUsedPost.created_at.desc())
-        .limit(min(limit, 100))
-        .all()
-    )
+    except Exception as exc:
+        logger.exception("fairly-used feed query failed")
+        raise HTTPException(status_code=500, detail=str(exc))
+
     results = []
     for post, author in rows:
-        phone = post.author_phone or author.phone
-        name = post.author_name or author.name
-        results.append(
-            {
-                "post": {
-                    "id": str(post.id),
-                    "author_id": str(post.author_id),
-                    "author_phone": phone,
-                    "author_name": name,
-                    "author_start_row": post.author_start_row,
-                    "title": post.title or "",
-                    "body": post.body,
-                    "price": post.price,
-                    "currency": post.currency,
-                    "media_url": post.media_url,
-                    "image_url": post.media_url,
-                    "media_type": post.media_type,
-                    "lat": post.lat,
-                    "lng": post.lng,
-                    "created_at": post.created_at.isoformat()
-                    if post.created_at
-                    else None,
-                },
-                "author": {
-                    "id": str(author.id),
-                    "name": name,
-                    "phone": phone,
-                    "role": author.role,
-                    "city": author.city,
-                    "community": author.community,
-                    "primary_location": author.primary_location,
-                    "lat": author.lat,
-                    "lng": author.lng,
-                },
-                "actions": ["comment", "share", "message_seller"],
-            }
-        )
+        try:
+            phone = getattr(post, "author_phone", None) or author.phone
+            name = getattr(post, "author_name", None) or author.name
+            results.append(
+                {
+                    "post": _post_public(post, phone, name),
+                    "author": {
+                        "id": str(author.id),
+                        "name": name,
+                        "phone": phone,
+                        "role": author.role,
+                        "city": author.city,
+                        "community": getattr(author, "community", None),
+                        "primary_location": author.primary_location,
+                        "lat": author.lat,
+                        "lng": author.lng,
+                    },
+                    "actions": ["comment", "share", "message_seller"],
+                }
+            )
+        except Exception:
+            logger.exception("skip fairly-used row %s", getattr(post, "id", None))
+            continue
+
     return {"count": len(results), "results": results}
 
 
-@router.post("/{post_id}/comments", response_model=CommentPublic)
+@router.post("/{post_id}/comments")
 @limiter.limit("30/minute")
 async def add_comment(
     request: Request,
@@ -184,7 +194,7 @@ async def add_comment(
     db.add(c)
     db.commit()
     db.refresh(c)
-    return c
+    return CommentPublic.model_validate(c).model_dump(mode="json")
 
 
 @router.get("/{post_id}/comments")
