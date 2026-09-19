@@ -101,7 +101,6 @@ async def create_post(
     payload["author_name"] = post.author_name
     return payload
 
-
 @router.get("")
 @limiter.limit("60/minute")
 async def feed(
@@ -109,36 +108,46 @@ async def feed(
     limit: int = 40,
     db: Session = Depends(get_db),
 ):
-    posts = (
+    rows = (
         db.query(FairlyUsedPost, User)
         .join(User, User.id == FairlyUsedPost.author_id)
-        .filter(FairlyUsedPost.deleted_at.is_(None), User.deleted_at.is_(None))
+        .filter(
+            FairlyUsedPost.deleted_at.is_(None),
+            User.deleted_at.is_(None),
+        )
         .order_by(FairlyUsedPost.created_at.desc())
         .limit(min(limit, 100))
         .all()
     )
     results = []
-    for post, author in posts:
+    for post, author in rows:
         phone = post.author_phone or author.phone
         name = post.author_name or author.name
-        start_row = post.author_start_row
-        if start_row is None:
-            start_row = _author_start_row(author)
-
-        post_public = FairlyUsedPublic.model_validate(post).model_dump(mode="json")
-        post_public["image_url"] = post.media_url
-        post_public["author_phone"] = phone
-        post_public["author_name"] = name
-        post_public["author_start_row"] = start_row
-
         results.append(
             {
-                "post": post_public,
+                "post": {
+                    "id": str(post.id),
+                    "author_id": str(post.author_id),
+                    "author_phone": phone,
+                    "author_name": name,
+                    "author_start_row": post.author_start_row,
+                    "title": post.title or "",
+                    "body": post.body,
+                    "price": post.price,
+                    "currency": post.currency,
+                    "media_url": post.media_url,
+                    "image_url": post.media_url,
+                    "media_type": post.media_type,
+                    "lat": post.lat,
+                    "lng": post.lng,
+                    "created_at": post.created_at.isoformat()
+                    if post.created_at
+                    else None,
+                },
                 "author": {
                     "id": str(author.id),
                     "name": name,
                     "phone": phone,
-                    "start_row": start_row,
                     "role": author.role,
                     "city": author.city,
                     "community": author.community,
