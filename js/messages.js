@@ -391,7 +391,7 @@ SNM.openThread = async function (id, title, peerMeta) {
   }
 };
 
-/** Open/create thread by peer phone UID — matches ThreadCreate.to_phone */
+/** Open/create thread by peer phone UID — no message until user types */
 SNM._ensureThreadWithPhone = async function (phone, title) {
   phone = SNM._normPhone(phone);
   if (!phone) throw new Error("Phone required");
@@ -403,7 +403,6 @@ SNM._ensureThreadWithPhone = async function (phone, title) {
     method: "POST",
     body: {
       to_phone: phone,
-      body: "…",
       context_type: "direct"
     }
   });
