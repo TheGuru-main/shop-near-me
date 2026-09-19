@@ -81,14 +81,10 @@ async def inbox(
             .order_by(Message.created_at.desc())
             .first()
         )
-        peer_phone = None
-        if getattr(t, "participant_a_phone", None) or getattr(
-            t, "participant_b_phone", None
-        ):
-            if t.participant_a == user.id:
-                peer_phone = t.participant_b_phone
-            else:
-                peer_phone = t.participant_a_phone
+        if t.participant_a == user.id:
+            peer_phone = getattr(t, "participant_b_phone", None)
+        else:
+            peer_phone = getattr(t, "participant_a_phone", None)
         out.append(
             {
                 "thread": ThreadPublic.model_validate(t).model_dump(mode="json"),
@@ -111,7 +107,7 @@ async def start_thread(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Create/open thread by peer phone UID (to_phone)."""
+    """Open/create thread by peer phone UID. body optional — no forced first message."""
     other = _user_by_phone(db, body.to_phone)
     if not other:
         raise HTTPException(status_code=404, detail="Recipient not found")
@@ -119,7 +115,6 @@ async def start_thread(
         raise HTTPException(status_code=400, detail="Cannot message yourself")
 
     a, b = _pair(user.id, other.id)
-    # stable phone slots matching pair order
     if a == user.id:
         a_phone, b_phone = user.phone, other.phone
     else:
@@ -149,7 +144,6 @@ async def start_thread(
         db.commit()
         db.refresh(thread)
     else:
-        # backfill phones if columns new
         if getattr(thread, "participant_a_phone", None) is None:
             thread.participant_a_phone = a_phone
             thread.participant_b_phone = b_phone
@@ -157,33 +151,35 @@ async def start_thread(
             db.commit()
             db.refresh(thread)
 
-    from_row = _start_row(user)
-    to_row = _start_row(other)
+    msg_out = None
+    text = (getattr(body, "body", None) or "").strip()
+    if text:
+        msg = Message(
+            id=uuid.uuid4(),
+            thread_id=thread.id,
+            from_user_id=user.id,
+            to_user_id=other.id,
+            from_phone=user.phone,
+            to_phone=other.phone,
+            from_start_row=_start_row(user),
+            to_start_row=_start_row(other),
+            body=text,
+            msg_type="text",
+            media_url=None,
+            context_type=body.context_type,
+            product_id=body.product_id,
+            fairly_used_post_id=body.fairly_used_post_id,
+        )
+        db.add(msg)
+        thread.updated_at = datetime.now(timezone.utc)
+        db.add(thread)
+        db.commit()
+        db.refresh(msg)
+        msg_out = MessagePublic.model_validate(msg).model_dump(mode="json")
 
-    msg = Message(
-        id=uuid.uuid4(),
-        thread_id=thread.id,
-        from_user_id=user.id,
-        to_user_id=other.id,
-        from_phone=user.phone,
-        to_phone=other.phone,
-        from_start_row=from_row,
-        to_start_row=to_row,
-        body=body.body,
-        msg_type="text",
-        media_url=None,
-        context_type=body.context_type,
-        product_id=body.product_id,
-        fairly_used_post_id=body.fairly_used_post_id,
-    )
-    db.add(msg)
-    thread.updated_at = datetime.now(timezone.utc)
-    db.add(thread)
-    db.commit()
-    db.refresh(msg)
     return {
         "thread": ThreadPublic.model_validate(thread).model_dump(mode="json"),
-        "message": MessagePublic.model_validate(msg).model_dump(mode="json"),
+        "message": msg_out,
     }
 
 
@@ -281,7 +277,6 @@ async def lookup_by_phone(
         "primary_location": other.primary_location,
         "start_row": _start_row(other),
         "registered": True,
-        # internal — optional; clients should use phone
         "id": str(other.id),
         "user_id": str(other.id),
     }
