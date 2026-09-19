@@ -79,17 +79,12 @@ async def create_post(
     post = FairlyUsedPost(
         id=uuid.uuid4(),
         author_id=user.id,
-        author_phone=user.phone,
-        author_name=user.name,
-        author_start_row=_author_start_row(user),
         title=(body.title or "").strip() or "Fairly used",
         body=body.body,
         price=body.price,
         currency=body.currency or "NGN",
         media_url=media_url,
         media_type=media_type,
-        lat=getattr(body, "lat", None),
-        lng=getattr(body, "lng", None),
     )
     db.add(post)
     db.commit()
