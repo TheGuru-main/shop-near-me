@@ -48,7 +48,6 @@ SNM._msgErr = function (err) {
   }
 };
 
-/** Normalize to E.164-ish +digits for API to_phone */
 SNM._normPhone = function (phone) {
   phone = String(phone || "").trim().replace(/\s/g, "");
   if (!phone) return "";
@@ -209,13 +208,21 @@ SNM.renderMessageBubble = function (m, me) {
 
 SNM.dropMessagePayload = async function (payload) {
   payload = payload || {};
-  if (!SNM._validThreadId(SNM._threadId)) {
-    throw new Error("Open a chat first");
-  }
   var text = "";
   if (payload.body != null) text = String(payload.body).trim();
   if (!text && payload.text != null) text = String(payload.text).trim();
   if (!text) throw new Error("Type a message first");
+
+  /* Recover: UI open + peer phone but id was cleared */
+  if (!SNM._validThreadId(SNM._threadId) && SNM._threadPeer) {
+    var title =
+      ((document.getElementById("threadTitle") || {}).textContent || "").trim() ||
+      SNM._threadPeer;
+    await SNM._ensureThreadWithPhone(SNM._threadPeer, title);
+  }
+  if (!SNM._validThreadId(SNM._threadId)) {
+    throw new Error("Open a chat first");
+  }
 
   return SNM.api(
     "/messages/threads/" + encodeURIComponent(String(SNM._threadId)),
@@ -228,7 +235,8 @@ SNM.reloadOpenThread = async function () {
   var titleEl = document.getElementById("threadTitle");
   await SNM.openThread(
     SNM._threadId,
-    titleEl ? titleEl.textContent : "Chat"
+    titleEl ? titleEl.textContent : "Chat",
+    { phone: SNM._threadPeer }
   );
 };
 
@@ -391,7 +399,6 @@ SNM.openThread = async function (id, title, peerMeta) {
   }
 };
 
-/** Open/create thread by peer phone UID — no message until user types */
 SNM._ensureThreadWithPhone = async function (phone, title) {
   phone = SNM._normPhone(phone);
   if (!phone) throw new Error("Phone required");
@@ -410,20 +417,19 @@ SNM._ensureThreadWithPhone = async function (phone, title) {
   var tid =
     (created.thread && created.thread.id) ||
     created.thread_id ||
-    created.id;
+    created.id ||
+    null;
+  tid = tid != null ? String(tid).trim() : "";
 
   if (!SNM._validThreadId(tid)) {
     throw new Error("Could not open thread");
   }
 
-  await SNM.openThread(String(tid), title || phone, { phone: phone });
+  SNM._threadId = tid;
+  await SNM.openThread(tid, title || phone, { phone: phone });
   return tid;
 };
 
-/**
- * From listing / fairly-used card.
- * SNM.openChatWithSeller({ phone, name })  — phone is the UID
- */
 SNM.openChatWithSeller = async function (meta) {
   meta = meta || {};
   var phone = (
@@ -493,9 +499,7 @@ SNM.startDmByPhone = async function (phone, titleHint) {
       }
       if (looked && looked.name) title = looked.name;
       if (looked && looked.phone) phone = SNM._normPhone(looked.phone);
-    } catch (lookupErr) {
-      // still try create — API will 404 if unknown
-    }
+    } catch (lookupErr) {}
 
     await SNM._ensureThreadWithPhone(phone, title);
   } catch (err) {
@@ -535,10 +539,6 @@ SNM.bindMessages = function () {
   if (send && !send._snmSendWired) {
     send._snmSendWired = true;
     send.onclick = async function () {
-      if (!SNM._validThreadId(SNM._threadId)) {
-        alert("Open a chat first");
-        return;
-      }
       var input =
         document.getElementById("threadInput") ||
         document.getElementById("msgInput");
@@ -574,7 +574,7 @@ SNM.bindMessages = function () {
   if (callV && !callV._snmWired) {
     callV._snmWired = true;
     callV.onclick = function () {
-      if (!SNM._validThreadId(SNM._threadId)) {
+      if (!SNM._validThreadId(SNM._threadId) && !SNM._threadPeer) {
         alert("Open a chat first");
         return;
       }
@@ -585,7 +585,7 @@ SNM.bindMessages = function () {
   if (callVid && !callVid._snmWired) {
     callVid._snmWired = true;
     callVid.onclick = function () {
-      if (!SNM._validThreadId(SNM._threadId)) {
+      if (!SNM._validThreadId(SNM._threadId) && !SNM._threadPeer) {
         alert("Open a chat first");
         return;
       }
@@ -613,5 +613,7 @@ SNM.bindMessages = function () {
 };
 
 SNM.onMessagesEnter = function () {
+  /* Keep open chat; only load inbox when not in a thread */
+  if (SNM._validThreadId(SNM._threadId)) return;
   SNM.loadInbox({ closeThread: true });
 };
