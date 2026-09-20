@@ -403,7 +403,11 @@ SNM.addShopItem = async function () {
     category: perEl && perEl.checked ? "food" : "retail",
     description: desc
   };
-  if (image_url) body.image_url = image_url;
+
+  if (image_url) {
+    body.image_url = image_url;
+    body.media_url = image_url;
+  }
   if (g && g.lat != null) body.lat = g.lat;
   if (g && g.lng != null) body.lng = g.lng;
 
