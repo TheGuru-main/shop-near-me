@@ -1,9 +1,9 @@
 window.SNM = window.SNM || {};
 
-/** Card-thumb size: a bit larger than icon, small enough for mobile POST */
+/** Small thumbs for mobile POST */
 SNM.compressImageFile = function (file, maxSide, quality) {
-  maxSide = maxSide || 320;
-  quality = quality || 0.55;
+  maxSide = maxSide || 160;
+  quality = quality || 0.4;
   return new Promise(function (resolve, reject) {
     var reader = new FileReader();
     reader.onload = function () {
@@ -29,7 +29,7 @@ SNM.compressImageFile = function (file, maxSide, quality) {
   });
 };
 
-/** Read + compress from cam/gallery inputs. Returns data URL or null. */
+/** Hard cap \~40KB data URL so POST does not abort */
 SNM.readCompressedItemImage = async function (camId, fileId) {
   var cam = document.getElementById(camId);
   var fileIn = document.getElementById(fileId);
@@ -39,13 +39,16 @@ SNM.readCompressedItemImage = async function (camId, fileId) {
     null;
   if (!file) return null;
 
-  var dataUrl = await SNM.compressImageFile(file, 320, 0.55);
-  if (dataUrl.length > 90000) {
-    dataUrl = await SNM.compressImageFile(file, 240, 0.45);
+  var dataUrl = await SNM.compressImageFile(file, 160, 0.4);
+  if (dataUrl.length > 40000) {
+    dataUrl = await SNM.compressImageFile(file, 120, 0.32);
   }
-  if (dataUrl.length > 90000) {
+  if (dataUrl.length > 40000) {
+    dataUrl = await SNM.compressImageFile(file, 96, 0.28);
+  }
+  if (dataUrl.length > 40000) {
     throw new Error(
-      "Photo still too large. Use a smaller picture or post without image."
+      "Photo too large for upload. Pick a smaller image or post without photo."
     );
   }
   return dataUrl;
@@ -130,7 +133,7 @@ SNM.renderShopList = function (items) {
           ? '<div class="shop-card-media">' +
             '<img class="card-thumb shop-thumb" src="' +
             SNM.esc(String(img)) +
-            '" alt="" loading="lazy" />' +
+            '" alt="" loading="lazy" onerror="this.style.display=\'none\'" />' +
             "</div>"
           : "";
         return (
@@ -404,10 +407,8 @@ SNM.addShopItem = async function () {
     description: desc
   };
 
-  if (image_url) {
-    body.image_url = image_url;
-    body.media_url = image_url;
-  }
+  /* ProductCreate only documents image_url — do not send media_url */
+  if (image_url) body.image_url = image_url;
   if (g && g.lat != null) body.lat = g.lat;
   if (g && g.lng != null) body.lng = g.lng;
 
@@ -490,16 +491,9 @@ SNM.addServiceItem = async function () {
     category: ((typeEl && typeEl.value) || "service").trim(),
     description: fullDesc
   };
-  if (image_url) {
-    body.image_url = image_url;
-    body.media_url = image_url;
-  }
+  if (image_url) body.image_url = image_url;
   if (g && g.lat != null) body.lat = g.lat;
   if (g && g.lng != null) body.lng = g.lng;
-
-
-
-
 
   try {
     await SNM.api("/products", { method: "POST", body: body });
