@@ -1,5 +1,15 @@
 window.SNM = window.SNM || {};
 
+if (image_url) {
+  console.log("image bytes", image_url.length);
+  if (image_url.length > 50000) {
+    alert("Image too large (" + image_url.length + "). Post without photo.");
+    return;
+  }
+  body.image_url = image_url;
+  body.media_url = image_url;
+}
+
 SNM.api = async function (path, options) {
   options = options || {};
   var url = SNM.API_BASE + path;
