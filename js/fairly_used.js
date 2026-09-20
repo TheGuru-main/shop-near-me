@@ -106,6 +106,43 @@ SNM._unwrapFairly = function (row) {
   };
 };
 
+/** Always DELETE /fairly-used/{id} — never /products/ */
+SNM.deleteFairlyUsed = async function (postId) {
+  postId = String(postId || "").trim();
+  if (!postId) {
+    alert("Missing post id");
+    return;
+  }
+  if (!confirm("Delete this fairly used post?")) return;
+  try {
+    await SNM.api("/fairly-used/" + encodeURIComponent(postId), {
+      method: "DELETE"
+    });
+    await SNM.loadFairlyUsed();
+  } catch (e) {
+    var msg =
+      (typeof SNM._msgErr === "function" && SNM._msgErr(e)) ||
+      (e && e.message) ||
+      "Delete failed";
+    alert(msg);
+  }
+};
+
+SNM._fuIsMine = function (it) {
+  var me = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+  var myPhone = (me.phone || "").toString().replace(/\s/g, "");
+  var postPhone = (it.phone || it.owner_phone || it.author_phone || "")
+    .toString()
+    .replace(/\s/g, "");
+  if (myPhone && postPhone && myPhone === postPhone) return true;
+  if (myPhone && postPhone) {
+    var a = myPhone.replace(/\D/g, "");
+    var b = postPhone.replace(/\D/g, "");
+    if (a && b && (a === b || a.endsWith(b) || b.endsWith(a))) return true;
+  }
+  return false;
+};
+
 SNM._fuCardHtml = function (it) {
   var img = it.image_url || it.media_url || "";
   var phone = it.phone || it.owner_phone || it.author_phone || "";
@@ -115,10 +152,16 @@ SNM._fuCardHtml = function (it) {
         " " +
         SNM.esc(String(it.price))
       : "";
+  var delBtn = SNM._fuIsMine(it)
+    ? '<button type="button" class="btn secondary small" data-fu-del="' +
+      SNM.esc(String(it.id || "")) +
+      '">Delete</button>'
+    : "";
+
   return (
     '<article class="card listing-card cat-fairly_used" data-id="' +
     SNM.esc(String(it.id || "")) +
-    '" data-phone="' +
+    '" data-kind="fairly_used" data-phone="' +
     SNM.esc(String(phone)) +
     '" data-seller-name="' +
     SNM.esc(it.owner_name || it.seller_name || "") +
@@ -141,10 +184,26 @@ SNM._fuCardHtml = function (it) {
     "</div>" +
     '<div class="card-actions">' +
     '<button type="button" data-act="message">Message seller</button>' +
-    '<button type="button" data-act="detail">Details</button>' +
+    '<button type="button" data-act="detail">Details</button> ' +
+    delBtn +
     "</div>" +
     "</article>"
   );
+};
+
+SNM._fuBindDelete = function (root) {
+  if (!root) return;
+  root.querySelectorAll("[data-fu-del]").forEach(function (btn) {
+    if (btn._snmFuDel) return;
+    btn._snmFuDel = true;
+    btn.onclick = function (e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      SNM.deleteFairlyUsed(btn.getAttribute("data-fu-del"));
+    };
+  });
 };
 
 SNM.loadFairlyUsed = async function () {
@@ -169,15 +228,9 @@ SNM.loadFairlyUsed = async function () {
       list.innerHTML = "<p class='muted'>No posts yet. Be first to list.</p>";
       return;
     }
-    if (typeof SNM.cardHtml === "function") {
-      list.innerHTML = items
-        .map(function (it) {
-          return SNM.cardHtml(it);
-        })
-        .join("");
-    } else {
-      list.innerHTML = items.map(SNM._fuCardHtml).join("");
-    }
+    /* Prefer FU cards so delete stays on /fairly-used */
+    list.innerHTML = items.map(SNM._fuCardHtml).join("");
+    SNM._fuBindDelete(list);
     if (typeof SNM.bindCardActions === "function") SNM.bindCardActions(list);
   } catch (e) {
     if (list) {
