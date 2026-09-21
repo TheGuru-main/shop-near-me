@@ -117,9 +117,6 @@ SNM.showScreen = function (id) {
     if (typeof SNM.onFairlyUsedEnter === "function") SNM.onFairlyUsedEnter();
     else if (typeof SNM.loadFairlyUsed === "function") SNM.loadFairlyUsed();
   }
-  if (id === "premium" && typeof SNM.loadPremium === "function") {
-    SNM.loadPremium();
-  }
   if (id === "documents" && typeof SNM.loadDocuments === "function") {
     SNM.loadDocuments();
   }
@@ -140,6 +137,14 @@ SNM.showScreen = function (id) {
 SNM.go = function (id) {
   SNM.showScreen(id);
 };
+
+
+
+if (id === "premium" && typeof SNM.loadPremium === "function") {
+    SNM.loadPremium();
+  }
+
+
 
 SNM.enterHome = function (navigate) {
   if (navigate === true) {
