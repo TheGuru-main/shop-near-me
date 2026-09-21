@@ -18,6 +18,7 @@
       if (typeof SNM.bindMessages === "function") SNM.bindMessages();
       if (typeof SNM.bindPremium === "function") SNM.bindPremium();
       if (typeof SNM.bindInvoiceStudio === "function") SNM.bindInvoiceStudio();
+      if (typeof SNM.bindCalculator === "function") SNM.bindCalculator();
       if (typeof SNM.bindDocuments === "function") SNM.bindDocuments();
       if (typeof SNM.bindTrust === "function") SNM.bindTrust();
     } catch (err) {
