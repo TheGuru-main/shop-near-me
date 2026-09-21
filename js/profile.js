@@ -23,3 +23,15 @@ SNM.openProfile = function () {
     sheet.setAttribute("aria-hidden", "false");
   }
 };
+
+var btn = document.getElementById("btnProfile");
+if (btn && !btn._snmProfileWired) {
+  btn._snmProfileWired = true;
+  btn.onclick = function (e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (typeof SNM.openProfile === "function") SNM.openProfile();
+  };
+}
