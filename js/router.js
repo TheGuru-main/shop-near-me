@@ -15,6 +15,7 @@ SNM.AUTHED = {
   documents: 1,
   banqueue: 1,
   emergency: 1,
+  "premium-pay": 1
   checkout: 1,
   "checkout-assist": 1,
   trust: 1,
