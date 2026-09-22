@@ -622,7 +622,7 @@
       });
     };
 
-    document.getElementById("btnMapReload").onclick = async function () {
+document.getElementById("btnMapReload").onclick = async function () {
       try {
         var role = (document.getElementById("mapRoleFilter").value || "").trim();
         var qs =
@@ -631,4 +631,78 @@
             : "";
         var data = await SNM.api("/admin/users/map" + qs);
         if (data.role_colors) paintLegend(data.role_colors);
-        paintPins(data.pi
+        paintPins(data.pins || []);
+      } catch (e) {
+        loadBoard().catch(function (err) {
+          alert(err.message || "Map failed");
+        });
+      }
+    };
+
+    document.getElementById("mapRoleFilter").onchange = function () {
+      document.getElementById("btnMapReload").click();
+    };
+
+    document.getElementById("btnInboxReload").onclick = function () {
+      loadInbox();
+    };
+
+    document.getElementById("btnInboxClear").onclick = async function () {
+      if (!confirm("Clear in-memory admin inbox?")) return;
+      try {
+        await SNM.api("/admin/messages", { method: "DELETE" });
+        await loadInbox();
+      } catch (e) {
+        alert((e && e.message) || "Clear failed");
+      }
+    };
+
+    document.getElementById("btnAdmActivate").onclick = async function () {
+      var phone = (document.getElementById("act-phone").value || "").trim();
+      var plan = (document.getElementById("act-plan").value || "").trim();
+      var ref = (document.getElementById("act-ref").value || "").trim();
+      var msg = document.getElementById("actMsg");
+      if (msg) msg.textContent = "";
+      try {
+        var res = await SNM.api("/admin/premium/activate", {
+          method: "POST",
+          body: {
+            user_phone: phone,
+            plan_code: plan,
+            active: true,
+            payment_ref: ref || null
+          }
+        });
+        if (msg)
+          msg.textContent =
+            "OK: " +
+            (res.user_name || "") +
+            " · " +
+            (res.plan_code || plan) +
+            " · " +
+            (res.status || "active");
+        await loadPremiumPending();
+      } catch (e) {
+        if (msg) msg.textContent = (e && e.message) || "Activate failed";
+      }
+    };
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    bind();
+    var phoneInput = document.getElementById("adm-phone");
+    if (phoneInput && !phoneInput.value) phoneInput.value = ADMIN_UID;
+    var u = SNM.getUser && SNM.getUser();
+    if (SNM.getToken && SNM.getToken() && u) {
+      document.getElementById("admWho").textContent =
+        (u.name || "") + " · " + (u.phone || "");
+      showApp(true);
+      refreshAll().catch(function () {
+        showApp(false);
+      });
+    }
+  });
+})();
+  </script>
+</body>
+</html>
