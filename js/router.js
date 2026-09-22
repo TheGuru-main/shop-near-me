@@ -59,6 +59,19 @@ SNM.showScreen = function (id) {
     target.style.display = "flex";
   }
 
+
+
+if (target) {
+    target.classList.add("active");
+    target.style.display = "flex";
+    target.style.visibility = "visible";
+    target.style.opacity = "1";
+  } else {
+    console.error("showScreen: missing", id);
+  }
+
+
+
   if (SNM.AUTHED[id]) {
     document.body.classList.add("has-nav");
     if (typeof SNM.renderTabbar === "function") SNM.renderTabbar(id);
