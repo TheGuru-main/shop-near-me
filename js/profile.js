@@ -1,3 +1,5 @@
+window.SNM = window.SNM || {};
+
 SNM.renderProfile = function () {
   var body = document.getElementById("profileBody");
   if (!body) return;
