@@ -95,7 +95,12 @@
       background: var(--c, #999);
     }
     table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-    th, td { text-align: left; padding: 0.4rem 0.35rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th, td {
+      text-align: left;
+      padding: 0.4rem 0.35rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
     th { color: var(--primary); }
     .dot {
       display: inline-block;
@@ -127,27 +132,34 @@
     }
     .err { color: var(--danger); font-size: 0.9rem; }
     .toolbar { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.5rem 0; }
+    #admBoxMeta { font-size: 0.85rem; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <h1><i class="fa-solid fa-shield-halved"></i> Shop Near Me Admin</h1>
-    <p class="muted">Registry · map by role · premium queue · inbox</p>
+    <p class="muted">UID 550198550199 · shop-near-me-admin · registry · map · inbox</p>
 
-    <!-- LOGIN -->
     <section id="adminLogin" class="card">
       <h2>Admin login</h2>
-      <label>Phone
-        <input id="adm-phone" type="tel" placeholder="+234…" autocomplete="username" />
+      <p class="muted">Use permanent admin UID (not +234).</p>
+      <label>Admin UID
+        <input
+          id="adm-phone"
+          type="text"
+          inputmode="numeric"
+          placeholder="550198550199"
+          value="550198550199"
+          autocomplete="username"
+        />
       </label>
       <label>Password
-        <input id="adm-pass" type="password" placeholder="Password" autocomplete="current-password" />
+        <input id="adm-pass" type="password" placeholder="Your admin password" autocomplete="current-password" />
       </label>
       <button type="button" class="btn block" id="btnAdmLogin">Login</button>
       <p id="admLoginErr" class="err"></p>
     </section>
 
-    <!-- APP -->
     <section id="adminApp">
       <div class="card row" style="justify-content: space-between">
         <span class="muted">Signed in: <strong id="admWho">—</strong></span>
@@ -156,6 +168,7 @@
           <button type="button" class="btn danger small" id="btnAdmLogout">Logout</button>
         </span>
       </div>
+      <div class="card" id="admBoxMeta">Loading admin box…</div>
 
       <h2>Board</h2>
       <div id="admStats" class="stat-grid">
@@ -197,7 +210,7 @@
             <tr>
               <th>Role</th>
               <th>Name</th>
-              <th>Phone</th>
+              <th>Phone / UID</th>
               <th>Place</th>
               <th>Live</th>
             </tr>
@@ -210,7 +223,7 @@
       </div>
 
       <h2>Premium — pending / activate</h2>
-      <div id="admPremium" class="stack"></div>
+      <div id="admPremium"></div>
       <div class="card">
         <p class="muted">After bank transfer confirmed:</p>
         <label>User phone <input id="act-phone" placeholder="+234…" /></label>
@@ -220,7 +233,11 @@
         <p id="actMsg" class="muted"></p>
       </div>
 
-      <h2>Admin inbox</h2>
+      <h2>Admin inbox <span class="muted">(ADMIN_UID contact box)</span></h2>
+      <div class="toolbar">
+        <button type="button" class="btn secondary small" id="btnInboxReload">Reload inbox</button>
+        <button type="button" class="btn danger small" id="btnInboxClear">Clear inbox</button>
+      </div>
       <div id="admInbox"></div>
     </section>
   </div>
@@ -231,6 +248,8 @@
   <script>
 (function () {
   window.SNM = window.SNM || {};
+
+  var ADMIN_UID = "550198550199";
 
   SNM.esc =
     SNM.esc ||
@@ -266,12 +285,8 @@
     }
   }
 
-  function isAdminUser(u) {
-    u = u || {};
-    if ((u.role || "").toLowerCase() === "admin") return true;
-    if (u.is_admin) return true;
-    /* digit match against common admin UID in config if exposed later */
-    return true; /* board API will 403 if not admin */
+  function digits(s) {
+    return String(s || "").replace(/\D/g, "");
   }
 
   function ensureMap() {
@@ -326,18 +341,18 @@
         fillOpacity: 0.85,
         weight: 1
       });
-      var html =
+      m.bindPopup(
         "<strong>" +
-        SNM.esc(p.name || "") +
-        "</strong><br/>" +
-        SNM.esc(role) +
-        "<br/>" +
-        SNM.esc(p.phone || "") +
-        "<br/>" +
-        SNM.esc(
-          [p.primary_location, p.community, p.city].filter(Boolean).join(" · ")
-        );
-      m.bindPopup(html);
+          SNM.esc(p.name || "") +
+          "</strong><br/>" +
+          SNM.esc(role) +
+          "<br/>" +
+          SNM.esc(p.phone || "") +
+          "<br/>" +
+          SNM.esc(
+            [p.primary_location, p.community, p.city].filter(Boolean).join(" · ")
+          )
+      );
       m.addTo(markersLayer);
       bounds.push([p.lat, p.lng]);
     });
@@ -373,19 +388,40 @@
       .join("");
   }
 
+  async function loadBoxMeta() {
+    var el = document.getElementById("admBoxMeta");
+    if (!el) return;
+    try {
+      var b = await SNM.api("/admin/box");
+      el.innerHTML =
+        "<strong>" +
+        SNM.esc(b.name || "shop-near-me-admin") +
+        "</strong> · UID " +
+        SNM.esc(b.uid || ADMIN_UID) +
+        " · start_row " +
+        SNM.esc(String(b.start_row != null ? b.start_row : "—")) +
+        (b.S != null ? " · S=" + SNM.esc(String(b.S)) : "") +
+        (b.L != null ? " · L=" + SNM.esc(String(b.L)) : "");
+    } catch (e) {
+      el.textContent = "Box: " + ((e && e.message) || "unavailable");
+    }
+  }
+
   async function loadBoard() {
     var data = await SNM.api("/admin/board");
     paintLegend(data.role_colors);
     paintStats(data.stats || {});
-    var pins = (data.map && data.map.pins) || [];
-    paintPins(pins);
+    paintPins((data.map && data.map.pins) || []);
     return data;
   }
 
   async function loadUsers() {
     var q = ((document.getElementById("userQ") || {}).value || "").trim();
     var role = ((document.getElementById("userRoleFilter") || {}).value || "").trim();
-    var qs = SNM.qs({ q: q || undefined, role: role || undefined, limit: 100 });
+    var qs =
+      typeof SNM.qs === "function"
+        ? SNM.qs({ q: q || undefined, role: role || undefined, limit: 100 })
+        : "";
     var data = await SNM.api("/admin/users" + qs);
     if (data.role_colors) paintLegend(data.role_colors);
     var body = document.getElementById("admUsersBody");
@@ -393,8 +429,7 @@
     var users = data.users || [];
     if (!body) return;
     if (!users.length) {
-      body.innerHTML =
-        '<tr><td colspan="5" class="muted">No users</td></tr>';
+      body.innerHTML = '<tr><td colspan="5" class="muted">No users</td></tr>';
     } else {
       body.innerHTML = users
         .map(function (u) {
@@ -429,8 +464,23 @@
     }
     if (meta) {
       meta.textContent =
-        "Showing " + users.length + " of " + (data.count != null ? data.count : users.length);
+        "Showing " +
+        users.length +
+        " of " +
+        (data.count != null ? data.count : users.length);
     }
+  }
+
+  function inboxBody(m) {
+    return m.body || m.last_body || "";
+  }
+
+  function inboxFrom(m) {
+    var f = m.from;
+    if (f && typeof f === "object") {
+      return (f.name || "") + (f.phone ? " · " + f.phone : "");
+    }
+    return m.last_from_phone || "";
   }
 
   async function loadInbox() {
@@ -441,24 +491,24 @@
       var data = await SNM.api("/admin/messages?limit=50");
       var items = data.items || data.messages || [];
       if (!items.length) {
-        box.innerHTML = "<p class='muted'>No admin threads.</p>";
+        box.innerHTML = "<p class='muted'>No messages in admin contact box.</p>";
         return;
       }
       box.innerHTML = items
         .map(function (m) {
-          var body = m.last_body || m.body || "";
-          var pay = m.is_premium_payment;
+          var body = inboxBody(m);
+          var pay =
+            m.is_premium_payment ||
+            String(body).indexOf("[PREMIUM_PAYMENT]") === 0;
           return (
             '<article class="card">' +
             (pay ? '<span class="chip pay">Premium pay</span> ' : "") +
             "<span class='muted'>" +
-            SNM.esc(m.updated_at || m.created_at || "") +
+            SNM.esc(m.created_at || m.updated_at || "") +
             "</span>" +
-            (m.last_from_phone
-              ? " · " + SNM.esc(m.last_from_phone)
-              : "") +
+            (inboxFrom(m) ? " · " + SNM.esc(inboxFrom(m)) : "") +
             "<pre class='msg'>" +
-            SNM.esc(String(body || "(no body)")) +
+            SNM.esc(String(body || "(empty)")) +
             "</pre></article>"
           );
         })
@@ -495,23 +545,35 @@
         html +=
           '<article class="card"><span class="chip pay">Pay msg</span>' +
           "<pre class='msg'>" +
-          SNM.esc(String(m.last_body || m.body || "")) +
+          SNM.esc(String(inboxBody(m))) +
           "</pre></article>";
       });
       el.innerHTML = html;
     } catch (e) {
       el.innerHTML =
-        "<p class='muted'>Pending endpoint: " +
-        SNM.esc((e && e.message) || "") +
+        "<p class='muted'>Pending: " +
+        SNM.esc((e && e.message) || "endpoint optional") +
         "</p>";
     }
   }
 
   async function refreshAll() {
-    await loadBoard();
-    await loadUsers();
+    await loadBoxMeta();
+    try {
+      await loadBoard();
+    } catch (e) {
+      /* board may be separate deploy */
+      console.warn("board", e);
+    }
+    try {
+      await loadUsers();
+    } catch (e2) {
+      console.warn("users", e2);
+    }
     await loadInbox();
-    await loadPremiumPending();
+    try {
+      await loadPremiumPending();
+    } catch (e3) {}
   }
 
   function bind() {
@@ -520,17 +582,22 @@
       var password = document.getElementById("adm-pass").value || "";
       var err = document.getElementById("admLoginErr");
       if (err) err.textContent = "";
+      if (digits(phone) !== digits(ADMIN_UID) && phone !== ADMIN_UID) {
+        /* allow anyway — server decides */
+      }
       try {
         var data = await SNM.api("/auth/login", {
           method: "POST",
-          body: { phone: phone, password: password }
+          body: { phone: phone || ADMIN_UID, password: password }
         });
         var token = data.access_token || data.token;
         var user = data.user || data;
         if (token && SNM.setToken) SNM.setToken(token);
         if (user && SNM.setUser) SNM.setUser(user);
         document.getElementById("admWho").textContent =
-          (user.name || "") + " · " + (user.phone || phone);
+          (user.name || "shop-near-me-admin") +
+          " · " +
+          (user.phone || phone || ADMIN_UID);
         showApp(true);
         await refreshAll();
       } catch (e) {
@@ -558,68 +625,10 @@
     document.getElementById("btnMapReload").onclick = async function () {
       try {
         var role = (document.getElementById("mapRoleFilter").value || "").trim();
-        var data = await SNM.api(
-          "/admin/users/map" + SNM.qs({ role: role || undefined })
-        );
+        var qs =
+          typeof SNM.qs === "function"
+            ? SNM.qs({ role: role || undefined })
+            : "";
+        var data = await SNM.api("/admin/users/map" + qs);
         if (data.role_colors) paintLegend(data.role_colors);
-        paintPins(data.pins || []);
-      } catch (e) {
-        /* fallback board pins */
-        loadBoard().catch(function (err) {
-          alert(err.message || "Map failed");
-        });
-      }
-    };
-
-    document.getElementById("mapRoleFilter").onchange = function () {
-      document.getElementById("btnMapReload").click();
-    };
-
-    document.getElementById("btnAdmActivate").onclick = async function () {
-      var phone = (document.getElementById("act-phone").value || "").trim();
-      var plan = (document.getElementById("act-plan").value || "").trim();
-      var ref = (document.getElementById("act-ref").value || "").trim();
-      var msg = document.getElementById("actMsg");
-      if (msg) msg.textContent = "";
-      try {
-        var res = await SNM.api("/admin/premium/activate", {
-          method: "POST",
-          body: {
-            user_phone: phone,
-            plan_code: plan,
-            active: true,
-            payment_ref: ref || null
-          }
-        });
-        if (msg)
-          msg.textContent =
-            "OK: " +
-            (res.user_name || "") +
-            " · " +
-            (res.plan_code || plan) +
-            " · " +
-            (res.status || "active");
-        await loadPremiumPending();
-        await loadBoard();
-      } catch (e) {
-        if (msg) msg.textContent = (e && e.message) || "Activate failed";
-      }
-    };
-  }
-
-  document.addEventListener("DOMContentLoaded", function () {
-    bind();
-    var u = SNM.getUser && SNM.getUser();
-    if (SNM.getToken && SNM.getToken() && u) {
-      document.getElementById("admWho").textContent =
-        (u.name || "") + " · " + (u.phone || "");
-      showApp(true);
-      refreshAll().catch(function () {
-        showApp(false);
-      });
-    }
-  });
-})();
-  </script>
-</body>
-</html>
+        paintPins(data.pi
