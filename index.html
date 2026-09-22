@@ -853,7 +853,32 @@
     </section>
 
 
-
+<section id="premium-pay" class="screen" data-screen="premium-pay">
+  <header class="top-bar">
+    <button type="button" class="icon-btn" data-back="premium" aria-label="Back">
+      <i class="fa-solid fa-arrow-left"></i>
+    </button>
+    <span class="screen-title">Pay for Premium</span>
+    <span class="spacer"></span>
+  </header>
+  <div class="container stack">
+    <div class="card">
+      <p id="payPlanName" class="title">Plan</p>
+      <p id="payPlanPrice" class="meta"></p>
+      <p class="muted small">Transfer the exact amount, then confirm below.</p>
+      <hr />
+      <p><strong>Bank:</strong> <span id="payBank">Opay</span></p>
+      <p><strong>Account name:</strong> <span id="payAcctName">Idris Akeem</span></p>
+      <p><strong>Account number:</strong> <span id="payAcctNo">YOUR_NUMBER</span></p>
+      <p class="muted small">Narration: your phone e.g. +2347083909408</p>
+    </div>
+    <label>Payment reference / note (optional)
+      <input id="payRef" placeholder="Transfer ref or note" />
+    </label>
+    <button type="button" class="btn block" id="btnPayConfirm">I have paid — notify admin</button>
+    <p id="payMsg" class="muted small"></p>
+  </div>
+</section>
     <!-- ========== K5 DASHBOARD ========== -->
     <section id="dashboard" class="screen" data-screen="dashboard">
       <header class="top-bar">
