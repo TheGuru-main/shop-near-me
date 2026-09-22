@@ -1,4 +1,3 @@
-
 window.SNM = window.SNM || {};
 
 /* Screens that need a token. Pre-auth screens are NOT listed. */
@@ -54,23 +53,16 @@ SNM.showScreen = function (id) {
     id = "role-select";
     target = document.getElementById("role-select");
   }
+
   if (target) {
-    target.classList.add("active");
-    target.style.display = "flex";
-  }
-
-
-
-if (target) {
     target.classList.add("active");
     target.style.display = "flex";
     target.style.visibility = "visible";
     target.style.opacity = "1";
   } else {
     console.error("showScreen: missing", id);
+    return;
   }
-
-
 
   if (SNM.AUTHED[id]) {
     document.body.classList.add("has-nav");
@@ -85,15 +77,13 @@ if (target) {
     document.body.scrollTop = 0;
   } catch (e) {}
 
-  if (target) {
-    target.scrollTop = 0;
-    var scrollBody =
-      target.querySelector(":scope > .container") ||
-      target.querySelector(":scope > .home-body") ||
-      target.querySelector(":scope > .msg-layout") ||
-      target.querySelector(".container");
-    if (scrollBody) scrollBody.scrollTop = 0;
-  }
+  target.scrollTop = 0;
+  var scrollBody =
+    target.querySelector(":scope > .container") ||
+    target.querySelector(":scope > .home-body") ||
+    target.querySelector(":scope > .msg-layout") ||
+    target.querySelector(".container");
+  if (scrollBody) scrollBody.scrollTop = 0;
 
   if (id === "register") {
     if (typeof SNM.bindCascade === "function") SNM.bindCascade();
@@ -139,6 +129,15 @@ if (target) {
   if (id === "emergency" && typeof SNM.loadEmergency === "function") {
     SNM.loadEmergency();
   }
+  if (id === "premium" || id === "premium-pay") {
+    if (typeof SNM.bindPremium === "function") SNM.bindPremium();
+    if (id === "premium" && typeof SNM.loadPremium === "function") {
+      SNM.loadPremium();
+    }
+  }
+  if (id === "calculator" && typeof SNM.bindCalculator === "function") {
+    SNM.bindCalculator();
+  }
 
   try {
     if (location.hash !== "#" + id) {
@@ -150,14 +149,6 @@ if (target) {
 SNM.go = function (id) {
   SNM.showScreen(id);
 };
-
-
-
-if (id === "premium" && typeof SNM.loadPremium === "function") {
-    SNM.loadPremium();
-  }
-
-
 
 SNM.enterHome = function (navigate) {
   if (navigate === true) {
