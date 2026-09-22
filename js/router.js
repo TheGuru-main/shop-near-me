@@ -1,3 +1,4 @@
+
 window.SNM = window.SNM || {};
 
 /* Screens that need a token. Pre-auth screens are NOT listed. */
@@ -12,10 +13,10 @@ SNM.AUTHED = {
   menu: 1,
   "fairly-used": 1,
   premium: 1,
+  "premium-pay": 1,
   documents: 1,
   banqueue: 1,
   emergency: 1,
-  "premium-pay": 1
   checkout: 1,
   "checkout-assist": 1,
   trust: 1,
@@ -23,7 +24,6 @@ SNM.AUTHED = {
   calculator: 1,
   invoice: 1,
   dashboard: 1
-  /* setup intentionally NOT here — no bottom nav during setup */
 };
 
 SNM.hideSplash = function () {
