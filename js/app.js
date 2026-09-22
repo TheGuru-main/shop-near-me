@@ -52,37 +52,32 @@
 
     var splash = document.getElementById("splash");
 
-    function start() {
-      if (typeof SNM.hideSplash === "function") SNM.hideSplash();
-      else if (splash) {
-        splash.classList.remove("active");
-        splash.classList.add("hidden");
-        splash.style.display = "none";
-      }
+function start() {
+  if (typeof SNM.hideSplash === "function") SNM.hideSplash();
+  else if (splash) {
+    splash.classList.remove("active");
+    splash.classList.add("hidden");
+    splash.style.display = "none";
+  }
 
-      if (
-        typeof SNM.getToken === "function" &&
-        SNM.getToken() &&
-        typeof SNM.getUser === "function" &&
-        SNM.getUser()
-      ) {
-        SNM.showScreen("home");
-        return;
-      }
-
-      var hash = (location.hash || "").replace(/^#/, "");
-      if (
-        hash &&
-        hash !== "splash" &&
-        hash !== "home" &&
-        document.getElementById(hash)
-      ) {
-        SNM.showScreen(hash);
-      } else {
-        SNM.showScreen("role-select");
-      }
+  try {
+    var token = typeof SNM.getToken === "function" && SNM.getToken();
+    var user = typeof SNM.getUser === "function" && SNM.getUser();
+    if (token && user) {
+      SNM.showScreen("home");
+      return;
     }
+  } catch (e) {
+    console.error("start home failed", e);
+  }
 
+  var hash = (location.hash || "").replace(/^#/, "");
+  if (hash && hash !== "splash" && document.getElementById(hash)) {
+    SNM.showScreen(hash);
+  } else {
+    SNM.showScreen("role-select");
+  }
+}
     if (splash && splash.classList.contains("active")) setTimeout(start, 2000);
     else start();
   }
