@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#14532d" />
+  <title>Shop Near Me — Admin</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    :root {
+      --primary: #14532d;
+      --card: #f8fafc;
+      --border: rgba(20, 83, 45, 0.14);
+      --muted: #4b5563;
+      --danger: #dc2626;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: linear-gradient(352deg, #ecfdf5 0%, #f8fafc 50%, #e0f2fe 100%);
+      color: #1f2937;
+      min-height: 100dvh;
+    }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 1rem 1rem 2.5rem; }
+    h1 { font-size: 1.35rem; color: var(--primary); margin: 0 0 0.35rem; }
+    h2 { font-size: 1.05rem; color: var(--primary); margin: 1.25rem 0 0.5rem; }
+    .muted { color: var(--muted); font-size: 0.9rem; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 0.85rem 1rem;
+      margin-bottom: 0.65rem;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+    }
+    label { display: block; margin: 0.45rem 0; font-size: 0.9rem; }
+    input, select {
+      width: 100%;
+      margin-top: 0.25rem;
+      padding: 0.55rem 0.65rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 1rem;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      border: none;
+      border-radius: 12px;
+      padding: 0.65rem 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      background: var(--primary);
+      color: #fff;
+      margin-top: 0.5rem;
+    }
+    .btn.secondary { background: #e5e7eb; color: #111; }
+    .btn.danger { background: var(--danger); }
+    .btn.block { width: 100%; }
+    .btn.small { padding: 0.4rem 0.65rem; font-size: 0.85rem; }
+    .row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 0.5rem;
+    }
+    .stat {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.65rem;
+      text-align: center;
+    }
+    .stat b { display: block; font-size: 1.25rem; color: var(--primary); }
+    #map {
+      height: 360px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      z-index: 1;
+    }
+    .legend { display: flex; flex-wrap: wrap; gap: 0.5rem 0.85rem; margin: 0.5rem 0; font-size: 0.8rem; }
+    .legend span::before {
+      content: "";
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 0.3rem;
+      vertical-align: middle;
+      background: var(--c, #999);
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    th, td { text-align: left; padding: 0.4rem 0.35rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { color: var(--primary); }
+    .dot {
+      display: inline-block;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      margin-right: 0.25rem;
+    }
+    .chip {
+      display: inline-block;
+      padding: 0.15rem 0.45rem;
+      border-radius: 999px;
+      background: #fef3c7;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .chip.pay { background: #dbeafe; color: #1e40af; }
+    #adminApp { display: none; }
+    #adminApp.open { display: block; }
+    #adminLogin.hidden { display: none; }
+    pre.msg {
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 0.78rem;
+      margin: 0.35rem 0 0;
+      background: #f1f5f9;
+      padding: 0.5rem;
+      border-radius: 8px;
+    }
+    .err { color: var(--danger); font-size: 0.9rem; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.5rem 0; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1><i class="fa-solid fa-shield-halved"></i> Shop Near Me Admin</h1>
+    <p class="muted">Registry · map by role · premium queue · inbox</p>
+
+    <!-- LOGIN -->
+    <section id="adminLogin" class="card">
+      <h2>Admin login</h2>
+      <label>Phone
+        <input id="adm-phone" type="tel" placeholder="+234…" autocomplete="username" />
+      </label>
+      <label>Password
+        <input id="adm-pass" type="password" placeholder="Password" autocomplete="current-password" />
+      </label>
+      <button type="button" class="btn block" id="btnAdmLogin">Login</button>
+      <p id="admLoginErr" class="err"></p>
+    </section>
+
+    <!-- APP -->
+    <section id="adminApp">
+      <div class="card row" style="justify-content: space-between">
+        <span class="muted">Signed in: <strong id="admWho">—</strong></span>
+        <span>
+          <button type="button" class="btn secondary small" id="btnAdmRefresh">Refresh</button>
+          <button type="button" class="btn danger small" id="btnAdmLogout">Logout</button>
+        </span>
+      </div>
+
+      <h2>Board</h2>
+      <div id="admStats" class="stat-grid">
+        <div class="stat muted">Loading…</div>
+      </div>
+
+      <h2>Map <span class="muted">(role colours)</span></h2>
+      <div class="legend" id="admLegend"></div>
+      <div class="toolbar">
+        <select id="mapRoleFilter">
+          <option value="">All roles</option>
+          <option value="buyer">Buyer</option>
+          <option value="merchant">Merchant</option>
+          <option value="service">Service</option>
+          <option value="driver">Driver</option>
+          <option value="emergency">Emergency</option>
+          <option value="admin">Admin</option>
+        </select>
+        <button type="button" class="btn secondary small" id="btnMapReload">Reload pins</button>
+      </div>
+      <div id="map"></div>
+
+      <h2>Users registry</h2>
+      <div class="toolbar">
+        <input id="userQ" type="search" placeholder="Search name, phone, place…" style="flex:1;min-width:160px" />
+        <select id="userRoleFilter">
+          <option value="">All roles</option>
+          <option value="buyer">Buyer</option>
+          <option value="merchant">Merchant</option>
+          <option value="service">Service</option>
+          <option value="driver">Driver</option>
+          <option value="emergency">Emergency</option>
+        </select>
+        <button type="button" class="btn secondary small" id="btnUsersLoad">Load</button>
+      </div>
+      <div class="card" style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Role</th>
+              <th>Name</th>
+              <th>Phone</th>
+              <th>Place</th>
+              <th>Live</th>
+            </tr>
+          </thead>
+          <tbody id="admUsersBody">
+            <tr><td colspan="5" class="muted">Load users…</td></tr>
+          </tbody>
+        </table>
+        <p class="muted" id="admUsersMeta"></p>
+      </div>
+
+      <h2>Premium — pending / activate</h2>
+      <div id="admPremium" class="stack"></div>
+      <div class="card">
+        <p class="muted">After bank transfer confirmed:</p>
+        <label>User phone <input id="act-phone" placeholder="+234…" /></label>
+        <label>Plan code <input id="act-plan" placeholder="verification_badge" /></label>
+        <label>Payment ref (optional) <input id="act-ref" placeholder="ref" /></label>
+        <button type="button" class="btn block" id="btnAdmActivate">Activate premium</button>
+        <p id="actMsg" class="muted"></p>
+      </div>
+
+      <h2>Admin inbox</h2>
+      <div id="admInbox"></div>
+    </section>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+(function () {
+  window.SNM = window.SNM || {};
+
+  SNM.esc =
+    SNM.esc ||
+    function (s) {
+      return String(s == null ? "" : s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    };
+
+  var DEFAULT_COLORS = {
+    buyer: "#16a34a",
+    merchant: "#2563eb",
+    service: "#4f46e5",
+    driver: "#9333ea",
+    logistics: "#9333ea",
+    emergency: "#dc2626",
+    admin: "#ca8a04"
+  };
+
+  var map = null;
+  var markersLayer = null;
+  var roleColors = Object.assign({}, DEFAULT_COLORS);
+
+  function showApp(on) {
+    var login = document.getElementById("adminLogin");
+    var app = document.getElementById("adminApp");
+    if (login) login.classList.toggle("hidden", !!on);
+    if (app) {
+      if (on) app.classList.add("open");
+      else app.classList.remove("open");
+    }
+  }
+
+  function isAdminUser(u) {
+    u = u || {};
+    if ((u.role || "").toLowerCase() === "admin") return true;
+    if (u.is_admin) return true;
+    /* digit match against common admin UID in config if exposed later */
+    return true; /* board API will 403 if not admin */
+  }
+
+  function ensureMap() {
+    if (map) {
+      setTimeout(function () {
+        map.invalidateSize();
+      }, 100);
+      return map;
+    }
+    map = L.map("map").setView([9.0, 8.0], 6);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; OSM"
+    }).addTo(map);
+    markersLayer = L.layerGroup().addTo(map);
+    return map;
+  }
+
+  function paintLegend(colors) {
+    roleColors = Object.assign({}, DEFAULT_COLORS, colors || {});
+    var el = document.getElementById("admLegend");
+    if (!el) return;
+    el.innerHTML = Object.keys(roleColors)
+      .map(function (r) {
+        return (
+          '<span style="--c:' +
+          roleColors[r] +
+          '">' +
+          SNM.esc(r) +
+          "</span>"
+        );
+      })
+      .join("");
+  }
+
+  function paintPins(pins) {
+    ensureMap();
+    markersLayer.clearLayers();
+    var bounds = [];
+    var filter = ((document.getElementById("mapRoleFilter") || {}).value || "")
+      .toLowerCase()
+      .trim();
+    (pins || []).forEach(function (p) {
+      if (p.lat == null || p.lng == null) return;
+      var role = (p.role || "").toLowerCase();
+      if (filter && role !== filter) return;
+      var color = p.color || roleColors[role] || "#6b7280";
+      var m = L.circleMarker([p.lat, p.lng], {
+        radius: 8,
+        color: color,
+        fillColor: color,
+        fillOpacity: 0.85,
+        weight: 1
+      });
+      var html =
+        "<strong>" +
+        SNM.esc(p.name || "") +
+        "</strong><br/>" +
+        SNM.esc(role) +
+        "<br/>" +
+        SNM.esc(p.phone || "") +
+        "<br/>" +
+        SNM.esc(
+          [p.primary_location, p.community, p.city].filter(Boolean).join(" · ")
+        );
+      m.bindPopup(html);
+      m.addTo(markersLayer);
+      bounds.push([p.lat, p.lng]);
+    });
+    if (bounds.length) {
+      try {
+        map.fitBounds(bounds, { padding: [24, 24], maxZoom: 12 });
+      } catch (e) {}
+    }
+  }
+
+  function paintStats(stats) {
+    stats = stats || {};
+    var el = document.getElementById("admStats");
+    if (!el) return;
+    var cells = [
+      ["Users", stats.total_users],
+      ["Downloads*", stats.total_downloads],
+      ["Active premium", stats.total_subscribed],
+      ["Pending premium", stats.pending_subscribed],
+      ["Shops", stats.active_shops],
+      ["With GPS", stats.users_with_geo]
+    ];
+    el.innerHTML = cells
+      .map(function (c) {
+        return (
+          '<div class="stat"><b>' +
+          SNM.esc(String(c[1] != null ? c[1] : "—")) +
+          "</b><span class='muted'>" +
+          SNM.esc(c[0]) +
+          "</span></div>"
+        );
+      })
+      .join("");
+  }
+
+  async function loadBoard() {
+    var data = await SNM.api("/admin/board");
+    paintLegend(data.role_colors);
+    paintStats(data.stats || {});
+    var pins = (data.map && data.map.pins) || [];
+    paintPins(pins);
+    return data;
+  }
+
+  async function loadUsers() {
+    var q = ((document.getElementById("userQ") || {}).value || "").trim();
+    var role = ((document.getElementById("userRoleFilter") || {}).value || "").trim();
+    var qs = SNM.qs({ q: q || undefined, role: role || undefined, limit: 100 });
+    var data = await SNM.api("/admin/users" + qs);
+    if (data.role_colors) paintLegend(data.role_colors);
+    var body = document.getElementById("admUsersBody");
+    var meta = document.getElementById("admUsersMeta");
+    var users = data.users || [];
+    if (!body) return;
+    if (!users.length) {
+      body.innerHTML =
+        '<tr><td colspan="5" class="muted">No users</td></tr>';
+    } else {
+      body.innerHTML = users
+        .map(function (u) {
+          var color = u.color || roleColors[u.role] || "#999";
+          return (
+            "<tr>" +
+            "<td><span class='dot' style='background:" +
+            SNM.esc(color) +
+            "'></span>" +
+            SNM.esc(u.role || "") +
+            "</td>" +
+            "<td>" +
+            SNM.esc(u.name || "") +
+            "</td>" +
+            "<td>" +
+            SNM.esc(u.phone || "") +
+            "</td>" +
+            "<td>" +
+            SNM.esc(
+              [u.primary_location, u.community, u.city, u.country]
+                .filter(Boolean)
+                .join(" · ")
+            ) +
+            "</td>" +
+            "<td>" +
+            (u.live ? "●" : "—") +
+            "</td>" +
+            "</tr>"
+          );
+        })
+        .join("");
+    }
+    if (meta) {
+      meta.textContent =
+        "Showing " + users.length + " of " + (data.count != null ? data.count : users.length);
+    }
+  }
+
+  async function loadInbox() {
+    var box = document.getElementById("admInbox");
+    if (!box) return;
+    box.innerHTML = "<p class='muted'>Loading inbox…</p>";
+    try {
+      var data = await SNM.api("/admin/messages?limit=50");
+      var items = data.items || data.messages || [];
+      if (!items.length) {
+        box.innerHTML = "<p class='muted'>No admin threads.</p>";
+        return;
+      }
+      box.innerHTML = items
+        .map(function (m) {
+          var body = m.last_body || m.body || "";
+          var pay = m.is_premium_payment;
+          return (
+            '<article class="card">' +
+            (pay ? '<span class="chip pay">Premium pay</span> ' : "") +
+            "<span class='muted'>" +
+            SNM.esc(m.updated_at || m.created_at || "") +
+            "</span>" +
+            (m.last_from_phone
+              ? " · " + SNM.esc(m.last_from_phone)
+              : "") +
+            "<pre class='msg'>" +
+            SNM.esc(String(body || "(no body)")) +
+            "</pre></article>"
+          );
+        })
+        .join("");
+    } catch (e) {
+      box.innerHTML =
+        "<p class='err'>" + SNM.esc((e && e.message) || "Inbox failed") + "</p>";
+    }
+  }
+
+  async function loadPremiumPending() {
+    var el = document.getElementById("admPremium");
+    if (!el) return;
+    el.innerHTML = "<p class='muted'>Loading pending…</p>";
+    try {
+      var data = await SNM.api("/admin/premium/pending");
+      var subs = data.subscriptions || [];
+      var pays = data.payment_messages || [];
+      var html = "";
+      if (!subs.length && !pays.length) {
+        html = "<p class='muted'>No pending premium items.</p>";
+      }
+      subs.forEach(function (s) {
+        html +=
+          '<article class="card"><span class="chip">Sub</span> ' +
+          SNM.esc(s.plan_code || "") +
+          " · " +
+          SNM.esc(s.status || "") +
+          " · user " +
+          SNM.esc(s.user_id || "") +
+          "</article>";
+      });
+      pays.forEach(function (m) {
+        html +=
+          '<article class="card"><span class="chip pay">Pay msg</span>' +
+          "<pre class='msg'>" +
+          SNM.esc(String(m.last_body || m.body || "")) +
+          "</pre></article>";
+      });
+      el.innerHTML = html;
+    } catch (e) {
+      el.innerHTML =
+        "<p class='muted'>Pending endpoint: " +
+        SNM.esc((e && e.message) || "") +
+        "</p>";
+    }
+  }
+
+  async function refreshAll() {
+    await loadBoard();
+    await loadUsers();
+    await loadInbox();
+    await loadPremiumPending();
+  }
+
+  function bind() {
+    document.getElementById("btnAdmLogin").onclick = async function () {
+      var phone = (document.getElementById("adm-phone").value || "").trim();
+      var password = document.getElementById("adm-pass").value || "";
+      var err = document.getElementById("admLoginErr");
+      if (err) err.textContent = "";
+      try {
+        var data = await SNM.api("/auth/login", {
+          method: "POST",
+          body: { phone: phone, password: password }
+        });
+        var token = data.access_token || data.token;
+        var user = data.user || data;
+        if (token && SNM.setToken) SNM.setToken(token);
+        if (user && SNM.setUser) SNM.setUser(user);
+        document.getElementById("admWho").textContent =
+          (user.name || "") + " · " + (user.phone || phone);
+        showApp(true);
+        await refreshAll();
+      } catch (e) {
+        if (err) err.textContent = (e && e.message) || "Login failed";
+      }
+    };
+
+    document.getElementById("btnAdmLogout").onclick = function () {
+      if (SNM.clearSession) SNM.clearSession();
+      showApp(false);
+    };
+
+    document.getElementById("btnAdmRefresh").onclick = function () {
+      refreshAll().catch(function (e) {
+        alert(e.message || "Refresh failed");
+      });
+    };
+
+    document.getElementById("btnUsersLoad").onclick = function () {
+      loadUsers().catch(function (e) {
+        alert(e.message || "Users failed");
+      });
+    };
+
+    document.getElementById("btnMapReload").onclick = async function () {
+      try {
+        var role = (document.getElementById("mapRoleFilter").value || "").trim();
+        var data = await SNM.api(
+          "/admin/users/map" + SNM.qs({ role: role || undefined })
+        );
+        if (data.role_colors) paintLegend(data.role_colors);
+        paintPins(data.pins || []);
+      } catch (e) {
+        /* fallback board pins */
+        loadBoard().catch(function (err) {
+          alert(err.message || "Map failed");
+        });
+      }
+    };
+
+    document.getElementById("mapRoleFilter").onchange = function () {
+      document.getElementById("btnMapReload").click();
+    };
+
+    document.getElementById("btnAdmActivate").onclick = async function () {
+      var phone = (document.getElementById("act-phone").value || "").trim();
+      var plan = (document.getElementById("act-plan").value || "").trim();
+      var ref = (document.getElementById("act-ref").value || "").trim();
+      var msg = document.getElementById("actMsg");
+      if (msg) msg.textContent = "";
+      try {
+        var res = await SNM.api("/admin/premium/activate", {
+          method: "POST",
+          body: {
+            user_phone: phone,
+            plan_code: plan,
+            active: true,
+            payment_ref: ref || null
+          }
+        });
+        if (msg)
+          msg.textContent =
+            "OK: " +
+            (res.user_name || "") +
+            " · " +
+            (res.plan_code || plan) +
+            " · " +
+            (res.status || "active");
+        await loadPremiumPending();
+        await loadBoard();
+      } catch (e) {
+        if (msg) msg.textContent = (e && e.message) || "Activate failed";
+      }
+    };
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    bind();
+    var u = SNM.getUser && SNM.getUser();
+    if (SNM.getToken && SNM.getToken() && u) {
+      document.getElementById("admWho").textContent =
+        (u.name || "") + " · " + (u.phone || "");
+      showApp(true);
+      refreshAll().catch(function () {
+        showApp(false);
+      });
+    }
+  });
+})();
+  </script>
+</body>
+</html>
