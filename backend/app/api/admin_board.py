@@ -1,8 +1,12 @@
 """
 Admin board: downloads, subscribers, full user registry,
-shop + all-role pins (role colours), GSG heatmap, admin messages,
+all-role pins (role colours), GSG heatmap, admin messages,
 premium payment queue + activate.
-Map cells use same GSG helper as user-facing map.
+
+Admin identity (deterministic):
+  ADMIN_UID  = 550198550199
+  ADMIN_NAME = shop_near_me_admin
+  password   = set once on the users row
 """
 
 from __future__ import annotations
@@ -25,46 +29,76 @@ from app.models.user import User
 from app.services.gsg import gsg_at
 from app.services.search_cache import cache_stats
 
+# Prefer shared admin_box constants when present
+try:
+    from app.services.admin_box import (
+        ADMIN_UID as _BOX_UID,
+        ADMIN_NAME as _BOX_NAME,
+        ADMIN_START_ROW as _BOX_START_ROW,
+        admin_public as _admin_public,
+    )
+except Exception:  # pragma: no cover
+    _BOX_UID = "550198550199"
+    _BOX_NAME = "shop_near_me_admin"
+    _BOX_START_ROW = None
+    _admin_public = None
+
 router = APIRouter(prefix="/admin", tags=["admin"])
 
-# Role pin colours (admin map)
+ADMIN_UID = "".join(ch for ch in str(_BOX_UID) if ch.isdigit()) or "550198550199"
+ADMIN_NAME = str(_BOX_NAME or "shop_near_me_admin")
+ADMIN_START_ROW = _BOX_START_ROW
+
 ROLE_COLORS = {
-    "buyer": "#16a34a",       # green
-    "merchant": "#2563eb",    # blue
-    "service": "#4f46e5",     # indigo
-    "driver": "#9333ea",      # purple
-    "logistics": "#9333ea",   # purple
-    "emergency": "#dc2626",   # red
-    "admin": "#ca8a04",       # yellow
+    "buyer": "#16a34a",
+    "merchant": "#2563eb",
+    "service": "#4f46e5",
+    "driver": "#9333ea",
+    "logistics": "#9333ea",
+    "emergency": "#dc2626",
+    "admin": "#ca8a04",
 }
 
 
-def _require_admin(user: User) -> None:
+def _digits(value: str | None) -> str:
+    return "".join(ch for ch in str(value or "") if ch.isdigit())
+
+
+def _admin_uid_digits() -> str:
     settings = get_settings()
-    admin_uid = "".join(
-        ch
-        for ch in str(getattr(settings, "admin_phone_uid", "550198550199"))
-        if ch.isdigit()
-    )
-    phone = "".join(ch for ch in str(user.phone or "") if ch.isdigit())
-    if phone.endswith(admin_uid) or phone == admin_uid or getattr(user, "role", "") == "admin":
-        return
+    from_settings = _digits(getattr(settings, "admin_phone_uid", "") or "")
+    return from_settings or ADMIN_UID
+
+
+def _is_admin_user(user: User) -> bool:
+    if not user:
+        return False
+    if (getattr(user, "role", "") or "").lower() == "admin":
+        return True
     if getattr(user, "is_admin", False):
+        return True
+    phone = _digits(user.phone)
+    uid = _admin_uid_digits()
+    return bool(uid) and (phone == uid or phone.endswith(uid))
+
+
+def _require_admin(user: User) -> None:
+    if _is_admin_user(user):
         return
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin only")
 
 
-def _digits(phone: str) -> str:
-    return "".join(ch for ch in str(phone or "") if ch.isdigit())
-
-
 def _normalize_phone(phone: str) -> str:
+    """Normal E.164-ish; admin UID stays digit string."""
     s = (phone or "").strip().replace(" ", "")
     if not s:
         return ""
+    d = _digits(s)
+    if d == _admin_uid_digits():
+        return d  # 550198550199
     if s.startswith("00"):
         s = "+" + s[2:]
-    d = _digits(s)
+        d = _digits(s)
     if s.startswith("+"):
         return "+" + d
     if d.startswith("234"):
@@ -139,27 +173,49 @@ def _pin_from_user(u: User) -> dict[str, Any] | None:
 
 
 def _resolve_admin_user(db: Session) -> User | None:
-    settings = get_settings()
-    admin_uid = "".join(
-        ch
-        for ch in str(getattr(settings, "admin_phone_uid", "550198550199"))
-        if ch.isdigit()
-    )
-    # match by digit suffix / role
-    candidates = (
+    """Find admin by ADMIN_UID digits, then role=admin."""
+    uid = _admin_uid_digits()
+    rows = (
         db.query(User)
         .filter(User.deleted_at.is_(None))
-        .filter(or_(User.role == "admin", User.phone.isnot(None)))
-        .limit(500)
+        .limit(5000)
         .all()
     )
-    for u in candidates:
+    for u in rows:
+        ph = _digits(u.phone)
+        if ph == uid or (uid and ph.endswith(uid)):
+            return u
+    for u in rows:
         if (u.role or "").lower() == "admin":
             return u
-        ph = _digits(u.phone)
-        if ph.endswith(admin_uid) or ph == admin_uid:
-            return u
     return None
+
+
+def _box_payload(db: Session) -> dict[str, Any]:
+    if _admin_public:
+        try:
+            base = dict(_admin_public())
+        except Exception:
+            base = {}
+    else:
+        base = {}
+    admin_user = _resolve_admin_user(db)
+    return {
+        "uid": base.get("uid") or ADMIN_UID,
+        "admin_uid": base.get("uid") or ADMIN_UID,
+        "name": base.get("name") or (admin_user.name if admin_user else ADMIN_NAME),
+        "admin_name": base.get("name") or (admin_user.name if admin_user else ADMIN_NAME),
+        "admin_phone": admin_user.phone if admin_user else ADMIN_UID,
+        "start_row": base.get("start_row")
+        if base.get("start_row") is not None
+        else (
+            getattr(admin_user, "start_row", None)
+            if admin_user
+            else ADMIN_START_ROW
+        ),
+        "role_colors": ROLE_COLORS,
+        "registered": admin_user is not None,
+    }
 
 
 class AdminMessageBody(BaseModel):
@@ -173,6 +229,16 @@ class PremiumActivateIn(BaseModel):
     active: bool = True
     payment_ref: str | None = None
     note: str | None = None
+
+
+# ---------- box (public meta) ----------
+
+
+@router.get("/box")
+@limiter.limit("30/minute")
+async def admin_box(request: Request, db: Session = Depends(get_db)):
+    """Admin contact meta for clients — UID + name shop_near_me_admin."""
+    return _box_payload(db)
 
 
 # ---------- board ----------
@@ -190,7 +256,7 @@ async def admin_board(
     total_users = (
         db.query(func.count(User.id)).filter(User.deleted_at.is_(None)).scalar() or 0
     )
-    total_downloads = total_users  # proxy until store analytics exist
+    total_downloads = total_users
 
     by_role_rows = (
         db.query(User.role, func.count(User.id))
@@ -204,9 +270,7 @@ async def admin_board(
         db.query(func.count(PremiumSubscription.id))
         .filter(PremiumSubscription.status == "active")
         .scalar()
-    )
-    if active_subs is None:
-        active_subs = 0
+    ) or 0
 
     pending_subs = (
         db.query(func.count(PremiumSubscription.id))
@@ -216,18 +280,14 @@ async def admin_board(
             )
         )
         .scalar()
-    )
-    if pending_subs is None:
-        pending_subs = 0
+    ) or 0
 
-    # All non-deleted users for registry stats / pins
     everyone = (
         db.query(User)
         .filter(User.deleted_at.is_(None), User.is_active.is_(True))
         .limit(3000)
         .all()
     )
-
     shops = [u for u in everyone if (u.role or "").lower() != "buyer"]
 
     pins: list[dict[str, Any]] = []
@@ -238,8 +298,7 @@ async def admin_board(
             continue
         pins.append(pin)
         gsg = pin.get("gsg") or {}
-        letter = gsg.get("letter")
-        L = gsg.get("L")
+        letter, L = gsg.get("letter"), gsg.get("L")
         if letter is not None and L is not None:
             try:
                 bucket = f"{letter}:{int(L) // 10}"
@@ -254,6 +313,7 @@ async def admin_board(
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
+        "admin": _box_payload(db),
         "role_colors": ROLE_COLORS,
         "stats": {
             "total_downloads": total_downloads,
@@ -265,15 +325,11 @@ async def admin_board(
             "by_role": by_role,
             "search_cache": cache_stats(),
         },
-        "map": {
-            "type": "gsg",
-            "pins": pins,
-            "heatmap": heatmap,
-        },
+        "map": {"type": "gsg", "pins": pins, "heatmap": heatmap},
     }
 
 
-# ---------- user registry ----------
+# ---------- users ----------
 
 
 @router.get("/users")
@@ -287,7 +343,6 @@ async def admin_users(
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ):
-    """Record of every registered user + details."""
     _require_admin(user)
     query = db.query(User).filter(User.deleted_at.is_(None))
     if role:
@@ -322,7 +377,6 @@ async def admin_users_map(
     db: Session = Depends(get_db),
     role: str | None = None,
 ):
-    """Pins only (lighter than full board) — colour by role."""
     _require_admin(user)
     query = db.query(User).filter(
         User.deleted_at.is_(None),
@@ -369,7 +423,6 @@ async def admin_messages(
     db: Session = Depends(get_db),
     limit: int = Query(50, ge=1, le=200),
 ):
-    """Admin inbox — prefer threads involving admin; else latest threads."""
     _require_admin(user)
     try:
         from app.models.message import Message, MessageThread
@@ -392,14 +445,11 @@ async def admin_messages(
         last = (
             db.query(Message)
             .filter(Message.thread_id == t.id)
-            .filter(
-                Message.deleted_at.is_(None)
-                if hasattr(Message, "deleted_at")
-                else True
-            )
             .order_by(Message.created_at.desc())
             .first()
         )
+        if last and getattr(last, "deleted_at", None) is not None:
+            continue
         body = last.body if last else None
         items.append(
             {
@@ -428,7 +478,7 @@ async def message_admin(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Logged-in user → admin mailbox (premium pay notice, support)."""
+    """Any logged-in user → admin mailbox (ADMIN_UID)."""
     try:
         from app.models.message import Message, MessageThread
     except Exception:
@@ -438,7 +488,10 @@ async def message_admin(
     if not admin_user:
         raise HTTPException(
             status_code=404,
-            detail="Admin user not found — set admin_phone_uid / role=admin",
+            detail=(
+                "Admin user not registered. Seed users row: "
+                f"phone={ADMIN_UID}, name={ADMIN_NAME}, role=admin"
+            ),
         )
     if admin_user.id == user.id:
         raise HTTPException(status_code=400, detail="Invalid admin sink")
@@ -457,34 +510,34 @@ async def message_admin(
         .first()
     )
     if not thread:
-        kwargs: dict[str, Any] = {
-            "id": uuid.uuid4(),
-            "participant_a": a,
-            "participant_b": b,
-            "context_type": body.context or "admin",
-        }
-        thread = MessageThread(**kwargs)
+        thread = MessageThread(
+            id=uuid.uuid4(),
+            participant_a=a,
+            participant_b=b,
+            context_type=body.context or "admin",
+        )
         db.add(thread)
         db.flush()
 
-    msg_kwargs: dict[str, Any] = {
-        "id": uuid.uuid4(),
-        "thread_id": thread.id,
-        "from_user_id": user.id,
-        "to_user_id": admin_user.id,
-        "body": body.body,
-        "context_type": body.context or "admin",
-    }
-    # only set columns that exist on model
-    msg = Message(**{k: v for k, v in msg_kwargs.items()})
+    msg = Message(
+        id=uuid.uuid4(),
+        thread_id=thread.id,
+        from_user_id=user.id,
+        to_user_id=admin_user.id,
+        body=body.body,
+        context_type=body.context or "admin",
+    )
     for attr, val in (
         ("msg_type", "text"),
         ("from_phone", user.phone),
         ("to_phone", admin_user.phone),
         ("from_start_row", getattr(user, "start_row", None)),
-        ("to_start_row", getattr(admin_user, "start_row", None)),
+        (
+            "to_start_row",
+            getattr(admin_user, "start_row", None) or ADMIN_START_ROW,
+        ),
     ):
-        if hasattr(Message, attr):
+        if hasattr(msg, attr):
             try:
                 setattr(msg, attr, val)
             except Exception:
@@ -499,7 +552,9 @@ async def message_admin(
         "ok": True,
         "thread_id": str(thread.id),
         "message_id": str(msg.id),
+        "to_admin_uid": ADMIN_UID,
         "to_admin_phone": admin_user.phone,
+        "to_admin_name": admin_user.name or ADMIN_NAME,
     }
 
 
@@ -540,7 +595,6 @@ async def premium_pending(
                 else None,
             }
         )
-    # also surface payment texts from admin inbox
     inbox = await admin_messages(request, user=user, db=db, limit=80)
     pay_msgs = [m for m in inbox.get("items") or [] if m.get("is_premium_payment")]
     return {
@@ -558,7 +612,6 @@ async def premium_activate(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Confirm bank transfer → set PremiumSubscription active."""
     _require_admin(user)
     phone = _normalize_phone(body.user_phone)
     target = (
@@ -573,7 +626,6 @@ async def premium_activate(
         .first()
     )
     if not target:
-        # digit-end match
         want = _digits(body.user_phone)
         for u in db.query(User).filter(User.deleted_at.is_(None)).limit(5000):
             if _digits(u.phone).endswith(want[-10:]):
@@ -583,31 +635,23 @@ async def premium_activate(
         raise HTTPException(status_code=404, detail="User not found")
 
     plan_code = body.plan_code.strip()
-    sub = (
+    candidates = (
         db.query(PremiumSubscription)
-        .filter(
-            PremiumSubscription.user_id == target.id,
-            or_(
-                getattr(PremiumSubscription, "plan_code", PremiumSubscription.status)
-                == plan_code,
-                True,
-            ),
-        )
+        .filter(PremiumSubscription.user_id == target.id)
         .all()
     )
-    # Prefer exact plan_code column if present
     found = None
-    for r in sub:
+    for r in candidates:
         code = getattr(r, "plan_code", None) or getattr(r, "code", None)
         if code == plan_code:
             found = r
             break
-    if found is None and sub:
-        found = sub[0]
+    if found is None and candidates:
+        found = candidates[0]
 
     now = datetime.now(timezone.utc)
     if found is None:
-        kwargs = {
+        kwargs: dict[str, Any] = {
             "id": uuid.uuid4(),
             "user_id": target.id,
             "status": "active" if body.active else "cancelled",
@@ -635,19 +679,4 @@ async def premium_activate(
         "user_name": target.name,
         "plan_code": plan_code,
         "status": "active" if body.active else "cancelled",
-    }
-
-
-@router.get("/box")
-@limiter.limit("30/minute")
-async def admin_box(
-    request: Request,
-    db: Session = Depends(get_db),
-):
-    """Lightweight admin contact meta (no auth) for client pay notices."""
-    admin_user = _resolve_admin_user(db)
-    return {
-        "admin_phone": admin_user.phone if admin_user else None,
-        "admin_name": admin_user.name if admin_user else "Shop Near Me Admin",
-        "role_colors": ROLE_COLORS,
     }
