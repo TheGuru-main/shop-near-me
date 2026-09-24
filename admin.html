@@ -652,4 +652,131 @@
 
   function bind() {
     document.getElementById("btnAdmLogin").onclick = async function () {
-      var uid = (document.getElementById("adm-phone").value ||
+      var uid = (document.getElementById("adm-phone").value || "").trim();
+      var password = document.getElementById("adm-pass").value || "";
+      var err = document.getElementById("admLoginErr");
+      if (err) err.textContent = "";
+
+      if (digits(uid) !== digits(ADMIN_UID)) {
+        if (err) err.textContent = "Use permanent admin UID " + ADMIN_UID;
+        return;
+      }
+
+      try {
+        var data = await admApi("/auth/login", {
+          method: "POST",
+          body: { phone: ADMIN_UID, password: password }
+        });
+        var token = data.access_token || data.token;
+        var user = data.user || data;
+        if (!token) throw new Error("No token returned");
+        admSetSession(token, user);
+        document.getElementById("admWho").textContent =
+          (user.name || "shop-near-me-admin") + " · " + ADMIN_UID;
+        showApp(true);
+        await refreshAll();
+      } catch (e) {
+        if (err) err.textContent = (e && e.message) || "Login failed";
+      }
+    };
+
+    document.getElementById("btnAdmLogout").onclick = function () {
+      admClearSession();
+      showApp(false);
+    };
+
+    document.getElementById("btnAdmRefresh").onclick = function () {
+      refreshAll().catch(function (e) {
+        alert(e.message || "Refresh failed");
+      });
+    };
+
+    document.getElementById("btnUsersLoad").onclick = function () {
+      loadUsers().catch(function (e) {
+        alert(e.message || "Users failed");
+      });
+    };
+
+    document.getElementById("btnMapReload").onclick = async function () {
+      try {
+        var role = (document.getElementById("mapRoleFilter").value || "").trim();
+        var data = await admApi(
+          "/admin/users/map" + qs({ role: role || undefined })
+        );
+        if (data.role_colors) paintLegend(data.role_colors);
+        paintPins(data.pins || []);
+      } catch (e) {
+        try {
+          await loadBoard();
+        } catch (err) {
+          alert(err.message || "Map failed");
+        }
+      }
+    };
+
+    document.getElementById("mapRoleFilter").onchange = function () {
+      document.getElementById("btnMapReload").click();
+    };
+
+    document.getElementById("btnInboxReload").onclick = function () {
+      loadInbox();
+    };
+
+    document.getElementById("btnInboxClear").onclick = async function () {
+      if (!confirm("Clear in-memory admin inbox?")) return;
+      try {
+        await admApi("/admin/messages", { method: "DELETE" });
+        await loadInbox();
+      } catch (e) {
+        alert((e && e.message) || "Clear failed");
+      }
+    };
+
+    document.getElementById("btnAdmActivate").onclick = async function () {
+      var phone = (document.getElementById("act-phone").value || "").trim();
+      var plan = (document.getElementById("act-plan").value || "").trim();
+      var ref = (document.getElementById("act-ref").value || "").trim();
+      var msg = document.getElementById("actMsg");
+      if (msg) msg.textContent = "";
+      try {
+        var res = await admApi("/admin/premium/activate", {
+          method: "POST",
+          body: {
+            user_phone: phone,
+            plan_code: plan,
+            active: true,
+            payment_ref: ref || null
+          }
+        });
+        if (msg)
+          msg.textContent =
+            "OK: " +
+            (res.user_name || "") +
+            " · " +
+            (res.plan_code || plan) +
+            " · " +
+            (res.status || "active");
+        await loadPremiumPending();
+      } catch (e) {
+        if (msg) msg.textContent = (e && e.message) || "Activate failed";
+      }
+    };
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    bind();
+    var u = admGetUser();
+    if (admGetToken() && u) {
+      document.getElementById("admWho").textContent =
+        (u.name || "shop-near-me-admin") + " · " + (u.phone || ADMIN_UID);
+      showApp(true);
+      refreshAll().catch(function () {
+        admClearSession();
+        showApp(false);
+      });
+    }
+  });
+})();
+  </script>
+</body>
+</html>
