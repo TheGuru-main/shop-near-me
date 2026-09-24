@@ -142,7 +142,7 @@
 
     <section id="adminLogin" class="card">
       <h2>Admin login</h2>
-      <p class="muted">Use permanent admin UID (not +234).</p>
+      <p class="muted">Permanent admin UID only — not a +234 phone.</p>
       <label>Admin UID
         <input
           id="adm-phone"
@@ -154,7 +154,7 @@
         />
       </label>
       <label>Password
-        <input id="adm-pass" type="password" placeholder="Your admin password" autocomplete="current-password" />
+        <input id="adm-pass" type="password" placeholder="Admin password" autocomplete="current-password" />
       </label>
       <button type="button" class="btn block" id="btnAdmLogin">Login</button>
       <p id="admLoginErr" class="err"></p>
@@ -244,22 +244,103 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="js/config.js"></script>
-  <script src="js/api.js"></script>
   <script>
 (function () {
-  window.SNM = window.SNM || {};
-
   var ADMIN_UID = "550198550199";
 
-  SNM.esc =
-    SNM.esc ||
-    function (s) {
-      return String(s == null ? "" : s)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;");
-    };
+  function esc(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function digits(s) {
+    return String(s || "").replace(/\D/g, "");
+  }
+
+  /* —— admin session ONLY (never snm_token / snm_user) —— */
+  function admSetSession(token, user) {
+    try {
+      localStorage.setItem("snm_admin_token", token || "");
+      localStorage.setItem("snm_admin_user", JSON.stringify(user || null));
+    } catch (e) {}
+  }
+
+  function admGetToken() {
+    try {
+      return localStorage.getItem("snm_admin_token") || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function admGetUser() {
+    try {
+      return JSON.parse(localStorage.getItem("snm_admin_user") || "null");
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function admClearSession() {
+    try {
+      localStorage.removeItem("snm_admin_token");
+      localStorage.removeItem("snm_admin_user");
+    } catch (e) {}
+  }
+
+  function qs(obj) {
+    var parts = [];
+    Object.keys(obj || {}).forEach(function (k) {
+      if (obj[k] == null || obj[k] === "") return;
+      parts.push(encodeURIComponent(k) + "=" + encodeURIComponent(String(obj[k])));
+    });
+    return parts.length ? "?" + parts.join("&") : "";
+  }
+
+  async function admApi(path, options) {
+    options = options || {};
+    var base =
+      (window.SNM && SNM.API_BASE) ||
+      "https://shop-near-me-apiv1-0-0-1p.onrender.com/api/v1";
+    var headers = Object.assign(
+      { Accept: "application/json", "Content-Type": "application/json" },
+      options.headers || {}
+    );
+    var token = admGetToken();
+    if (token) headers.Authorization = "Bearer " + token;
+
+    var res = await fetch(base + path, {
+      method: options.method || "GET",
+      headers: headers,
+      body: options.body != null ? JSON.stringify(options.body) : undefined
+    });
+    var data = null;
+    var text = await res.text();
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch (e) {
+      data = { raw: text };
+    }
+    if (!res.ok) {
+      var detail =
+        (data && (data.detail || data.message)) || res.statusText || "Request failed";
+      if (typeof detail === "object") {
+        try {
+          detail = JSON.stringify(detail);
+        } catch (e2) {
+          detail = "Request failed";
+        }
+      }
+      var err = new Error(String(detail));
+      err.status = res.status;
+      err.data = data;
+      throw err;
+    }
+    return data;
+  }
 
   var DEFAULT_COLORS = {
     buyer: "#16a34a",
@@ -283,10 +364,6 @@
       if (on) app.classList.add("open");
       else app.classList.remove("open");
     }
-  }
-
-  function digits(s) {
-    return String(s || "").replace(/\D/g, "");
   }
 
   function ensureMap() {
@@ -315,7 +392,7 @@
           '<span style="--c:' +
           roleColors[r] +
           '">' +
-          SNM.esc(r) +
+          esc(r) +
           "</span>"
         );
       })
@@ -343,13 +420,13 @@
       });
       m.bindPopup(
         "<strong>" +
-          SNM.esc(p.name || "") +
+          esc(p.name || "") +
           "</strong><br/>" +
-          SNM.esc(role) +
+          esc(role) +
           "<br/>" +
-          SNM.esc(p.phone || "") +
+          esc(p.phone || "") +
           "<br/>" +
-          SNM.esc(
+          esc(
             [p.primary_location, p.community, p.city].filter(Boolean).join(" · ")
           )
       );
@@ -379,9 +456,9 @@
       .map(function (c) {
         return (
           '<div class="stat"><b>' +
-          SNM.esc(String(c[1] != null ? c[1] : "—")) +
+          esc(String(c[1] != null ? c[1] : "—")) +
           "</b><span class='muted'>" +
-          SNM.esc(c[0]) +
+          esc(c[0]) +
           "</span></div>"
         );
       })
@@ -392,23 +469,23 @@
     var el = document.getElementById("admBoxMeta");
     if (!el) return;
     try {
-      var b = await SNM.api("/admin/box");
+      var b = await admApi("/admin/box");
       el.innerHTML =
         "<strong>" +
-        SNM.esc(b.name || "shop-near-me-admin") +
+        esc(b.name || "shop-near-me-admin") +
         "</strong> · UID " +
-        SNM.esc(b.uid || ADMIN_UID) +
+        esc(b.uid || ADMIN_UID) +
         " · start_row " +
-        SNM.esc(String(b.start_row != null ? b.start_row : "—")) +
-        (b.S != null ? " · S=" + SNM.esc(String(b.S)) : "") +
-        (b.L != null ? " · L=" + SNM.esc(String(b.L)) : "");
+        esc(String(b.start_row != null ? b.start_row : "—")) +
+        (b.S != null ? " · S=" + esc(String(b.S)) : "") +
+        (b.L != null ? " · L=" + esc(String(b.L)) : "");
     } catch (e) {
       el.textContent = "Box: " + ((e && e.message) || "unavailable");
     }
   }
 
   async function loadBoard() {
-    var data = await SNM.api("/admin/board");
+    var data = await admApi("/admin/board");
     paintLegend(data.role_colors);
     paintStats(data.stats || {});
     paintPins((data.map && data.map.pins) || []);
@@ -418,11 +495,9 @@
   async function loadUsers() {
     var q = ((document.getElementById("userQ") || {}).value || "").trim();
     var role = ((document.getElementById("userRoleFilter") || {}).value || "").trim();
-    var qs =
-      typeof SNM.qs === "function"
-        ? SNM.qs({ q: q || undefined, role: role || undefined, limit: 100 })
-        : "";
-    var data = await SNM.api("/admin/users" + qs);
+    var data = await admApi(
+      "/admin/users" + qs({ q: q || undefined, role: role || undefined, limit: 100 })
+    );
     if (data.role_colors) paintLegend(data.role_colors);
     var body = document.getElementById("admUsersBody");
     var meta = document.getElementById("admUsersMeta");
@@ -437,18 +512,18 @@
           return (
             "<tr>" +
             "<td><span class='dot' style='background:" +
-            SNM.esc(color) +
+            esc(color) +
             "'></span>" +
-            SNM.esc(u.role || "") +
+            esc(u.role || "") +
             "</td>" +
             "<td>" +
-            SNM.esc(u.name || "") +
+            esc(u.name || "") +
             "</td>" +
             "<td>" +
-            SNM.esc(u.phone || "") +
+            esc(u.phone || "") +
             "</td>" +
             "<td>" +
-            SNM.esc(
+            esc(
               [u.primary_location, u.community, u.city, u.country]
                 .filter(Boolean)
                 .join(" · ")
@@ -488,7 +563,7 @@
     if (!box) return;
     box.innerHTML = "<p class='muted'>Loading inbox…</p>";
     try {
-      var data = await SNM.api("/admin/messages?limit=50");
+      var data = await admApi("/admin/messages?limit=50");
       var items = data.items || data.messages || [];
       if (!items.length) {
         box.innerHTML = "<p class='muted'>No messages in admin contact box.</p>";
@@ -504,18 +579,18 @@
             '<article class="card">' +
             (pay ? '<span class="chip pay">Premium pay</span> ' : "") +
             "<span class='muted'>" +
-            SNM.esc(m.created_at || m.updated_at || "") +
+            esc(m.created_at || m.updated_at || "") +
             "</span>" +
-            (inboxFrom(m) ? " · " + SNM.esc(inboxFrom(m)) : "") +
+            (inboxFrom(m) ? " · " + esc(inboxFrom(m)) : "") +
             "<pre class='msg'>" +
-            SNM.esc(String(body || "(empty)")) +
+            esc(String(body || "(empty)")) +
             "</pre></article>"
           );
         })
         .join("");
     } catch (e) {
       box.innerHTML =
-        "<p class='err'>" + SNM.esc((e && e.message) || "Inbox failed") + "</p>";
+        "<p class='err'>" + esc((e && e.message) || "Inbox failed") + "</p>";
     }
   }
 
@@ -524,7 +599,7 @@
     if (!el) return;
     el.innerHTML = "<p class='muted'>Loading pending…</p>";
     try {
-      var data = await SNM.api("/admin/premium/pending");
+      var data = await admApi("/admin/premium/pending");
       var subs = data.subscriptions || [];
       var pays = data.payment_messages || [];
       var html = "";
@@ -534,25 +609,25 @@
       subs.forEach(function (s) {
         html +=
           '<article class="card"><span class="chip">Sub</span> ' +
-          SNM.esc(s.plan_code || "") +
+          esc(s.plan_code || "") +
           " · " +
-          SNM.esc(s.status || "") +
+          esc(s.status || "") +
           " · user " +
-          SNM.esc(s.user_id || "") +
+          esc(s.user_id || "") +
           "</article>";
       });
       pays.forEach(function (m) {
         html +=
           '<article class="card"><span class="chip pay">Pay msg</span>' +
           "<pre class='msg'>" +
-          SNM.esc(String(inboxBody(m))) +
+          esc(String(inboxBody(m))) +
           "</pre></article>";
       });
       el.innerHTML = html;
     } catch (e) {
       el.innerHTML =
         "<p class='muted'>Pending: " +
-        SNM.esc((e && e.message) || "endpoint optional") +
+        esc((e && e.message) || "endpoint optional") +
         "</p>";
     }
   }
@@ -562,7 +637,6 @@
     try {
       await loadBoard();
     } catch (e) {
-      /* board may be separate deploy */
       console.warn("board", e);
     }
     try {
@@ -578,131 +652,4 @@
 
   function bind() {
     document.getElementById("btnAdmLogin").onclick = async function () {
-      var phone = (document.getElementById("adm-phone").value || "").trim();
-      var password = document.getElementById("adm-pass").value || "";
-      var err = document.getElementById("admLoginErr");
-      if (err) err.textContent = "";
-      if (digits(phone) !== digits(ADMIN_UID) && phone !== ADMIN_UID) {
-        /* allow anyway — server decides */
-      }
-      try {
-        var data = await SNM.api("/auth/login", {
-          method: "POST",
-          body: { phone: phone || ADMIN_UID, password: password }
-        });
-        var token = data.access_token || data.token;
-        var user = data.user || data;
-        if (token && SNM.setToken) SNM.setToken(token);
-        if (user && SNM.setUser) SNM.setUser(user);
-        document.getElementById("admWho").textContent =
-          (user.name || "shop-near-me-admin") +
-          " · " +
-          (user.phone || phone || ADMIN_UID);
-        showApp(true);
-        await refreshAll();
-      } catch (e) {
-        if (err) err.textContent = (e && e.message) || "Login failed";
-      }
-    };
-
-    document.getElementById("btnAdmLogout").onclick = function () {
-      if (SNM.clearSession) SNM.clearSession();
-      showApp(false);
-    };
-
-    document.getElementById("btnAdmRefresh").onclick = function () {
-      refreshAll().catch(function (e) {
-        alert(e.message || "Refresh failed");
-      });
-    };
-
-    document.getElementById("btnUsersLoad").onclick = function () {
-      loadUsers().catch(function (e) {
-        alert(e.message || "Users failed");
-      });
-    };
-
-document.getElementById("btnMapReload").onclick = async function () {
-      try {
-        var role = (document.getElementById("mapRoleFilter").value || "").trim();
-        var qs =
-          typeof SNM.qs === "function"
-            ? SNM.qs({ role: role || undefined })
-            : "";
-        var data = await SNM.api("/admin/users/map" + qs);
-        if (data.role_colors) paintLegend(data.role_colors);
-        paintPins(data.pins || []);
-      } catch (e) {
-        loadBoard().catch(function (err) {
-          alert(err.message || "Map failed");
-        });
-      }
-    };
-
-    document.getElementById("mapRoleFilter").onchange = function () {
-      document.getElementById("btnMapReload").click();
-    };
-
-    document.getElementById("btnInboxReload").onclick = function () {
-      loadInbox();
-    };
-
-    document.getElementById("btnInboxClear").onclick = async function () {
-      if (!confirm("Clear in-memory admin inbox?")) return;
-      try {
-        await SNM.api("/admin/messages", { method: "DELETE" });
-        await loadInbox();
-      } catch (e) {
-        alert((e && e.message) || "Clear failed");
-      }
-    };
-
-    document.getElementById("btnAdmActivate").onclick = async function () {
-      var phone = (document.getElementById("act-phone").value || "").trim();
-      var plan = (document.getElementById("act-plan").value || "").trim();
-      var ref = (document.getElementById("act-ref").value || "").trim();
-      var msg = document.getElementById("actMsg");
-      if (msg) msg.textContent = "";
-      try {
-        var res = await SNM.api("/admin/premium/activate", {
-          method: "POST",
-          body: {
-            user_phone: phone,
-            plan_code: plan,
-            active: true,
-            payment_ref: ref || null
-          }
-        });
-        if (msg)
-          msg.textContent =
-            "OK: " +
-            (res.user_name || "") +
-            " · " +
-            (res.plan_code || plan) +
-            " · " +
-            (res.status || "active");
-        await loadPremiumPending();
-      } catch (e) {
-        if (msg) msg.textContent = (e && e.message) || "Activate failed";
-      }
-    };
-  }
-
-  document.addEventListener("DOMContentLoaded", function () {
-    bind();
-    var phoneInput = document.getElementById("adm-phone");
-    if (phoneInput && !phoneInput.value) phoneInput.value = ADMIN_UID;
-    var u = SNM.getUser && SNM.getUser();
-    if (SNM.getToken && SNM.getToken() && u) {
-      document.getElementById("admWho").textContent =
-        (u.name || "") + " · " + (u.phone || "");
-      showApp(true);
-      refreshAll().catch(function () {
-        showApp(false);
-      });
-    }
-  });
-})();
-  </script>
-</body>
-</html>
+      var uid = (document.getElementById("adm-phone").value ||
