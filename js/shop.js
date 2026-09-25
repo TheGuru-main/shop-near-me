@@ -379,11 +379,16 @@ SNM.addShopItem = async function () {
   }
 
   var image_url = null;
+  var media_refs = null;
   try {
-    image_url = await SNM.readCompressedItemImage(
-      "shop-item-image-cam",
-      "shop-item-image-file"
-    );
+    var files = SNM._filesFromInputs("shop-item-image-cam", "shop-item-image-file");
+    if (files.length) {
+      var up = await SNM.uploadMediaFiles(files, "product");
+      if (up.urls && up.urls.length) {
+        image_url = up.urls[0];
+        media_refs = up.urls.join(",");
+      }
+    }
   } catch (imgErr) {
     alert((imgErr && imgErr.message) || "Image failed");
     return;
@@ -407,8 +412,8 @@ SNM.addShopItem = async function () {
     description: desc
   };
 
-  /* ProductCreate only documents image_url — do not send media_url */
   if (image_url) body.image_url = image_url;
+  if (media_refs) body.media_refs = media_refs;
   if (g && g.lat != null) body.lat = g.lat;
   if (g && g.lng != null) body.lng = g.lng;
 
@@ -468,11 +473,16 @@ SNM.addServiceItem = async function () {
   if (typeof SNM.geoStamp === "function") fullDesc = SNM.geoStamp(fullDesc);
 
   var image_url = null;
+  var media_refs = null;
   try {
-    image_url = await SNM.readCompressedItemImage(
-      "svc-item-image-cam",
-      "svc-item-image-file"
-    );
+    var files = SNM._filesFromInputs("svc-item-image-cam", "svc-item-image-file");
+    if (files.length) {
+      var up = await SNM.uploadMediaFiles(files, "product");
+      if (up.urls && up.urls.length) {
+        image_url = up.urls[0];
+        media_refs = up.urls.join(",");
+      }
+    }
   } catch (imgErr) {
     alert((imgErr && imgErr.message) || "Image failed");
     return;
@@ -492,6 +502,7 @@ SNM.addServiceItem = async function () {
     description: fullDesc
   };
   if (image_url) body.image_url = image_url;
+  if (media_refs) body.media_refs = media_refs;
   if (g && g.lat != null) body.lat = g.lat;
   if (g && g.lng != null) body.lng = g.lng;
 

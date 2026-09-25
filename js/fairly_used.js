@@ -260,8 +260,18 @@ SNM.createFairlyUsed = async function () {
   }
 
   var imageUrl = null;
+  var mediaRefsJoined = null;
+  var mediaTypeUp = null;
   try {
-    imageUrl = await SNM._fuReadImage();
+    var files = SNM._filesFromInputs("fu-item-image-cam", "fu-item-image-file");
+    if (files.length) {
+      var up = await SNM.uploadMediaFiles(files, "fairly_used");
+      if (up.urls && up.urls.length) {
+        imageUrl = up.urls[0];
+        mediaRefsJoined = up.urls.join(",");
+        mediaTypeUp = up.media_type;
+      }
+    }
   } catch (imgErr) {
     alert((imgErr && imgErr.message) || "Image failed");
     return;
@@ -283,6 +293,8 @@ SNM.createFairlyUsed = async function () {
   if (imageUrl) {
     payload.image_url = imageUrl;
     payload.media_url = imageUrl;
+    if (mediaRefsJoined) payload.media_refs = mediaRefsJoined;
+    if (mediaTypeUp) payload.media_type = mediaTypeUp;
   }
 
   if (typeof SNM.posterGeo === "function") {

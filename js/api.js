@@ -104,20 +104,6 @@ SNM.api = async function (path, options) {
   return data;
 };
 
-};
-
-
-
-SNM.qs = function (obj) {
-  var parts = [];
-  Object.keys(obj || {}).forEach(function (k) {
-    var v = obj[k];
-    if (v === undefined || v === null || v === "") return;
-    parts.push(encodeURIComponent(k) + "=" + encodeURIComponent(String(v)));
-  });
-  return parts.length ? "?" + parts.join("&") : "";
-};
-
 SNM.uploadMedia = async function (file, kind) {
   kind = kind || "product";
   var base = SNM.API_BASE || "";
@@ -153,3 +139,33 @@ SNM.uploadMedia = async function (file, kind) {
   return data;
 };
 
+
+/** Upload many files; returns { urls: [], media_type } */
+SNM.uploadMediaFiles = async function (fileList, kind) {
+  var files = [];
+  if (!fileList) return { urls: [], media_type: null };
+  for (var i = 0; i < fileList.length; i++) {
+    if (fileList[i]) files.push(fileList[i]);
+  }
+  var urls = [];
+  var mediaType = null;
+  for (var j = 0; j < files.length; j++) {
+    var up = await SNM.uploadMedia(files[j], kind || "product");
+    if (up && up.url) {
+      urls.push(up.url);
+      if (!mediaType && up.media_type) mediaType = up.media_type;
+    }
+  }
+  return { urls: urls, media_type: mediaType };
+};
+
+SNM._filesFromInputs = function () {
+  var out = [];
+  for (var i = 0; i < arguments.length; i++) {
+    var el = document.getElementById(arguments[i]);
+    if (el && el.files && el.files.length) {
+      for (var j = 0; j < el.files.length; j++) out.push(el.files[j]);
+    }
+  }
+  return out;
+};
