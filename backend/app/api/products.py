@@ -66,7 +66,15 @@ async def create_product(
         )
 
     row = _product_row(body.name, user.phone)
+    refs = [u.strip() for u in str(getattr(body, "media_refs", None) or "").split(",") if u.strip()]
+    one = getattr(body, "image_url", None)
+    if one and one not in refs:
+        refs.insert(0, one)
+    image_url = refs[0] if refs else None
+    media_refs = ",".join(refs) if refs else None
+
     product = Product(
+
         id=uuid.uuid4(),
         owner_id=user.id,
         name=body.name,
@@ -78,7 +86,8 @@ async def create_product(
         available=body.available,
         perishable=body.perishable,
         description=body.description,
-        image_url=body.image_url,
+        image_url=image_url,
+        media_refs=media_refs,
         start_row=row,
     )
     db.add(product)

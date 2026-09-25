@@ -26,7 +26,8 @@ class Product(Base):
     available: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     perishable: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    image_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    image_url: Mapped[str | None] = mapped_column(String(512), nullable=True)  # LEGACY single
+    media_refs: Mapped[str | None] = mapped_column(Text, nullable=True)  # NEW comma-joined URLs
     start_row: Mapped[int | None] = mapped_column(nullable=True)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(

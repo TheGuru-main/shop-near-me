@@ -16,8 +16,10 @@ class FairlyUsedPost(Base):
     title: Mapped[str] = mapped_column(String(255), nullable=False, default="")
     body: Mapped[str | None] = mapped_column(Text, nullable=True)
     price: Mapped[float | None] = mapped_column(nullable=True)
+
     currency: Mapped[str | None] = mapped_column(String(8), nullable=True)
-    media_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    media_url: Mapped[str | None] = mapped_column(String(512), nullable=True)  # LEGACY single
+    media_refs: Mapped[str | None] = mapped_column(Text, nullable=True)  # NEW comma-joined URLs
     media_type: Mapped[str | None] = mapped_column(String(32), nullable=True)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

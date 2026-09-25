@@ -292,6 +292,7 @@ async def search_products(
                     "perishable": getattr(product, "perishable", False),
                     "available": product.available,
                     "image_url": getattr(product, "image_url", None),
+                    "media_refs": getattr(product, "media_refs", None),
                     "start_row": getattr(product, "start_row", None),
                     "lat": float(owner.lat) if owner.lat is not None else None,
                     "lng": float(owner.lng) if owner.lng is not None else None,

@@ -15,6 +15,7 @@ class ProductCreate(BaseModel):
     perishable: bool = False
     description: str | None = None
     image_url: str | None = None
+    media_refs: str | None = None
 
 
 class ProductUpdate(BaseModel):
@@ -28,6 +29,7 @@ class ProductUpdate(BaseModel):
     perishable: bool | None = None
     description: str | None = None
     image_url: str | None = None
+    media_refs: str | None = None
 
 
 class ProductPublic(BaseModel):
@@ -43,6 +45,7 @@ class ProductPublic(BaseModel):
     perishable: bool
     description: str | None
     image_url: str | None
+    media_refs: str | None = None
     start_row: int | None
     created_at: datetime | None = None
 

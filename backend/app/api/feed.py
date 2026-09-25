@@ -77,6 +77,7 @@ async def home_feed(
                     "currency": product.currency,
                     "perishable": product.perishable,
                     "image_url": product.image_url,
+                    "media_refs": getattr(product, "media_refs", None),
                 },
                 "seller": {
                     "id": str(owner.id),

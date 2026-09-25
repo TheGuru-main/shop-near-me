@@ -11,6 +11,9 @@ class FairlyUsedCreate(BaseModel):
     currency: str | None = "NGN"
     media_url: str | None = None
     image_url: str | None = None  # accepted on write only
+    media_refs: str | None = None
+    image_url: str | None = None  # alias some clients send
+
     media_type: str | None = None
     lat: float | None = None
     lng: float | None = None
@@ -52,6 +55,14 @@ class FairlyUsedPublic(BaseModel):
     media_type: str | None = None
     lat: float | None = None
     lng: float | None = None
+    title: str
+    body: str | None
+    price: float | None
+    currency: str | None
+    media_url: str | None
+    media_refs: str | None = None
+    media_type: str | None
+
     created_at: datetime | None = None
     author: FairlyUsedAuthorPublic | None = None
 
