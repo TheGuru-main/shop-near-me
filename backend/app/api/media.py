@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 
 from app.core.deps import get_current_user
@@ -13,7 +11,7 @@ MAX_IMAGE = 2 * 1024 * 1024
 MAX_VIDEO = 25 * 1024 * 1024
 
 
-@router.post("/upload")
+@router.post("/upload", response_model=None)
 @limiter.limit("30/minute")
 async def upload_media(
     request: Request,
