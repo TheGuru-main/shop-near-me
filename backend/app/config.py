@@ -47,7 +47,18 @@ class Settings(BaseSettings):
     search_cache_ttl_sec: int = "1000000"
     admin_phone_uid: str = "550198550199"  
 
+    # Backblaze B2 (S3-compatible)
+    b2_key_id: str = ""
+    b2_app_key: str = ""
+    b2_bucket: str = ""
+    b2_endpoint: str = ""
+    b2_region: str = "eu-central-003"
+    b2_public_base: str = ""
+
 @lru_cache
+
+    # Backblaze B2 (S3-compatible)
+
 def get_settings() -> Settings:
     return Settings()
 

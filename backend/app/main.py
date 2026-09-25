@@ -28,6 +28,8 @@ from app.api import ratings as ratings_routes
 from app.api import reports as reports_routes
 from app.api import search as search_routes
 from app.api import ws as ws_routes
+from app.api import media
+
 
 settings = get_settings()
 
@@ -82,6 +84,8 @@ app.include_router(tokenizer_routes.router, prefix=prefix)
 app.include_router(manifests_routes.router, prefix=prefix)
 app.include_router(admin_contact_routes.router, prefix=prefix)
 app.include_router(presence_routes.router, prefix=prefix)
+app.include_router(media.router, prefix=settings.api_prefix)
+
 
 # WebSocket: wss://host/api/v1/ws/messages?token=<jwt>
 app.include_router(ws_routes.router, prefix=prefix)

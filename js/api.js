@@ -102,4 +102,53 @@ SNM.api = async function (path, options) {
     throw err;
   }
   return data;
+<<<<<<< HEAD
 };
+=======
+};
+
+SNM.qs = function (obj) {
+  var parts = [];
+  Object.keys(obj || {}).forEach(function (k) {
+    var v = obj[k];
+    if (v === undefined || v === null || v === "") return;
+    parts.push(encodeURIComponent(k) + "=" + encodeURIComponent(String(v)));
+  });
+  return parts.length ? "?" + parts.join("&") : "";
+};
+
+SNM.uploadMedia = async function (file, kind) {
+  kind = kind || "product";
+  var base = SNM.API_BASE || "";
+  var token = typeof SNM.getToken === "function" ? SNM.getToken() : "";
+  var fd = new FormData();
+  fd.append("file", file);
+  var url =
+    base + "/media/upload?kind=" + encodeURIComponent(kind);
+  var res = await fetch(url, {
+    method: "POST",
+    headers: token ? { Authorization: "Bearer " + token } : {},
+    body: fd
+  });
+  var text = await res.text();
+  var data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch (e) {
+    data = { raw: text };
+  }
+  if (!res.ok) {
+    var detail =
+      (data && (data.detail || data.message)) || res.statusText || "Upload failed";
+    if (typeof detail === "object") {
+      try {
+        detail = JSON.stringify(detail);
+      } catch (e2) {
+        detail = "Upload failed";
+      }
+    }
+    throw new Error(String(detail));
+  }
+  return data;
+};
+>>>>>>> 85e2a08 (Add Backblaze B2 media upload (boto3 + /media/upload))
