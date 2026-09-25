@@ -102,10 +102,10 @@ SNM.api = async function (path, options) {
     throw err;
   }
   return data;
-<<<<<<< HEAD
 };
-=======
-};
+
+
+
 
 SNM.qs = function (obj) {
   var parts = [];
@@ -151,4 +151,4 @@ SNM.uploadMedia = async function (file, kind) {
   }
   return data;
 };
->>>>>>> 85e2a08 (Add Backblaze B2 media upload (boto3 + /media/upload))
+
