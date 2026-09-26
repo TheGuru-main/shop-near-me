@@ -109,7 +109,15 @@ SNM.uploadMedia = async function (file, kind) {
   var base = SNM.API_BASE || "";
   var token = typeof SNM.getToken === "function" ? SNM.getToken() : "";
   var fd = new FormData();
-  fd.append("file", file);
+  var toSend = file;
+  if (file && String(file.type || "").indexOf("image/") === 0 && typeof SNM.compressImageFile === "function") {
+    var dataUrl = await SNM.compressImageFile(file, 1280, 0.72);
+    if (dataUrl.length > 900000) dataUrl = await SNM.compressImageFile(file, 960, 0.6);
+    if (dataUrl.length > 900000) dataUrl = await SNM.compressImageFile(file, 720, 0.5);
+    var blob = await (await fetch(dataUrl)).blob();
+    toSend = new File([blob], "photo.jpg", { type: "image/jpeg" });
+  }
+  fd.append("file", toSend);
   var url =
     base + "/media/upload?kind=" + encodeURIComponent(kind);
   var res = await fetch(url, {

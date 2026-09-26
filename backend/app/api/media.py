@@ -7,7 +7,7 @@ from app.services.b2_storage import upload_bytes
 
 router = APIRouter(prefix="/media", tags=["media"])
 
-MAX_IMAGE = 2 * 1024 * 1024
+MAX_IMAGE = 8 * 1024 * 1024  # 8MB; client should still compress
 MAX_VIDEO = 25 * 1024 * 1024
 
 
