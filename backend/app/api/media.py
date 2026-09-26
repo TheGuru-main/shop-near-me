@@ -50,6 +50,7 @@ async def upload_media(
             ext=ext,
         )
     except Exception as e:
+        print("media upload error:", type(e).__name__, e)
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=f"Upload failed: {e}",
