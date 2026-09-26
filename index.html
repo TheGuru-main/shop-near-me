@@ -52,8 +52,11 @@
       <header class="top-bar">
 
         <span class="brand-sm">🏪<br> SHOP NEAR ME</span>
-        <button type="button" class="icon-btn" id="btnThemeToggle" title="Dark mode" aria-label="Toggle dark mode">
-          <i class="fa-solid fa-moon"></i>
+        <button type="button" class="theme-switch" id="btnThemeToggle" title="Theme" aria-label="Toggle light or dark">
+          <span class="theme-switch-track" aria-hidden="true">
+            <span class="theme-switch-knob"></span>
+          </span>
+          <span class="theme-switch-label" id="themeSwitchLabel">Light</span>
         </button>
         <button type="button" class="icon-btn" data-go="rules" title="Rules">?</button>
       </header>

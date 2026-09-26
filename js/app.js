@@ -178,13 +178,8 @@ document.addEventListener("click", function (e) {
     try {
       localStorage.setItem("snm_theme", dark ? "dark" : "light");
     } catch (e) {}
-    var btn = document.getElementById("btnThemeToggle");
-    if (btn) {
-      var icon = btn.querySelector("i");
-      if (icon) {
-        icon.className = dark ? "fa-solid fa-sun" : "fa-solid fa-moon";
-      }
-    }
+    var lab = document.getElementById("themeSwitchLabel");
+    if (lab) lab.textContent = dark ? "Dark" : "Light";
   }
   try {
     applyTheme(localStorage.getItem("snm_theme") === "dark");
