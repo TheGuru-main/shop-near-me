@@ -1011,3 +1011,23 @@ textarea:focus {
   gap: 8px;
   align-items: center;
 }
+
+/* listing thumbs — visible, not clipped */
+.shop-card-media {
+  width: 100%;
+  max-height: 220px;
+  overflow: hidden;
+  border-radius: 12px;
+  margin-bottom: 0.5rem;
+  background: #e5e7eb;
+}
+.shop-card-media img,
+img.shop-thumb,
+img.card-thumb {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 220px;
+  object-fit: cover;
+}
+
