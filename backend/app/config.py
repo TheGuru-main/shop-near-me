@@ -54,6 +54,7 @@ class Settings(BaseSettings):
     b2_endpoint: str = ""
     b2_region: str = "eu-central-003"
     b2_public_base: str = ""
+    b2_bucket_id: str = ""  # optional; speeds native API
 
 @lru_cache
 
