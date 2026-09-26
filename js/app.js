@@ -171,3 +171,28 @@ document.addEventListener("click", function (e) {
     }
   };
 })();
+
+(function () {
+  function applyTheme(dark) {
+    document.body.classList.toggle("theme-dark", !!dark);
+    try {
+      localStorage.setItem("snm_theme", dark ? "dark" : "light");
+    } catch (e) {}
+    var btn = document.getElementById("btnThemeToggle");
+    if (btn) {
+      var icon = btn.querySelector("i");
+      if (icon) {
+        icon.className = dark ? "fa-solid fa-sun" : "fa-solid fa-moon";
+      }
+    }
+  }
+  try {
+    applyTheme(localStorage.getItem("snm_theme") === "dark");
+  } catch (e) {}
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest("#btnThemeToggle");
+    if (!t) return;
+    e.preventDefault();
+    applyTheme(!document.body.classList.contains("theme-dark"));
+  });
+})();

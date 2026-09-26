@@ -74,6 +74,13 @@ SNM._unwrapFairly = function (row) {
     post.photo_url ||
     row.image_url ||
     "";
+  var refs = [];
+  var mr = post.media_refs || row.media_refs || "";
+  if (typeof mr === "string" && mr.trim()) {
+    refs = mr.split(",").map(function (s) { return s.trim(); }).filter(Boolean);
+  }
+  if (img && refs.indexOf(img) < 0) refs.unshift(img);
+  if (!refs.length && img) refs = [img];
 
   return {
     id: post.id || post.post_id || row.id || "",
@@ -84,8 +91,9 @@ SNM._unwrapFairly = function (row) {
     price: post.price,
     currency: post.currency || "NGN",
     created_at: post.created_at || "",
-    image_url: img,
-    media_url: img,
+    image_url: refs[0] || img || "",
+    media_url: refs[0] || img || "",
+    images: refs,
     phone: phone,
     owner_phone: phone,
     author_phone: phone,
@@ -166,15 +174,26 @@ SNM._fuCardHtml = function (it) {
     '" data-seller-name="' +
     SNM.esc(it.owner_name || it.seller_name || "") +
     '">' +
-    (img
-      ? '<div class="shop-card-media"><img class="card-thumb shop-thumb" src="' +
-        SNM.esc(
-          typeof SNM.mediaDisplayUrl === "function"
-            ? SNM.mediaDisplayUrl(img)
-            : img
-        ) +
-        '" alt="" loading="lazy" /></div>'
-      : "") +
+    (function () {
+      var imgs = (it.images && it.images.length) ? it.images : (img ? [img] : []);
+      if (!imgs.length) return "";
+      if (typeof SNM.cardHtml === "function" && imgs.length) {
+        /* reuse carousel markup via temporary normalize */
+      }
+      var slides = imgs.map(function (u, i) {
+        var src = typeof SNM.mediaDisplayUrl === "function" ? SNM.mediaDisplayUrl(u) : u;
+        return '<div class="card-slide' + (i === 0 ? " active" : "") + '"><img class="card-thumb shop-thumb" src="' + SNM.esc(src) + '" alt="" loading="lazy" /></div>';
+      }).join("");
+      var nav = imgs.length > 1
+        ? '<button type="button" class="card-slide-prev" aria-label="Prev">‹</button><button type="button" class="card-slide-next" aria-label="Next">›</button>'
+        : "";
+      var dots = imgs.length > 1
+        ? '<div class="card-slide-dots">' + imgs.map(function (_, i) {
+            return '<button type="button" class="card-dot' + (i === 0 ? " active" : "") + '" data-slide="' + i + '"></button>';
+          }).join("") + "</div>"
+        : "";
+      return '<div class="shop-card-media card-carousel" data-slide-count="' + imgs.length + '"><div class="card-slide-track">' + slides + "</div>" + nav + dots + "</div>";
+    })() +
     '<div class="title">' +
     SNM.esc(it.title || it.name || "Fairly used") +
     "</div>" +
@@ -236,6 +255,7 @@ SNM.loadFairlyUsed = async function () {
     list.innerHTML = items.map(SNM._fuCardHtml).join("");
     SNM._fuBindDelete(list);
     if (typeof SNM.bindCardActions === "function") SNM.bindCardActions(list);
+    if (typeof SNM._wireCardCarousel === "function") SNM._wireCardCarousel(list);
   } catch (e) {
     if (list) {
       list.innerHTML =

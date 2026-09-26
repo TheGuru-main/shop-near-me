@@ -1115,3 +1115,44 @@ SNM.bindHome = function () {
     };
   }
 };
+
+SNM._wireHomeSearchChips = function () {
+  if (SNM._homeSearchChipWired) return;
+  SNM._homeSearchChipWired = true;
+  document.body.addEventListener(
+    "click",
+    function (e) {
+      var b = e.target.closest("[data-search]");
+      if (!b) return;
+      e.preventDefault();
+      e.stopPropagation();
+      var q = b.getAttribute("data-search") || "";
+      if (typeof SNM.showScreen === "function") SNM.showScreen("search");
+      setTimeout(function () {
+        var input = document.getElementById("searchQ");
+        if (input) input.value = q;
+        if (typeof SNM.doSearch === "function") SNM.doSearch();
+        else if (typeof SNM.runSearch === "function") SNM.runSearch();
+        else {
+          var go = document.getElementById("btnDoSearch");
+          if (go) go.click();
+        }
+      }, 80);
+    },
+    false
+  );
+};
+
+(function () {
+  if (typeof SNM.bindHome === "function") {
+    var _bh = SNM.bindHome;
+    SNM.bindHome = function () {
+      _bh.apply(this, arguments);
+      SNM._wireHomeSearchChips();
+    };
+  } else {
+    document.addEventListener("DOMContentLoaded", function () {
+      SNM._wireHomeSearchChips();
+    });
+  }
+})();

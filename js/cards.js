@@ -65,7 +65,8 @@ SNM.normalizeListing = function (raw) {
     lng: raw.lng != null ? raw.lng : owner.lng,
     km: raw.km != null ? raw.km : raw.distance_km,
     active: !!(raw.active || raw.open || owner.live || raw.live),
-    image_url: img,
+    image_url: refs[0] || img || "",
+    images: refs,
     kind: raw.kind || raw.business_type || raw.category || "",
     created_at: raw.created_at || raw.addedAt || "",
     raw: raw
@@ -102,13 +103,60 @@ SNM.cardHtml = function (item) {
   var live = x.active
     ? ' <span class="badge-live">· Live</span>'
     : "";
-  var thumb = x.image_url
-    ? '<div class="shop-card-media">' +
-      '<img class="card-thumb shop-thumb" src="' +
-      SNM.esc(x.image_url) +
-      '" alt="" loading="lazy" />' +
-      "</div>"
-    : "";
+  var imgs = (x.images && x.images.length)
+    ? x.images
+    : (x.image_url ? [x.image_url] : []);
+  var thumb = "";
+  if (imgs.length) {
+    var slides = imgs
+      .map(function (u, i) {
+        var src =
+          typeof SNM.mediaDisplayUrl === "function"
+            ? SNM.mediaDisplayUrl(u)
+            : u;
+        return (
+          '<div class="card-slide' +
+          (i === 0 ? " active" : "") +
+          '"><img class="card-thumb shop-thumb" src="' +
+          SNM.esc(src) +
+          '" alt="" loading="lazy" /></div>'
+        );
+      })
+      .join("");
+    var dots =
+      imgs.length > 1
+        ? '<div class="card-slide-dots">' +
+          imgs
+            .map(function (_, i) {
+              return (
+                '<button type="button" class="card-dot' +
+                (i === 0 ? " active" : "") +
+                '" data-slide="' +
+                i +
+                '" aria-label="Slide ' +
+                (i + 1) +
+                '"></button>'
+              );
+            })
+            .join("") +
+          "</div>"
+        : "";
+    var nav =
+      imgs.length > 1
+        ? '<button type="button" class="card-slide-prev" aria-label="Prev">‹</button>' +
+          '<button type="button" class="card-slide-next" aria-label="Next">›</button>'
+        : "";
+    thumb =
+      '<div class="shop-card-media card-carousel" data-slide-count="' +
+      imgs.length +
+      '">' +
+      '<div class="card-slide-track">' +
+      slides +
+      "</div>" +
+      nav +
+      dots +
+      "</div>";
+  }
 
   return (
     '<article class="listing-card ' +
@@ -410,3 +458,55 @@ SNM.bindCardActions = function (root) {
 SNM.bindCards = function () {
   SNM.bindCardActions(document);
 };
+
+SNM._wireCardCarousel = function (root) {
+  root = root || document;
+  root.querySelectorAll(".card-carousel").forEach(function (car) {
+    if (car._snmCar) return;
+    car._snmCar = true;
+    var slides = car.querySelectorAll(".card-slide");
+    var dots = car.querySelectorAll(".card-dot");
+    var i = 0;
+    function go(n) {
+      if (!slides.length) return;
+      i = (n + slides.length) % slides.length;
+      slides.forEach(function (s, j) {
+        s.classList.toggle("active", j === i);
+      });
+      dots.forEach(function (d, j) {
+        d.classList.toggle("active", j === i);
+      });
+    }
+    var prev = car.querySelector(".card-slide-prev");
+    var next = car.querySelector(".card-slide-next");
+    if (prev)
+      prev.onclick = function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        go(i - 1);
+      };
+    if (next)
+      next.onclick = function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        go(i + 1);
+      };
+    dots.forEach(function (d) {
+      d.onclick = function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        go(parseInt(d.getAttribute("data-slide"), 10) || 0);
+      };
+    });
+  });
+};
+
+(function () {
+  var _bca = SNM.bindCardActions;
+  if (typeof _bca === "function") {
+    SNM.bindCardActions = function (root) {
+      _bca.apply(this, arguments);
+      SNM._wireCardCarousel(root || document);
+    };
+  }
+})();

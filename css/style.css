@@ -6,8 +6,8 @@
 /* Shop Near Me — unified stylesheet */
 
 :root {
-  --bg: linear-gradient(352deg, lightcyan 3%, #ffffff33 23%, lightcyan 74%);
-  --card: linear-gradient(160deg, #ffffff33 20%, whitesmoke 80%);
+  --bg: linear-gradient(145deg, #ffedd5 0%, #fed7aa 28%, #bfdbfe 72%, #93c5fd 100%);
+  --card: linear-gradient(160deg, rgba(255,255,255,0.92) 20%, #fff7ed 80%);
   --card-border: rgba(22, 101, 52, 0.12);
   --text: #1f2937;
   --muted: #4b5563;
@@ -1032,3 +1032,83 @@ img.card-thumb {
   object-fit: cover;
 }
 
+/* Dark mode */
+body.theme-dark {
+  --bg: linear-gradient(145deg, #0f172a 0%, #1e3a5f 45%, #431407 100%);
+  --card: linear-gradient(160deg, #1e293b 20%, #0f172a 80%);
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --card-border: rgba(148, 163, 184, 0.25);
+  color: var(--text);
+}
+body.theme-dark .top-bar,
+body.theme-dark .bottom-nav,
+body.theme-dark .card {
+  background: #1e293b;
+  color: var(--text);
+}
+body.theme-dark .quick-nav-btn {
+  background: #334155;
+  color: #e2e8f0;
+}
+
+/* Card image carousel */
+.card-carousel {
+  position: relative;
+  width: 100%;
+  max-height: 240px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #e5e7eb;
+  margin-bottom: 0.5rem;
+}
+.card-slide-track { position: relative; width: 100%; }
+.card-slide {
+  display: none;
+  width: 100%;
+}
+.card-slide.active { display: block; }
+.card-slide img {
+  display: block;
+  width: 100%;
+  max-height: 240px;
+  object-fit: cover;
+}
+.card-slide-prev,
+.card-slide-next {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  border: none;
+  background: rgba(0,0,0,0.4);
+  color: #fff;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.card-slide-prev { left: 8px; }
+.card-slide-next { right: 8px; }
+.card-slide-dots {
+  position: absolute;
+  bottom: 8px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  z-index: 2;
+}
+.card-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(255,255,255,0.5);
+  padding: 0;
+  cursor: pointer;
+}
+.card-dot.active { background: #fff; }
