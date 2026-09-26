@@ -99,7 +99,10 @@ def upload_bytes(
         upload_url = up["uploadUrl"]
         upload_auth = up["authorizationToken"]
 
-        key = f"{prefix.strip('/')}/{uuid.uuid4().hex}.{ext.lstrip('.')}"
+        # App key namePrefix is Shopnearme — all keys must start with it
+        root = "Shopnearme"
+        mid = (prefix or "uploads").strip().strip("/")
+        key = f"{root}/{mid}/{uuid.uuid4().hex}.{ext.lstrip('.')}"
         # B2: UTF-8 then percent-encode (including /)
         file_name = quote(key, safe="")
         sha1 = hashlib.sha1(data).hexdigest()
