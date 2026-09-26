@@ -69,22 +69,28 @@ async def create_post(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    media_url, media_type = _media_from_body(body)
-    if not media_url and not (body.body or body.title):
-    if not (body.media_url or getattr(body, "image_url", None) or getattr(body, "media_refs", None)) and not (body.body or body.title):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Provide media and/or text",
-        )
     refs = [u.strip() for u in str(getattr(body, "media_refs", None) or "").split(",") if u.strip()]
     one = body.media_url or getattr(body, "image_url", None)
     if one and one not in refs:
         refs.insert(0, one)
     media_url = refs[0] if refs else None
     media_refs = ",".join(refs) if refs else None
+    _mt = getattr(body, "media_type", None)
+    if media_url and not _mt:
+        if str(media_url).startswith("data:image"):
+            _mt = "image"
+        elif str(media_url).startswith("data:audio"):
+            _mt = "audio"
+        else:
+            _mt = "image"
+    media_type = _mt
+    if not media_url and not (body.body or body.title):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Provide media and/or text",
+        )
 
     post = FairlyUsedPost(
-
         id=uuid.uuid4(),
         author_id=user.id,
         title=(body.title or "").strip() or "Fairly used",
@@ -92,11 +98,8 @@ async def create_post(
         price=body.price,
         currency=body.currency or "NGN",
         media_url=media_url,
-        media_type=media_type,
-        currency=body.currency,
-        media_url=media_url,
         media_refs=media_refs,
-        media_type=body.media_type,
+        media_type=media_type,
     )
     db.add(post)
     db.commit()
