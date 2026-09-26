@@ -100,20 +100,45 @@ def upload_bytes(
         upload_auth = up["authorizationToken"]
 
         key = f"{prefix.strip('/')}/{uuid.uuid4().hex}.{ext.lstrip('.')}"
-        # B2 wants percent-encoded file name
-        file_name = quote(key, safe="/")
+        # B2: UTF-8 then percent-encode (including /)
+        file_name = quote(key, safe="")
         sha1 = hashlib.sha1(data).hexdigest()
+        ctype = (content_type or "b2/x-auto").split(";")[0].strip() or "b2/x-auto"
 
         r2 = client.post(
             upload_url,
             headers={
-                "Authorization": upload_auth,
+                "Authorization": upload_auth.strip(),
                 "X-Bz-File-Name": file_name,
                 "X-Bz-Content-Sha1": sha1,
-                "Content-Type": content_type or "application/octet-stream",
+                "Content-Type": ctype,
+                "Content-Length": str(len(data)),
             },
             content=data,
         )
+        if r2.status_code == 401:
+            # one retry with fresh upload URL
+            r = client.post(
+                f"{api}/b2api/v2/b2_get_upload_url",
+                headers={"Authorization": auth["authorizationToken"]},
+                json={"bucketId": bucket_id},
+            )
+            if r.status_code != 200:
+                raise RuntimeError(
+                    f"B2 get_upload_url retry failed: {r.status_code} {r.text[:200]}"
+                )
+            up = r.json()
+            r2 = client.post(
+                up["uploadUrl"],
+                headers={
+                    "Authorization": up["authorizationToken"].strip(),
+                    "X-Bz-File-Name": file_name,
+                    "X-Bz-Content-Sha1": sha1,
+                    "Content-Type": ctype,
+                    "Content-Length": str(len(data)),
+                },
+                content=data,
+            )
         if r2.status_code != 200:
             raise RuntimeError(f"B2 upload failed: {r2.status_code} {r2.text[:300]}")
 
