@@ -168,7 +168,11 @@ SNM._fuCardHtml = function (it) {
     '">' +
     (img
       ? '<div class="shop-card-media"><img class="card-thumb shop-thumb" src="' +
-        SNM.esc(img) +
+        SNM.esc(
+          typeof SNM.mediaDisplayUrl === "function"
+            ? SNM.mediaDisplayUrl(img)
+            : img
+        ) +
         '" alt="" loading="lazy" /></div>'
       : "") +
     '<div class="title">' +

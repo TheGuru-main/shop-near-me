@@ -144,6 +144,12 @@ SNM.uploadMedia = async function (file, kind) {
     }
     throw new Error(String(detail));
   }
+  if (data && data.url) data.url = SNM.mediaDisplayUrl(data.url);
+  if (data && data.urls) {
+    data.urls = data.urls.map(function (u) {
+      return SNM.mediaDisplayUrl(u);
+    });
+  }
   return data;
 };
 
@@ -176,4 +182,16 @@ SNM._filesFromInputs = function () {
     }
   }
   return out;
+};
+
+SNM.mediaDisplayUrl = function (u) {
+  u = String(u || "");
+  if (!u) return "";
+  var base = SNM.API_BASE || "";
+  if (u.indexOf("/media/file") === 0) return base + u;
+  if (u.indexOf("b2:") === 0)
+    return base + "/media/file?path=" + encodeURIComponent(u.slice(3));
+  var m = u.match(/\/file\/Bucketforshop\/(.+)$/i);
+  if (m) return base + "/media/file?path=" + encodeURIComponent(m[1]);
+  return u;
 };

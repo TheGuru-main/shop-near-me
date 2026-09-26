@@ -1,3 +1,4 @@
+from fastapi.responses import Response
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 
 from app.core.deps import get_current_user
@@ -57,3 +58,24 @@ async def upload_media(
         ) from e
 
     return {"url": url, "media_type": media_type, "bytes": len(data)}
+
+
+@router.get("/file", response_model=None)
+@limiter.limit("120/minute")
+async def media_file(request: Request, path: str = ""):
+    from app.services.b2_storage import download_by_key
+
+    key = (path or "").strip().lstrip("/")
+    if key.startswith("b2:"):
+        key = key[3:]
+    if not key.startswith("Shopnearme/"):
+        raise HTTPException(status_code=400, detail="Invalid path")
+    try:
+        data, ctype = download_by_key(key)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
+    return Response(
+        content=data,
+        media_type=ctype,
+        headers={"Cache-Control": "public, max-age=86400"},
+    )

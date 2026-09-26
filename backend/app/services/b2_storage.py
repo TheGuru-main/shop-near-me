@@ -145,13 +145,27 @@ def upload_bytes(
         if r2.status_code != 200:
             raise RuntimeError(f"B2 upload failed: {r2.status_code} {r2.text[:300]}")
 
-    base = (s.b2_public_base or "").rstrip("/")
-    if base:
-        return f"{base}/{key}"
+    # Private bucket: key only; API proxies bytes for <img>
+    return "b2:" + key
 
-    # fallback download URL from auth
-    dl = (auth.get("downloadUrl") or "").rstrip("/")
+
+def download_by_key(file_name: str) -> tuple[bytes, str]:
+    s = _settings()
+    auth = _authorize()
     bucket = (s.b2_bucket or "").strip()
-    if dl and bucket:
-        return f"{dl}/file/{bucket}/{key}"
-    return key
+    dl = (auth.get("downloadUrl") or "").rstrip("/")
+    key = (file_name or "").lstrip("/")
+    if key.startswith("b2:"):
+        key = key[3:]
+    url = f"{dl}/file/{bucket}/{key}"
+    with httpx.Client(timeout=60.0) as client:
+        r = client.get(
+            url,
+            headers={"Authorization": auth["authorizationToken"]},
+        )
+        if r.status_code != 200:
+            raise RuntimeError(
+                f"B2 download failed: {r.status_code} {r.text[:200]}"
+            )
+        ctype = r.headers.get("Content-Type") or "application/octet-stream"
+        return r.content, ctype
