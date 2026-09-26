@@ -191,3 +191,33 @@ document.addEventListener("click", function (e) {
     applyTheme(!document.body.classList.contains("theme-dark"));
   });
 })();
+
+(function () {
+  function applyTheme(dark) {
+    document.body.classList.toggle("theme-dark", !!dark);
+    try {
+      localStorage.setItem("snm_theme", dark ? "dark" : "light");
+    } catch (e) {}
+    var lab = document.getElementById("themeSwitchLabel");
+    if (lab) lab.textContent = dark ? "Dark" : "Light";
+  }
+  try {
+    applyTheme(localStorage.getItem("snm_theme") === "dark");
+  } catch (e) {}
+  document.addEventListener("click", function (e) {
+    if (e.target.closest("#btnThemeToggle")) {
+      e.preventDefault();
+      applyTheme(!document.body.classList.contains("theme-dark"));
+      return;
+    }
+    if (e.target.closest("#btnSettingsTheme")) {
+      e.preventDefault();
+      applyTheme(!document.body.classList.contains("theme-dark"));
+      return;
+    }
+    if (e.target.closest("#btnSettingsProfile")) {
+      e.preventDefault();
+      if (typeof SNM.openProfile === "function") SNM.openProfile();
+    }
+  });
+})();

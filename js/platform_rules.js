@@ -12,8 +12,12 @@ SNM.PLATFORM_RULES_HTML =
   "</ul>";
 
 SNM.renderPlatformRules = function () {
-  var el = document.getElementById("platformRulesBody");
-  if (el) el.innerHTML = SNM.PLATFORM_RULES_HTML;
+  var el = document.getElementById("platformRulesGuide");
+  if (el) {
+    el.innerHTML = SNM.PLATFORM_RULES_HTML;
+    return;
+  }
+  /* Do not replace platformRulesBody — it holds report/admin controls */
 };
 
 SNM.acceptRules = function () {
@@ -33,9 +37,9 @@ SNM.submitReport = async function () {
     return;
   }
   try {
-    await SNM.api("/reports", {
+    await SNM.api("/admin/message", {
       method: "POST",
-      body: { body: body, text: body, reason: body }
+      body: { body: body, context: "report" }
     });
     alert("Report submitted.");
     var ta = document.getElementById("report-body");
@@ -52,9 +56,9 @@ SNM.messageAdmin = async function () {
     return;
   }
   try {
-    await SNM.api("/admin/contact", {
+    await SNM.api("/admin/message", {
       method: "POST",
-      body: { body: body, text: body, message: body }
+      body: { body: body, context: "user_message" }
     });
     alert("Message sent to Shop Near Me admin.");
     var ta = document.getElementById("admin-msg-body");
@@ -76,7 +80,26 @@ SNM.bindPlatformRules = function () {
   SNM.renderPlatformRules();
 
   var acc = document.getElementById("btnAcceptRules");
-  if (acc) acc.onclick = function () { SNM.acceptRules(); };
+  if (acc && !acc._snmWired) {
+    acc._snmWired = true;
+    acc.onclick = function () {
+      SNM.acceptRules();
+    };
+  }
+  var rep = document.getElementById("btnSubmitReport");
+  if (rep && !rep._snmWired) {
+    rep._snmWired = true;
+    rep.onclick = function () {
+      SNM.submitReport();
+    };
+  }
+  var adm = document.getElementById("btnAdminMessage");
+  if (adm && !adm._snmWired) {
+    adm._snmWired = true;
+    adm.onclick = function () {
+      SNM.messageAdmin();
+    };
+  }
 
   var rulesBtn = document.getElementById("btnRules");
   if (rulesBtn) {

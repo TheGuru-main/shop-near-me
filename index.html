@@ -99,6 +99,7 @@
         <span class="spacer"></span>
       </header>
       <div class="container stack" id="platformRulesBody">
+        <div id="platformRulesGuide"></div>
         <p>Keep deal conversations, calls, videos, and goods confirmation transactions inside the app for protection.</p>
         <p>No scam listings. Report abuse of any suspected. Fairly used posts must be honest listings.</p>
         <p>Pay on delivery and bulky carrier assist are tools for fast checkout and conveyance to final destinations. Inspect goods before final handoff/receival.</p>
@@ -314,6 +315,13 @@
           <i class="fa-solid fa-bars"></i>
         </button>
         <span class="brand-sm">Shop Near Me</span>
+        <button type="button" class="theme-switch" id="btnThemeToggle" title="Theme" aria-label="Toggle theme">
+          <span class="theme-switch-track" aria-hidden="true"><span class="theme-switch-knob"></span></span>
+          <span class="theme-switch-label" id="themeSwitchLabel">Light</span>
+        </button>
+        <button type="button" class="icon-btn" id="btnSettings" data-go="settings" title="Settings" aria-label="Settings">
+          <i class="fa-solid fa-gear"></i>
+        </button>
         <button type="button" class="icon-btn" id="btnSearchTop" aria-label="Search">
           <i class="fa-solid fa-magnifying-glass"></i>
         </button>
@@ -920,6 +928,27 @@
         <button type="button" class="btn secondary block" data-go="shop">Open workspace</button>
         <button type="button" class="btn secondary block" data-go="premium">Premium</button>
         <button type="button" class="btn secondary block" data-go="documents">Documents</button>
+      </div>
+    </section>
+
+    <!-- ========== SETTINGS ========== -->
+    <section id="settings" class="screen" data-screen="settings">
+      <header class="top-bar">
+        <button type="button" class="icon-btn" data-back="home" aria-label="Back">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <span class="screen-title">Settings</span>
+        <span class="spacer"></span>
+      </header>
+      <div class="container stack">
+        <div class="card">
+          <p class="muted small">Appearance</p>
+          <button type="button" class="btn secondary block" id="btnSettingsTheme">Toggle light / dark</button>
+        </div>
+        <button type="button" class="btn secondary block" data-go="rules">Platform rules</button>
+        <button type="button" class="btn secondary block" data-go="about">About</button>
+        <button type="button" class="btn secondary block" data-go="premium">Premium</button>
+        <button type="button" class="btn secondary block" id="btnSettingsProfile">Profile</button>
       </div>
     </section>
 
