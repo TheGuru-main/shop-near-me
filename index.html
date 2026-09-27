@@ -243,11 +243,13 @@
           </label>
           <label>Category
             <select id="setup-biz-category">
-              <option value="food">Restaurants &amp; food / eatery / food stand</option>
-              <option value="retail">Retail / provisions</option>
+              <option value="food">Food / eatery / restaurant</option>
+              <option value="provisions">Provisions / grocery</option>
               <option value="pharmacy">Pharmacy</option>
               <option value="electronics">Electronics</option>
               <option value="fashion">Fashion</option>
+              <option value="building_materials">Building materials</option>
+              <option value="agriculture">Agriculture / farm produce</option>
               <option value="other">Other goods</option>
             </select>
           </label>
@@ -259,13 +261,23 @@
           </label>
         </div>
         <div id="setup-service" class="setup-panel hidden">
-          <label>Service type
+          <label>Service / market category
             <select id="setup-service-type">
-              <option value="hospitality">Hospitality (hotel, guest house, short-let)</option>
-              <option value="salon">Salon / beauty</option>
-              <option value="trade">Trade (plumber, mechanic, artisan)</option>
-              <option value="healthcare">Clinic / healthcare service</option>
-              <option value="other">Other service</option>
+              <option value="hotel">Hotel</option>
+              <option value="guest_house">Guest house</option>
+              <option value="short_let">Short-let / home for let</option>
+              <option value="salon">Salon</option>
+              <option value="barber">Barber</option>
+              <option value="spa">Spa / beauty</option>
+              <option value="plumber">Plumber</option>
+              <option value="electrician">Electrician</option>
+              <option value="carpenter">Carpenter</option>
+              <option value="mechanic">Mechanic</option>
+              <option value="painter">Painter</option>
+              <option value="cleaner">Cleaning</option>
+              <option value="clinic">Clinic / healthcare</option>
+              <option value="tutoring">Tutoring / lessons</option>
+              <option value="other_service">Other service</option>
             </select>
           </label>
           <label class="check-row"><input type="checkbox" id="setup-home-service" /> Home service</label>
@@ -484,15 +496,11 @@
           <h3 class="section-h">Services / hospitality</h3>
           <label class="check-row"><input type="checkbox" id="svc-open" /> Open (heartbeat)</label>
 
-          <label>Service type
-            <select id="svc-type">
-              <option value="hospitality">Hospitality (hotel / guest house / short-let)</option>
-              <option value="salon">Salon / beauty</option>
-              <option value="trade">Trade (plumber, mechanic, artisan)</option>
-              <option value="healthcare">Clinic / healthcare</option>
-              <option value="other">Other service</option>
-            </select>
-          </label>
+          <div class="card soft-card" id="svcCategoryLock">
+            <p class="muted small" style="margin:0">Your signup category</p>
+            <p style="margin:0.25rem 0 0"><strong id="svcCategoryLabel">—</strong></p>
+            <input type="hidden" id="svc-type" value="" />
+          </div>
 
           <label>Name (room / package / service)
             <input id="svc-name" placeholder="e.g. Deluxe double room / Bridal package" />

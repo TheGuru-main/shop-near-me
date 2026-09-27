@@ -674,3 +674,63 @@ SNM.bindShop = function () {
 SNM.onShopEnter = function () {
   SNM.loadShop();
 };
+
+SNM.SERVICE_LABELS = {
+  hotel: "Hotel",
+  guest_house: "Guest house",
+  short_let: "Short-let / home for let",
+  salon: "Salon",
+  barber: "Barber",
+  spa: "Spa / beauty",
+  plumber: "Plumber",
+  electrician: "Electrician",
+  carpenter: "Carpenter",
+  mechanic: "Mechanic",
+  painter: "Painter",
+  cleaner: "Cleaning",
+  clinic: "Clinic / healthcare",
+  tutoring: "Tutoring / lessons",
+  other_service: "Other service",
+  hospitality: "Hospitality",
+  trade: "Trade",
+  healthcare: "Healthcare",
+  service: "Service"
+};
+
+SNM.applyShopCategoryFromSetup = function () {
+  var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+  var setup = u.setup || {};
+  try {
+    var raw = localStorage.getItem("snm_setup_data");
+    if (raw) setup = Object.assign({}, JSON.parse(raw), setup);
+  } catch (e) {}
+
+  var role = String(u.role || setup.role || "").toLowerCase();
+  var type =
+    setup.service_type ||
+    setup.category ||
+    u.service_type ||
+    u.category ||
+    "";
+  type = String(type || "").trim();
+
+  var hid = document.getElementById("svc-type");
+  var lab = document.getElementById("svcCategoryLabel");
+  if (role === "service" || document.getElementById("shop-service")) {
+    if (hid && type) hid.value = type;
+    if (lab) {
+      lab.textContent =
+        (SNM.SERVICE_LABELS && SNM.SERVICE_LABELS[type]) || type || "Not set at signup";
+    }
+  }
+};
+
+(function () {
+  var prev = SNM.onShopEnter || SNM.loadShop;
+  SNM.onShopEnter = function () {
+    if (typeof SNM.applyShopCategoryFromSetup === "function") {
+      SNM.applyShopCategoryFromSetup();
+    }
+    if (typeof prev === "function") return prev.apply(this, arguments);
+  };
+})();
