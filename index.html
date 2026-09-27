@@ -339,45 +339,46 @@
       <div class="container home-body">
 
     <div class="chip-row home-quick-nav" id="homeChips">
-  <button type="button" class="quick-nav-btn" data-go="fairly-used">
-    <i class="fa-solid fa-shirt"></i><span>Fairly used</span>
+  <button type="button" class="quick-nav-btn qn-fairly" data-go="fairly-used">
+    <i class="fa-solid fa-recycle"></i><span>Fairly used</span>
   </button>
-  <button type="button" class="quick-nav-btn" data-go="banqueue">
-    <i class="fa-solid fa-scale-balanced"></i><span>Banqueue</span>
-  </button>
-  <button type="button" class="quick-nav-btn" data-go="emergency">
-    <i class="fa-solid fa-truck-medical"></i><span>Emergency</span>
-  </button>
-  <button type="button" class="quick-nav-btn" data-go="news">
-    <i class="fa-solid fa-newspaper"></i><span>News</span>
-  </button>
-  <button type="button" class="quick-nav-btn" id="btnPerishables">
-    <i class="fa-solid fa-carrot"></i><span>Perishables</span>
-  </button>
-  <button type="button" class="quick-nav-btn" data-go="checkout-assist">
-    <i class="fa-solid fa-cart-shopping"></i><span>Checkout-Assist</span>
-  </button>
-  <button type="button" class="quick-nav-btn" data-search="Ride">
-    <i class="fa-solid fa-motorcycle"></i><span>Ride</span>
-  </button>
-  <button type="button" class="quick-nav-btn" data-search="Transportation">
-    <i class="fa-solid fa-van-shuttle"></i><span>Transportation</span>
-  </button>
-  <button type="button" class="quick-nav-btn" data-search="Fashion">
-    <i class="fa-solid fa-shirt"></i><span>Fashion</span>
-  </button>
-  <button type="button" class="quick-nav-btn" data-search="Breakfast">
-    <i class="fa-solid fa-mug-saucer"></i><span>Breakfast</span>
-  </button>
-  <button type="button" class="quick-nav-btn" data-search="Food">
+  <button type="button" class="quick-nav-btn qn-food" data-search="Food">
     <i class="fa-solid fa-utensils"></i><span>Food</span>
   </button>
-  <button type="button" class="quick-nav-btn" data-search="Repair">
+  <button type="button" class="quick-nav-btn qn-ride" data-search="Ride">
+    <i class="fa-solid fa-motorcycle"></i><span>Ride</span>
+  </button>
+  <button type="button" class="quick-nav-btn qn-fashion" data-search="Fashion">
+    <i class="fa-solid fa-shirt"></i><span>Fashion</span>
+  </button>
+  <button type="button" class="quick-nav-btn qn-repair" data-search="Repair">
     <i class="fa-solid fa-screwdriver-wrench"></i><span>Repair</span>
+  </button>
+  <button type="button" class="quick-nav-btn qn-emergency" data-go="emergency">
+    <i class="fa-solid fa-truck-medical"></i><span>Emergency</span>
+  </button>
+  <button type="button" class="quick-nav-btn qn-news" data-go="news">
+    <i class="fa-solid fa-newspaper"></i><span>News</span>
   </button>
 </div>
         <div class="map-wrap">
           <div id="gsgMap" class="map-stub" role="img" aria-label="Map"></div>
+          <div class="map-promo-carousel" id="mapPromoCarousel" aria-label="Promotions">
+            <div class="map-promo-track">
+              <button type="button" class="map-promo-slide promo-join" data-promo="join">
+                Run as with us
+              </button>
+              <button type="button" class="map-promo-slide promo-shop" data-promo="shop">
+                Promote your shop
+              </button>
+              <button type="button" class="map-promo-slide promo-biz" data-promo="business">
+                Promote your business
+              </button>
+              <button type="button" class="map-promo-slide promo-admin" data-promo="admin">
+                Message Shop Near Me admin
+              </button>
+            </div>
+          </div>
         </div>
         <div class="row-between">
           <h2 class="section-h">Near you</h2>

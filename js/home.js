@@ -1156,3 +1156,98 @@ SNM._wireHomeSearchChips = function () {
     });
   }
 })();
+
+SNM.compassBearing = function (lat1, lon1, lat2, lon2) {
+  var φ1 = (lat1 * Math.PI) / 180;
+  var φ2 = (lat2 * Math.PI) / 180;
+  var Δλ = ((lon2 - lon1) * Math.PI) / 180;
+  var y = Math.sin(Δλ) * Math.cos(φ2);
+  var x =
+    Math.cos(φ1) * Math.sin(φ2) -
+    Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+  var θ = (Math.atan2(y, x) * 180) / Math.PI;
+  return (θ + 360) % 360;
+};
+
+SNM.compassLabel = function (deg) {
+  if (deg == null || isNaN(deg)) return "";
+  var dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+  var i = Math.round(deg / 45) % 8;
+  return dirs[i] + " · " + Math.round(deg) + "°";
+};
+
+SNM.crowFlyMeta = function (fromLat, fromLng, toLat, toLng) {
+  if (
+    fromLat == null ||
+    fromLng == null ||
+    toLat == null ||
+    toLng == null
+  )
+    return { km: null, bearing: null, label: "" };
+  var km = SNM.haversineKm(fromLat, fromLng, toLat, toLng);
+  var bearing = SNM.compassBearing(fromLat, fromLng, toLat, toLng);
+  return {
+    km: km,
+    bearing: bearing,
+    label:
+      (typeof SNM.formatDistance === "function"
+        ? SNM.formatDistance(km)
+        : km.toFixed(1) + " km") +
+      " · " +
+      SNM.compassLabel(bearing)
+  };
+};
+
+SNM._mapPromoTimer = null;
+
+SNM.startMapPromoCarousel = function () {
+  var track = document.querySelector("#mapPromoCarousel .map-promo-track");
+  if (!track || track._snmPromo) return;
+  track._snmPromo = true;
+  var slides = track.querySelectorAll(".map-promo-slide");
+  if (!slides.length) return;
+  var i = 0;
+  function go(n) {
+    i = ((n % slides.length) + slides.length) % slides.length;
+    slides[i].scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }
+  if (SNM._mapPromoTimer) clearInterval(SNM._mapPromoTimer);
+  SNM._mapPromoTimer = setInterval(function () {
+    go(i + 1);
+  }, 4000);
+  track.addEventListener(
+    "click",
+    function (e) {
+      var b = e.target.closest("[data-promo]");
+      if (!b) return;
+      e.preventDefault();
+      var act = b.getAttribute("data-promo");
+      if (act === "join" || act === "shop" || act === "business") {
+        if (typeof SNM.showScreen === "function") SNM.showScreen("premium");
+        return;
+      }
+      if (act === "admin") {
+        if (typeof SNM.showScreen === "function") SNM.showScreen("rules");
+        setTimeout(function () {
+          var ta = document.getElementById("admin-msg-body");
+          if (ta) ta.focus();
+        }, 200);
+      }
+    },
+    false
+  );
+};
+
+(function () {
+  var _bh = SNM.bindHome;
+  if (typeof _bh === "function") {
+    SNM.bindHome = function () {
+      _bh.apply(this, arguments);
+      SNM.startMapPromoCarousel();
+    };
+  } else {
+    document.addEventListener("DOMContentLoaded", function () {
+      SNM.startMapPromoCarousel();
+    });
+  }
+})();

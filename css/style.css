@@ -1162,3 +1162,88 @@ body.theme-dark .theme-switch-knob {
 body.theme-dark .theme-switch-label {
   color: #60a5fa;
 }
+
+/* Quick-nav category colors */
+.quick-nav-btn.qn-fairly {
+  background: linear-gradient(135deg, #fef3c7, #f59e0b);
+  color: #78350f;
+}
+.quick-nav-btn.qn-food {
+  background: linear-gradient(135deg, #dcfce7, #16a34a);
+  color: #14532d;
+}
+.quick-nav-btn.qn-ride {
+  background: linear-gradient(135deg, #e0e7ff, #4f46e5);
+  color: #1e1b4b;
+}
+.quick-nav-btn.qn-fashion {
+  background: linear-gradient(135deg, #fce7f3, #db2777);
+  color: #831843;
+}
+.quick-nav-btn.qn-repair {
+  background: linear-gradient(135deg, #e2e8f0, #64748b);
+  color: #0f172a;
+}
+.quick-nav-btn.qn-emergency {
+  background: linear-gradient(135deg, #fee2e2, #dc2626);
+  color: #7f1d1d;
+}
+.quick-nav-btn.qn-news {
+  background: linear-gradient(135deg, #cffafe, #0891b2);
+  color: #164e63;
+}
+.quick-nav-btn {
+  border: none;
+  font-weight: 700;
+}
+
+/* Map bottom promo carousel */
+.map-wrap {
+  position: relative;
+}
+.map-promo-carousel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 500;
+  pointer-events: none;
+  padding: 0 0.5rem 0.5rem;
+}
+.map-promo-track {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  pointer-events: auto;
+  scrollbar-width: none;
+}
+.map-promo-track::-webkit-scrollbar {
+  display: none;
+}
+.map-promo-slide {
+  flex: 0 0 78%;
+  scroll-snap-align: center;
+  border: none;
+  border-radius: 12px;
+  padding: 0.65rem 0.85rem;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-align: left;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+}
+.map-promo-slide.promo-join {
+  background: linear-gradient(90deg, #ea580c, #2563eb);
+}
+.map-promo-slide.promo-shop {
+  background: linear-gradient(90deg, #16a34a, #0d9488);
+}
+.map-promo-slide.promo-biz {
+  background: linear-gradient(90deg, #7c3aed, #2563eb);
+}
+.map-promo-slide.promo-admin {
+  background: linear-gradient(90deg, #14532d, #ca8a04);
+}
