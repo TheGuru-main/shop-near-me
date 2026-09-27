@@ -1354,3 +1354,13 @@ body.theme-dark .theme-switch-label {
   line-height: 1.35;
   font-weight: 600;
 }
+
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #14532d;
+  font-size: 1.25rem;
+}
+.brand-mark .fa-location-dot { color: #16a34a; }
