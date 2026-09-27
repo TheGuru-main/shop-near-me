@@ -20,6 +20,7 @@
       if (typeof SNM.bindInvoiceStudio === "function") SNM.bindInvoiceStudio();
       if (typeof SNM.bindCalculator === "function") SNM.bindCalculator();
       if (typeof SNM.bindDocuments === "function") SNM.bindDocuments();
+      if (typeof SNM.bindPlatformRules === "function") SNM.bindPlatformRules();
       if (typeof SNM.bindTrust === "function") SNM.bindTrust();
     } catch (err) {
       console.error("bind error", err);

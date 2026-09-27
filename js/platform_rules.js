@@ -118,4 +118,5 @@ SNM.bindPlatformRules = function () {
 
 SNM.onRulesEnter = function () {
   SNM.renderPlatformRules();
+  if (typeof SNM.bindPlatformRules === "function") SNM.bindPlatformRules();
 };
