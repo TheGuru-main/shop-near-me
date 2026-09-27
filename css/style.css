@@ -1202,13 +1202,16 @@ body.theme-dark .theme-switch-label {
   position: relative;
 }
 .map-promo-carousel {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 500;
-  pointer-events: none;
-  padding: 0 0.5rem 0.5rem;
+  position: relative;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  z-index: 1;
+  pointer-events: auto;
+  padding: 0;
+  margin: 0.4rem 0 0.55rem;
+  width: 100%;
+  min-height: 48px;
 }
 .map-promo-track {
   display: flex;
@@ -1294,4 +1297,18 @@ body.theme-dark .theme-switch-label {
 }
 .home-body .map-wrap {
   margin-bottom: 0.5rem;
+}
+
+
+/* PROMO_VISIBLE_FORCE */
+#mapPromoCarousel.map-promo-carousel,
+.home-body .map-promo-carousel {
+}
+#mapPromoCarousel .map-promo-track {
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 48px;
+}
+#mapPromoCarousel .map-promo-slide {
+  min-height: 44px;
 }
