@@ -1364,3 +1364,51 @@ body.theme-dark .theme-switch-label {
   font-size: 1.25rem;
 }
 .brand-mark .fa-location-dot { color: #16a34a; }
+
+
+/* HOME_HEADER_COMPACT */
+#home > .top-bar {
+  gap: 0.2rem !important;
+  padding: 0.3rem 0.4rem !important;
+  padding-top: max(0.3rem, var(--safe-top)) !important;
+  min-height: 46px !important;
+  flex-wrap: nowrap !important;
+  overflow: hidden;
+}
+#home > .top-bar .brand-sm,
+#home > .top-bar .brand-mark {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 1.6rem;
+  text-align: center;
+  font-size: 1.1rem;
+  margin: 0 0.1rem;
+}
+#home > .top-bar .icon-btn {
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 10px !important;
+  font-size: 0.9rem !important;
+  flex-shrink: 0;
+}
+#home > .top-bar .theme-switch {
+  gap: 0.15rem;
+  padding: 0.1rem 0.15rem;
+  flex-shrink: 0;
+}
+#home > .top-bar .theme-switch-track {
+  width: 36px;
+  height: 20px;
+}
+#home > .top-bar .theme-switch-knob {
+  width: 14px;
+  height: 14px;
+  top: 3px;
+  left: 3px;
+}
+body.theme-dark #home > .top-bar .theme-switch-knob {
+  transform: translateX(16px);
+}
+#home > .top-bar .theme-switch-label {
+  display: none; /* frees space — icon track is enough */
+}
