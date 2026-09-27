@@ -137,3 +137,44 @@ SNM.initPresenceForRole = function () {
     })
     .catch(function () {});
 };
+
+SNM._localNotes = SNM._localNotes || [];
+
+SNM.pushLocalNotification = function (title, body) {
+  var item = {
+    id: Date.now(),
+    title: title || "Shop Near Me",
+    body: body || "",
+    at: new Date().toISOString()
+  };
+  SNM._localNotes.unshift(item);
+  try {
+    localStorage.setItem("snm_local_notes", JSON.stringify(SNM._localNotes.slice(0, 50)));
+  } catch (e) {}
+  return item;
+};
+
+SNM.renderNotifications = function () {
+  var el = document.getElementById("notificationsList");
+  if (!el) return;
+  try {
+    SNM._localNotes = JSON.parse(localStorage.getItem("snm_local_notes") || "[]");
+  } catch (e) {
+    SNM._localNotes = SNM._localNotes || [];
+  }
+  if (!SNM._localNotes.length) {
+    el.innerHTML = "<p class='muted'>No notifications yet.</p>";
+    return;
+  }
+  el.innerHTML = SNM._localNotes
+    .map(function (n) {
+      return (
+        '<article class="card"><strong>' +
+        (typeof SNM.esc === "function" ? SNM.esc(n.title) : n.title) +
+        "</strong><p class='muted small">' +
+        (typeof SNM.esc === "function" ? SNM.esc(n.body) : n.body) +
+        "</p></article>"
+      );
+    })
+    .join("");
+};

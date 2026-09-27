@@ -205,7 +205,12 @@ document.addEventListener("click", function (e) {
     applyTheme(localStorage.getItem("snm_theme") === "dark");
   } catch (e) {}
   document.addEventListener("click", function (e) {
-    if (e.target.closest("#btnThemeToggle")) {
+    if (
+      e.target.closest("#btnThemeToggle") ||
+      e.target.closest("#btnThemeToggleHome") ||
+      e.target.closest("#btnThemeToggleLanding") ||
+      e.target.closest(".theme-switch")
+    ) {
       e.preventDefault();
       applyTheme(!document.body.classList.contains("theme-dark"));
       return;

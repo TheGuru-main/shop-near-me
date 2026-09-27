@@ -11,12 +11,17 @@ from pydantic import BaseModel, Field
 from app.core.deps import get_current_user
 from app.core.limiter import limiter
 from app.models.user import User
-from app.services.admin_box import ADMIN_START_ROW, ADMIN_UID, admin_public
+from app.services.admin_box import (
+    ADMIN_START_ROW,
+    ADMIN_UID,
+    admin_public,
+    inbox_append,
+    inbox_clear,
+    inbox_list,
+)
 from app.services.identity import public_identity
 
 router = APIRouter(prefix="/admin", tags=["admin"])
-
-_ADMIN_INBOX: list[dict] = []
 
 
 def _digits(value: str | None) -> str:
@@ -57,17 +62,19 @@ async def message_admin(
 ):
     """Any logged-in user → drop into ADMIN_UID inbox."""
     sender = public_identity(user.name, user.phone)
-    entry = {
-        "id": len(_ADMIN_INBOX) + 1,
-        "from": sender,
-        "to_uid": ADMIN_UID,
-        "to_start_row": ADMIN_START_ROW,
-        "body": body.body,
-        "context": body.context,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "is_premium_payment": str(body.body or "").startswith("[PREMIUM_PAYMENT]"),
-    }
-    _ADMIN_INBOX.append(entry)
+    entry = inbox_append(
+        {
+            "from": sender,
+            "to_uid": ADMIN_UID,
+            "to_start_row": ADMIN_START_ROW,
+            "body": body.body,
+            "context": body.context,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "is_premium_payment": str(body.body or "").startswith(
+                "[PREMIUM_PAYMENT]"
+            ),
+        }
+    )
     return {
         "ok": True,
         "delivered_to": admin_public(),
@@ -85,7 +92,7 @@ async def admin_messages(
 ):
     """Admin dashboard reads the contact inbox (newest first)."""
     _require_admin(user)
-    items = list(reversed(_ADMIN_INBOX[-limit:]))
+    items = inbox_list(limit)
     return {
         "count": len(items),
         "items": items,
@@ -102,5 +109,5 @@ async def clear_admin_messages(
     """Optional: clear in-memory inbox after handling."""
     _require_admin(user)
     n = len(_ADMIN_INBOX)
-    _ADMIN_INBOX.clear()
+    inbox_clear()
     return {"ok": True, "cleared": n}

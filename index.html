@@ -52,7 +52,7 @@
       <header class="top-bar">
 
         <span class="brand-sm">🏪<br> SHOP NEAR ME</span>
-        <button type="button" class="theme-switch" id="btnThemeToggle" title="Theme" aria-label="Toggle light or dark">
+        <button type="button" class="theme-switch" id="btnThemeToggleLanding" title="Theme" aria-label="Toggle light or dark">
           <span class="theme-switch-track" aria-hidden="true">
             <span class="theme-switch-knob"></span>
           </span>
@@ -315,7 +315,7 @@
           <i class="fa-solid fa-bars"></i>
         </button>
         <span class="brand-sm">Shop Near Me</span>
-        <button type="button" class="theme-switch" id="btnThemeToggle" title="Theme" aria-label="Toggle theme">
+        <button type="button" class="theme-switch" id="btnThemeToggleHome" title="Theme" aria-label="Toggle theme">
           <span class="theme-switch-track" aria-hidden="true"><span class="theme-switch-knob"></span></span>
           <span class="theme-switch-label" id="themeSwitchLabel">Light</span>
         </button>
@@ -932,6 +932,22 @@
     </section>
 
     <!-- ========== SETTINGS ========== -->
+    <section id="notifications" class="screen" data-screen="notifications">
+      <header class="top-bar">
+        <button type="button" class="icon-btn" data-back="home" aria-label="Back">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <span class="screen-title">Notifications</span>
+        <span class="spacer"></span>
+      </header>
+      <div class="container stack">
+        <p class="muted small">Heartbeat and alerts (Redis-backed next).</p>
+        <div id="notificationsList" class="feed-list">
+          <p class="muted">No notifications yet.</p>
+        </div>
+      </div>
+    </section>
+
     <section id="settings" class="screen" data-screen="settings">
       <header class="top-bar">
         <button type="button" class="icon-btn" data-back="home" aria-label="Back">
@@ -967,8 +983,8 @@
       <button type="button" data-menu="documents">Documents</button>
       <button type="button" data-menu="calculator">Calculator</button>
       <button type="button" data-menu="invoice">Invoice studio</button>
-      <button type="button" data-menu="rules">Rules</button>
-      <button type="button" data-menu="about">About</button>
+      <button type="button" data-menu="notifications">Notifications</button>
+      <button type="button" data-menu="settings">Settings</button>
       <button type="button" data-menu="logout" class="danger">Logout</button>
     </div>
 

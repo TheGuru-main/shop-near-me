@@ -23,7 +23,8 @@ SNM.AUTHED = {
   calculator: 1,
   invoice: 1,
   dashboard: 1,
-  settings: 1
+  settings: 1,
+  notifications: 1
 };
 
 SNM.hideSplash = function () {

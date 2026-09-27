@@ -31,3 +31,26 @@ def admin_public() -> dict:
         "role": "admin",
         "permanent": True,
     }
+
+
+# Process-local contact inbox (shared by admin_contact routes).
+# Multi-worker Render: use Redis later — workers do not share memory.
+ADMIN_INBOX: list = []
+
+
+def inbox_append(entry: dict) -> dict:
+    entry = dict(entry)
+    entry["id"] = len(ADMIN_INBOX) + 1
+    ADMIN_INBOX.append(entry)
+    return entry
+
+
+def inbox_list(limit: int = 50) -> list:
+    limit = max(1, min(int(limit or 50), 200))
+    return list(reversed(ADMIN_INBOX[-limit:]))
+
+
+def inbox_clear() -> int:
+    n = len(ADMIN_INBOX)
+    ADMIN_INBOX.clear()
+    return n
