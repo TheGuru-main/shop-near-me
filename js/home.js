@@ -927,13 +927,20 @@ SNM.loadFeed = async function () {
     var geo = typeof SNM.seekerGeo === "function" ? SNM.seekerGeo() : {};
     var q = "";
 
+    var prefs = u.prefs || (u.setup && u.setup.prefs) || [];
+    if (typeof prefs === "string") {
+      try { prefs = JSON.parse(prefs); } catch (e) { prefs = []; }
+    }
+    /* signup prefs seed the query; empty = nearby hot posts */
+    q = prefs.filter(Boolean).slice(0, 6).join(" ");
+
     var params = {
       q: q,
       community: u.community || "",
       city: u.city || "",
       region: u.region || "",
       country: u.country || "",
-      max_km: SNM.MAX_KM || 80,
+      max_km: 20,
       limit: 40
     };
     if (geo.lat != null) params.lat = geo.lat;
@@ -962,22 +969,43 @@ SNM.loadFeed = async function () {
       });
     }
 
-    var maxKm = SNM.MAX_KM || 80;
+    var maxKm = 20;
     normalized = normalized.filter(function (it) {
       if (it.km == null || isNaN(Number(it.km))) return true;
       return Number(it.km) <= maxKm;
     });
 
+    var prefSet = {};
+    (prefs || []).forEach(function (p) {
+      prefSet[String(p).toLowerCase()] = 1;
+    });
+    function prefScore(it) {
+      var t = (
+        (it.title || "") +
+        " " +
+        (it.kind || "") +
+        " " +
+        (it.sellerName || "")
+      ).toLowerCase();
+      var s = 0;
+      Object.keys(prefSet).forEach(function (p) {
+        if (p && t.indexOf(p) >= 0) s += 1;
+      });
+      return s;
+    }
     normalized.sort(function (a, b) {
+      var pa = prefScore(a);
+      var pb = prefScore(b);
+      if (pb !== pa) return pb - pa;
+      var ta = new Date(a.created_at || 0).getTime() || 0;
+      var tb = new Date(b.created_at || 0).getTime() || 0;
+      if (tb !== ta) return tb - ta;
       var ka = a.km != null && !isNaN(Number(a.km)) ? Number(a.km) : 999999;
       var kb = b.km != null && !isNaN(Number(b.km)) ? Number(b.km) : 999999;
-      if (ka !== kb) return ka - kb;
-      return String(b.created_at || "").localeCompare(
-        String(a.created_at || "")
-      );
+      return ka - kb;
     });
 
-    var assistant =
+var assistant =
       data.assistant && (data.assistant.message || data.assistant);
     box.innerHTML =
       (assistant
@@ -1033,6 +1061,10 @@ SNM.initHomeMap = function () {
     })
       .addTo(SNM._homeMap)
       .bindPopup("You");
+
+    /* Shop / seller pins within 20km */
+    SNM._paintHomeShopPins(lat, lng);
+
     setTimeout(function () {
       try {
         SNM._homeMap.invalidateSize();
@@ -1041,6 +1073,78 @@ SNM.initHomeMap = function () {
   } catch (err) {
     mapEl.innerHTML =
       "<p class='muted' style='padding:1rem'>Map unavailable.</p>";
+  }
+};
+
+SNM._paintHomeShopPins = async function (lat, lng) {
+  try {
+    var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+    var data = await SNM.api(
+      "/search/products" +
+        SNM.qs({
+          q: "",
+          community: u.community || "",
+          city: u.city || "",
+          region: u.region || "",
+          country: u.country || "",
+          max_km: 20,
+          limit: 60,
+          lat: lat,
+          lng: lng
+        })
+    );
+    var rows = data.results || data.items || [];
+    var seen = {};
+    var bounds = [[lat, lng]];
+    rows.forEach(function (raw) {
+      var x =
+        typeof SNM.normalizeListing === "function"
+          ? SNM.normalizeListing(raw)
+          : raw;
+      if (x.lat == null || x.lng == null) return;
+      var key = String(x.lat) + "," + String(x.lng) + ":" + (x.phone || x.sellerName || "");
+      if (seen[key]) return;
+      seen[key] = 1;
+      var name =
+        x.sellerName ||
+        x.business_name ||
+        x.title ||
+        "Shop";
+      var role = x.roleLabel || x.role || "";
+      var color =
+        role.indexOf("Driver") >= 0
+          ? "#9333ea"
+          : role.indexOf("Service") >= 0
+            ? "#4f46e5"
+            : role.indexOf("Emergency") >= 0
+              ? "#dc2626"
+              : "#2563eb";
+      var m = L.circleMarker([Number(x.lat), Number(x.lng)], {
+        radius: 8,
+        color: color,
+        fillColor: color,
+        fillOpacity: 0.85,
+        weight: 2
+      }).addTo(SNM._homeMap);
+      m.bindPopup(
+        "<strong>" +
+          (typeof SNM.esc === "function" ? SNM.esc(name) : name) +
+          "</strong>" +
+          (role
+            ? "<br/><span>" +
+              (typeof SNM.esc === "function" ? SNM.esc(role) : role) +
+              "</span>"
+            : "")
+      );
+      bounds.push([Number(x.lat), Number(x.lng)]);
+    });
+    if (bounds.length > 1) {
+      try {
+        SNM._homeMap.fitBounds(bounds, { padding: [24, 24], maxZoom: 15 });
+      } catch (e2) {}
+    }
+  } catch (e) {
+    console.warn("home shop pins", e);
   }
 };
 

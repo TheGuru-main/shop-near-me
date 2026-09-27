@@ -41,6 +41,34 @@ SNM.normalizeListing = function (raw) {
     raw.photo_url ||
     owner.image_url ||
     "";
+  var refs = [];
+  var mr = raw.media_refs || raw.mediaRefs || "";
+  if (typeof mr === "string" && mr.trim()) {
+    refs = mr.split(",").map(function (s) { return s.trim(); }).filter(Boolean);
+  } else if (Array.isArray(mr)) {
+    refs = mr.filter(Boolean);
+  }
+  if (img && refs.indexOf(img) < 0) refs.unshift(img);
+
+  var roleRaw = (
+    raw.role ||
+    owner.role ||
+    raw.business_type ||
+    raw.kind ||
+    raw.category ||
+    ""
+  ).toString().toLowerCase();
+  var roleLabel = "Seller";
+  if (roleRaw.indexOf("service") >= 0) roleLabel = "Service provider";
+  else if (roleRaw.indexOf("hotel") >= 0 || roleRaw.indexOf("hospital") >= 0 || roleRaw.indexOf("accom") >= 0 || roleRaw.indexOf("lodge") >= 0)
+    roleLabel = "Accommodation";
+  else if (roleRaw.indexOf("driver") >= 0 || roleRaw.indexOf("logistics") >= 0 || roleRaw.indexOf("ride") >= 0)
+    roleLabel = "Driver";
+  else if (roleRaw.indexOf("emergency") >= 0) roleLabel = "Emergency";
+  else if (roleRaw.indexOf("merchant") >= 0 || roleRaw.indexOf("retail") >= 0 || roleRaw.indexOf("shop") >= 0)
+    roleLabel = "Merchant";
+  else if (roleRaw.indexOf("fairly") >= 0) roleLabel = "Fairly used";
+  else if (roleRaw.indexOf("home") >= 0) roleLabel = "Home service";
 
   return {
     id: raw.id || raw.product_id || raw.post_id || "",
@@ -58,6 +86,8 @@ SNM.normalizeListing = function (raw) {
       raw.owner_name ||
       raw.author_name ||
       "Seller",
+    roleLabel: roleLabel,
+    role: roleRaw,
     primary: owner.primary_location || raw.primary_location || "",
     community: owner.community || raw.community || "",
     city: owner.city || raw.city || "",
@@ -172,6 +202,13 @@ SNM.cardHtml = function (item) {
       "</div>";
   }
 
+  var sellerLine =
+    '<div class="card-seller-line"><span class="seller-role">' +
+    SNM.esc(x.roleLabel || 'Seller') +
+    '</span> · <strong>' +
+    SNM.esc(x.sellerName || '') +
+    '</strong></div>';
+
   return (
     '<article class="listing-card ' +
     SNM._catClass(x.kind) +
@@ -190,7 +227,7 @@ SNM.cardHtml = function (item) {
     '" data-primary="' +
     SNM.esc(x.primary) +
     '">' +
-    thumb +
+    thumb + sellerLine +
     '<div class="title">' +
     SNM.esc(x.title) +
     "</div>" +
