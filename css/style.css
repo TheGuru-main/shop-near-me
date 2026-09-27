@@ -1247,3 +1247,40 @@ body.theme-dark .theme-switch-label {
 .map-promo-slide.promo-admin {
   background: linear-gradient(90deg, #14532d, #ca8a04);
 }
+
+
+/* HOME_LAYOUT_FIX */
+.home-body .home-quick-nav {
+  flex-shrink: 0;
+  margin: 0 0 0.5rem;
+  max-height: none;
+}
+.home-body .map-wrap {
+  position: relative;
+  height: 160px;
+  min-height: 160px;
+  max-height: 160px;
+  margin: 0 0 0.5rem;
+  border-radius: 14px;
+  overflow: hidden;
+}
+.home-body #gsgMap,
+.home-body .map-stub {
+  width: 100%;
+}
+.home-body .map-promo-carousel {
+  pointer-events: auto;
+  padding: 0;
+  margin: 0 0 0.65rem;
+}
+.home-body .map-promo-track {
+  display: flex;
+  gap: 0.45rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 0.15rem;
+}
+.home-body .map-promo-slide {
+  flex: 0 0 72%;
+  scroll-snap-align: start;
+}
