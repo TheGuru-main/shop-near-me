@@ -1326,7 +1326,11 @@ SNM.startMapPromoCarousel = function () {
       if (!b) return;
       e.preventDefault();
       var act = b.getAttribute("data-promo");
-      if (act === "join" || act === "shop" || act === "business") {
+      if (act === "about") {
+      if (typeof SNM.showScreen === "function") SNM.showScreen("about");
+      return;
+    }
+    if (act === "join" || act === "shop" || act === "business") {
         if (typeof SNM.showScreen === "function") SNM.showScreen("premium");
         return;
       }

@@ -1329,3 +1329,28 @@ body.theme-dark .theme-switch-label {
   font-size: 0.72rem;
   text-transform: capitalize;
 }
+
+
+.home-quick-block { margin: 0 0 0.35rem; }
+.home-quick-title {
+  font-size: 0.95rem;
+  color: #14532d;
+}
+.quick-nav-btn.qn-banqueue {
+  background: linear-gradient(135deg, #fef9c3, #eab308);
+  color: #713f12;
+}
+.quick-nav-btn.qn-breakfast {
+  background: linear-gradient(135deg, #ffedd5, #f97316);
+  color: #7c2d12;
+}
+.quick-nav-btn.qn-hotel {
+  background: linear-gradient(135deg, #ede9fe, #7c3aed);
+  color: #4c1d95;
+}
+.map-promo-slide.promo-banner {
+  background: linear-gradient(105deg, #14532d 0%, #166534 45%, #2563eb 100%);
+  font-size: 0.8rem;
+  line-height: 1.35;
+  font-weight: 600;
+}
