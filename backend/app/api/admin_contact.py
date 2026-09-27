@@ -108,6 +108,5 @@ async def clear_admin_messages(
 ):
     """Optional: clear in-memory inbox after handling."""
     _require_admin(user)
-    n = len(_ADMIN_INBOX)
-    inbox_clear()
+    n = inbox_clear()
     return {"ok": True, "cleared": n}
