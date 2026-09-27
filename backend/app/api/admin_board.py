@@ -424,19 +424,15 @@ async def admin_messages(
     limit: int = Query(50, ge=1, le=200),
 ):
     _require_admin(user)
-    # Contact-box inbox (reports / admin messages) — same as POST /admin/message
-    try:
-        from app.services.admin_box import inbox_list, admin_public
+    from app.services.admin_box import inbox_list, admin_public
 
-        items = inbox_list(limit)
-        return {
-            "count": len(items),
-            "items": items,
-            "admin": admin_public(),
-            "source": "contact_box",
-        }
-    except Exception:
-        pass
+    items = inbox_list(limit)
+    return {
+        "count": len(items),
+        "items": items,
+        "admin": admin_public(),
+        "source": "contact_box",
+    }
     try:
         from app.models.message import Message, MessageThread
     except Exception:
