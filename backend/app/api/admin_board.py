@@ -424,6 +424,19 @@ async def admin_messages(
     limit: int = Query(50, ge=1, le=200),
 ):
     _require_admin(user)
+    # Contact-box inbox (reports / admin messages) — same as POST /admin/message
+    try:
+        from app.services.admin_box import inbox_list, admin_public
+
+        items = inbox_list(limit)
+        return {
+            "count": len(items),
+            "items": items,
+            "admin": admin_public(),
+            "source": "contact_box",
+        }
+    except Exception:
+        pass
     try:
         from app.models.message import Message, MessageThread
     except Exception:
@@ -471,90 +484,52 @@ async def admin_messages(
 
 
 @router.post("/message")
-@limiter.limit("20/minute")
-async def message_admin(
+@limiter.limit("5/minute")
+async def admin_post_message(
     request: Request,
-    body: AdminMessageBody,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Any logged-in user → admin mailbox (ADMIN_UID)."""
+    """Logged-in user → ADMIN contact box (shared inbox)."""
+    from datetime import datetime, timezone
+
+    from app.services.admin_box import (
+        ADMIN_START_ROW,
+        ADMIN_UID,
+        admin_public,
+        inbox_append,
+    )
+    from app.services.identity import public_identity
+
     try:
-        from app.models.message import Message, MessageThread
+        payload = await request.json()
     except Exception:
-        raise HTTPException(status_code=501, detail="messages models not loaded")
-
-    admin_user = _resolve_admin_user(db)
-    if not admin_user:
-        raise HTTPException(
-            status_code=404,
-            detail=(
-                "Admin user not registered. Seed users row: "
-                f"phone={ADMIN_UID}, name={ADMIN_NAME}, role=admin"
-            ),
-        )
-    if admin_user.id == user.id:
-        raise HTTPException(status_code=400, detail="Invalid admin sink")
-
-    a, b = (
-        (user.id, admin_user.id)
-        if str(user.id) < str(admin_user.id)
-        else (admin_user.id, user.id)
+        payload = {}
+    text = (
+        (payload.get("body") or payload.get("text") or payload.get("message") or "")
+        .strip()
     )
-    thread = (
-        db.query(MessageThread)
-        .filter(
-            MessageThread.participant_a == a,
-            MessageThread.participant_b == b,
-        )
-        .first()
+    if not text:
+        raise HTTPException(status_code=422, detail="body required")
+    context = payload.get("context")
+    sender = public_identity(user.name, user.phone)
+    entry = inbox_append(
+        {
+            "from": sender,
+            "to_uid": ADMIN_UID,
+            "to_start_row": ADMIN_START_ROW,
+            "body": text,
+            "context": context,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "is_premium_payment": text.startswith("[PREMIUM_PAYMENT]"),
+        }
     )
-    if not thread:
-        thread = MessageThread(
-            id=uuid.uuid4(),
-            participant_a=a,
-            participant_b=b,
-            context_type=body.context or "admin",
-        )
-        db.add(thread)
-        db.flush()
-
-    msg = Message(
-        id=uuid.uuid4(),
-        thread_id=thread.id,
-        from_user_id=user.id,
-        to_user_id=admin_user.id,
-        body=body.body,
-        context_type=body.context or "admin",
-    )
-    for attr, val in (
-        ("msg_type", "text"),
-        ("from_phone", user.phone),
-        ("to_phone", admin_user.phone),
-        ("from_start_row", getattr(user, "start_row", None)),
-        (
-            "to_start_row",
-            getattr(admin_user, "start_row", None) or ADMIN_START_ROW,
-        ),
-    ):
-        if hasattr(msg, attr):
-            try:
-                setattr(msg, attr, val)
-            except Exception:
-                pass
-
-    thread.updated_at = datetime.now(timezone.utc)
-    db.add(msg)
-    db.add(thread)
-    db.commit()
-    db.refresh(msg)
     return {
         "ok": True,
-        "thread_id": str(thread.id),
-        "message_id": str(msg.id),
-        "to_admin_uid": ADMIN_UID,
-        "to_admin_phone": admin_user.phone,
-        "to_admin_name": admin_user.name or ADMIN_NAME,
+        "delivered_to": admin_public(),
+        "entry": entry,
+        "from_start_row": sender.get("start_row"),
+        "to_start_row": ADMIN_START_ROW,
     }
 
 

@@ -39,18 +39,31 @@ ADMIN_INBOX: list = []
 
 
 def inbox_append(entry: dict) -> dict:
+    from app.services.redis_client import redis_lpush, get_redis
+
     entry = dict(entry)
     entry["id"] = len(ADMIN_INBOX) + 1
     ADMIN_INBOX.append(entry)
+    # Durable across workers when REDIS_URL set
+    redis_lpush("snm:admin:inbox", entry, maxlen=200)
     return entry
 
 
 def inbox_list(limit: int = 50) -> list:
+    from app.services.redis_client import get_redis, redis_lrange
+
     limit = max(1, min(int(limit or 50), 200))
+    if get_redis():
+        rows = redis_lrange("snm:admin:inbox", 0, limit - 1)
+        if rows:
+            return rows
     return list(reversed(ADMIN_INBOX[-limit:]))
 
 
 def inbox_clear() -> int:
+    from app.services.redis_client import redis_delete
+
     n = len(ADMIN_INBOX)
     ADMIN_INBOX.clear()
+    redis_delete("snm:admin:inbox")
     return n
