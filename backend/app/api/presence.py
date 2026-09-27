@@ -28,6 +28,23 @@ async def heartbeat(
     db.add(user)
     db.commit()
     db.refresh(user)
+    try:
+        from app.services.redis_client import redis_set_json, redis_publish
+
+        payload = {
+            "user_id": str(user.id),
+            "phone": user.phone,
+            "role": user.role,
+            "lat": user.lat,
+            "lng": user.lng,
+            "live": user.live,
+            "hb_at": user.hb_at.isoformat() if user.hb_at else None,
+            "signal": "heartbeat",
+        }
+        redis_set_json(f"snm:presence:{user.phone}", payload, ttl=120)
+        redis_publish("snm:presence", payload)
+    except Exception:
+        pass
     return HeartbeatResponse(
         hb_at=user.hb_at.isoformat() if user.hb_at else None,
         score=heartbeat_score(user.hb_at),

@@ -88,6 +88,20 @@ SNM._catClass = function (kind) {
 SNM.cardHtml = function (item) {
   var x = SNM.normalizeListing(item);
   var dist = SNM.formatDistance(x.km);
+  if (
+    typeof SNM.crowFlyMeta === "function" &&
+    typeof SNM.seekerGeo === "function" &&
+    x.lat != null &&
+    x.lng != null
+  ) {
+    var me = SNM.seekerGeo();
+    if (me && me.lat != null) {
+      var fly = SNM.crowFlyMeta(me.lat, me.lng, Number(x.lat), Number(x.lng));
+      if (fly.label) dist = fly.label;
+      if (fly.km != null) x.km = fly.km;
+      x.bearing = fly.bearing;
+    }
+  }
   var priceLine =
     x.price != null && x.price !== ""
       ? "<div class='price'>" +
