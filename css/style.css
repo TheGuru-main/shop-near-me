@@ -1284,3 +1284,14 @@ body.theme-dark .theme-switch-label {
   flex: 0 0 72%;
   scroll-snap-align: start;
 }
+
+
+/* PROMO_ABOVE_MAP */
+.home-body .map-promo-carousel {
+  margin: 0.35rem 0 0.5rem;
+  padding: 0;
+  z-index: 1;
+}
+.home-body .map-wrap {
+  margin-bottom: 0.5rem;
+}
