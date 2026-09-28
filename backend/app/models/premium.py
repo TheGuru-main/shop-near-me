@@ -20,6 +20,7 @@ class PremiumSubscription(Base):
     code: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     capacity_tier: Mapped[str | None] = mapped_column(String(64), nullable=True)
     status: Mapped[str] = mapped_column(String(32), default="active", nullable=False)
+    payment_ref: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
     payment_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(

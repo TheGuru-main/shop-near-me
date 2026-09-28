@@ -154,69 +154,63 @@ SNM.subscribePremium = async function (code) {
  * User paid → record pending subscribe + notify admin mailbox
  * Admin activates later (verification badge / other classes)
  */
+
 SNM.confirmPremiumPayment = async function () {
   var plan = SNM._pendingPlan || {};
-  var code = plan.code || plan.id || "";
-  var ref = ((document.getElementById("payRef") || {}).value || "").trim();
-  var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
-  var msgEl = document.getElementById("payMsg");
+  var code = plan.code || plan.plan_code || "";
+  var refEl = document.getElementById("pay-ref");
+  var ref = ((refEl && refEl.value) || "").trim();
+  var msgEl = document.getElementById("payConfirmMsg");
   var btn = document.getElementById("btnPayConfirm");
+  var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
 
   if (!code) {
     alert("No plan selected.");
     return;
   }
 
-  var bodyText = [
-    "[PREMIUM_PAYMENT]",
-    "plan=" + code,
-    "name=" + (plan.name || code),
-    "price=" + (plan.price != null ? plan.price : ""),
-    "user_phone=" + (u.phone || ""),
-    "user_name=" + (u.name || ""),
-    "bank=" + (SNM.PAY_BANK.bank || ""),
-    "account=" + (SNM.PAY_BANK.account_number || ""),
-    "ref=" + (ref || "none"),
-    "status=pending_verification",
-    "activation_code=" + activationCode
-  ].join("\n");
-
-  
   var activationCode = SNM.makeActivationCode(code);
   try {
     localStorage.setItem("snm_last_activation_code", activationCode);
   } catch (e0) {}
 
-if (btn) btn.disabled = true;
+  var bodyText = [
+    "[PREMIUM_PAYMENT]",
+    "plan=" + code,
+    "plan_name=" + (plan.name || code),
+    "phone=" + (u.phone || ""),
+    "name=" + (u.name || ""),
+    "user_ref=" + (ref || "none"),
+    "activation_code=" + activationCode,
+    "status=pending_verification"
+  ].join("\n");
+
+  if (btn) btn.disabled = true;
   if (msgEl) msgEl.textContent = "Sending to admin…";
 
   try {
     await SNM.api("/premium/subscribe", {
       method: "POST",
       body: {
-        code: code,
         plan_code: code,
-        status: "pending_payment",
-        payment_ref: activationCode || ref || null
+        payment_ref: activationCode,
+        status: "pending_verification"
       }
     });
 
     await SNM.api("/admin/message", {
       method: "POST",
-      body: {
-        body: bodyText,
-        context: "premium_payment"
-      }
+      body: { body: bodyText, context: "premium_payment" }
     });
 
     if (msgEl) {
       msgEl.textContent =
-        "Notice sent. Admin will activate after confirming your transfer.";
+        "Notice sent. Code: " + activationCode + " — wait for admin activation.";
     }
     alert(
-      "Payment notice sent.\nYour activation code (keep it):\n" +
+      "Payment notice sent to admin.\n\nYour activation code:\n" +
         activationCode +
-        "\nAdmin activates with this code after confirming transfer."
+        "\n\nAdmin will activate this plan after confirming your transfer."
     );
     if (typeof SNM.showScreen === "function") SNM.showScreen("premium");
     await SNM.loadPremium();
@@ -226,6 +220,7 @@ if (btn) btn.disabled = true;
   }
   if (btn) btn.disabled = false;
 };
+
 
 SNM.bindPremium = function () {
   if (SNM._premiumBound) return;
@@ -247,7 +242,38 @@ SNM.bindPremium = function () {
   }
 };
 
+SNM.loadMyPremium = async function () {
+  var el = document.getElementById("premiumMine");
+  if (!el) return;
+  try {
+    var data = await SNM.api("/premium/me");
+    var codes = data.active_codes || [];
+    var subs = data.subscriptions || [];
+    if (!codes.length) {
+      el.innerHTML = "<p class='muted small'>No active premium yet.</p>";
+      return;
+    }
+    el.innerHTML =
+      "<p><strong>Active:</strong> " +
+      SNM.esc(codes.join(", ")) +
+      "</p>" +
+      subs
+        .map(function (s) {
+          return (
+            "<p class='muted small'>" +
+            SNM.esc(s.code || "") +
+            (s.expires_at ? " · expires " + SNM.esc(s.expires_at) : " · no expiry") +
+            "</p>"
+          );
+        })
+        .join("");
+  } catch (e) {
+    el.innerHTML = "";
+  }
+};
+
 SNM.onPremiumEnter = function () {
   SNM.bindPremium();
   SNM.loadPremium();
+  SNM.loadMyPremium();
 };
