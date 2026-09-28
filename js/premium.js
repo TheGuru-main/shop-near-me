@@ -19,6 +19,16 @@ SNM.PAY_BANK = {
 };
 
 SNM._pendingPlan = null;
+
+/** One code per payment notice — admin uses this to activate that lane */
+SNM.makeActivationCode = function (planCode) {
+  var a = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  var s = "";
+  for (var i = 0; i < 8; i++) s += a.charAt(Math.floor(Math.random() * a.length));
+  var pc = String(planCode || "PLAN").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12);
+  return "SNM-" + s + (pc ? "-" + pc : "");
+};
+
 SNM._premiumPlansCache = [];
 
 SNM.esc =
@@ -167,10 +177,17 @@ SNM.confirmPremiumPayment = async function () {
     "bank=" + (SNM.PAY_BANK.bank || ""),
     "account=" + (SNM.PAY_BANK.account_number || ""),
     "ref=" + (ref || "none"),
-    "status=pending_verification"
+    "status=pending_verification",
+    "activation_code=" + activationCode
   ].join("\n");
 
-  if (btn) btn.disabled = true;
+  
+  var activationCode = SNM.makeActivationCode(code);
+  try {
+    localStorage.setItem("snm_last_activation_code", activationCode);
+  } catch (e0) {}
+
+if (btn) btn.disabled = true;
   if (msgEl) msgEl.textContent = "Sending to admin…";
 
   try {
@@ -180,7 +197,7 @@ SNM.confirmPremiumPayment = async function () {
         code: code,
         plan_code: code,
         status: "pending_payment",
-        payment_ref: ref || null
+        payment_ref: activationCode || ref || null
       }
     });
 
@@ -197,7 +214,9 @@ SNM.confirmPremiumPayment = async function () {
         "Notice sent. Admin will activate after confirming your transfer.";
     }
     alert(
-      "Payment notice sent to admin. You will be activated after verification."
+      "Payment notice sent.\nYour activation code (keep it):\n" +
+        activationCode +
+        "\nAdmin activates with this code after confirming transfer."
     );
     if (typeof SNM.showScreen === "function") SNM.showScreen("premium");
     await SNM.loadPremium();

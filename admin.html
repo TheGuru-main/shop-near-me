@@ -226,9 +226,12 @@
       <div id="admPremium"></div>
       <div class="card">
         <p class="muted">After bank transfer confirmed:</p>
+        <label>Activation code (from user notice)
+          <input id="act-code" placeholder="SNM-XXXXXXXX-PLAN" />
+        </label>
+        <p class="muted small">Or phone + plan if code missing:</p>
         <label>User phone <input id="act-phone" placeholder="+234…" /></label>
-        <label>Plan code <input id="act-plan" placeholder="verification_badge" /></label>
-        <label>Payment ref (optional) <input id="act-ref" placeholder="ref" /></label>
+        <label>Plan code <input id="act-plan" placeholder="verified_badge" /></label>
         <button type="button" class="btn block" id="btnAdmActivate">Activate premium</button>
         <p id="actMsg" class="muted"></p>
       </div>
@@ -789,13 +792,16 @@
       var msg = document.getElementById("actMsg");
       if (msg) msg.textContent = "";
       try {
+        var code = (document.getElementById("act-code") || {}).value || "";
+        code = String(code).trim();
         var res = await admApi("/admin/premium/activate", {
           method: "POST",
           body: {
-            user_phone: phone,
-            plan_code: plan,
+            activation_code: code || null,
+            user_phone: phone || null,
+            plan_code: plan || null,
             active: true,
-            payment_ref: ref || null
+            payment_ref: code || null
           }
         });
         if (msg)

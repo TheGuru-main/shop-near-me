@@ -224,8 +224,10 @@ class AdminMessageBody(BaseModel):
 
 
 class PremiumActivateIn(BaseModel):
-    user_phone: str = Field(min_length=10, max_length=32)
-    plan_code: str = Field(min_length=1, max_length=64)
+    """Prefer activation_code from user payment notice; phone+plan still work."""
+    activation_code: str | None = None
+    user_phone: str | None = None
+    plan_code: str | None = None
     active: bool = True
     payment_ref: str | None = None
     note: str | None = None
@@ -577,6 +579,7 @@ async def premium_pending(
 
 @router.post("/premium/activate")
 @limiter.limit("20/minute")
+
 async def premium_activate(
     request: Request,
     body: PremiumActivateIn,
@@ -584,64 +587,113 @@ async def premium_activate(
     db: Session = Depends(get_db),
 ):
     _require_admin(user)
-    phone = _normalize_phone(body.user_phone)
-    target = (
-        db.query(User)
-        .filter(User.deleted_at.is_(None))
-        .filter(
-            or_(
-                User.phone == phone,
-                User.phone == body.user_phone.strip(),
-            )
-        )
-        .first()
-    )
-    if not target:
-        want = _digits(body.user_phone)
-        for u in db.query(User).filter(User.deleted_at.is_(None)).limit(5000):
-            if _digits(u.phone).endswith(want[-10:]):
-                target = u
-                break
-    if not target:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    plan_code = body.plan_code.strip()
-    candidates = (
-        db.query(PremiumSubscription)
-        .filter(PremiumSubscription.user_id == target.id)
-        .all()
-    )
-    found = None
-    for r in candidates:
-        code = getattr(r, "plan_code", None) or getattr(r, "code", None)
-        if code == plan_code:
-            found = r
-            break
-    if found is None and candidates:
-        found = candidates[0]
-
     now = datetime.now(timezone.utc)
+    code_key = (body.activation_code or body.payment_ref or "").strip()
+    plan_code = (body.plan_code or "").strip()
+    found = None
+    target = None
+
+    # 1) Activation code from user "I have paid" (stored as payment_ref)
+    if code_key:
+        q = db.query(PremiumSubscription).filter(
+            PremiumSubscription.payment_ref == code_key
+        )
+        found = q.order_by(PremiumSubscription.created_at.desc()).first()
+        if found is None:
+            # fallback: any pending with matching ref substring
+            for r in (
+                db.query(PremiumSubscription)
+                .filter(
+                    PremiumSubscription.status.in_(
+                        ("pending", "pending_payment", "pending_verification")
+                    )
+                )
+                .limit(200)
+                .all()
+            ):
+                ref = getattr(r, "payment_ref", None) or ""
+                if ref and code_key in str(ref):
+                    found = r
+                    break
+        if found is not None:
+            target = db.get(User, found.user_id)
+            plan_code = (
+                getattr(found, "plan_code", None)
+                or getattr(found, "code", None)
+                or plan_code
+            )
+
+    # 2) Phone + plan
+    if target is None and body.user_phone:
+        phone = _normalize_phone(body.user_phone)
+        target = (
+            db.query(User)
+            .filter(User.deleted_at.is_(None))
+            .filter(
+                or_(
+                    User.phone == phone,
+                    User.phone == (body.user_phone or "").strip(),
+                )
+            )
+            .first()
+        )
+        if not target:
+            want = _digits(body.user_phone)
+            for u in db.query(User).filter(User.deleted_at.is_(None)).limit(5000):
+                if want and _digits(u.phone).endswith(want[-10:]):
+                    target = u
+                    break
+        if target and plan_code:
+            for r in (
+                db.query(PremiumSubscription)
+                .filter(PremiumSubscription.user_id == target.id)
+                .all()
+            ):
+                co = getattr(r, "plan_code", None) or getattr(r, "code", None)
+                if co == plan_code:
+                    found = r
+                    break
+
+    if target is None:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found — use activation_code from payment notice",
+        )
+    if not plan_code:
+        plan_code = "verified_badge"
+
     if found is None:
-        kwargs: dict[str, Any] = {
+        kwargs = {
             "id": uuid.uuid4(),
             "user_id": target.id,
             "status": "active" if body.active else "cancelled",
+            "plan_code": plan_code,
         }
-        if hasattr(PremiumSubscription, "plan_code"):
-            kwargs["plan_code"] = plan_code
-        elif hasattr(PremiumSubscription, "code"):
-            kwargs["code"] = plan_code
-        if hasattr(PremiumSubscription, "payment_ref") and body.payment_ref:
-            kwargs["payment_ref"] = body.payment_ref
+        if hasattr(PremiumSubscription, "payment_ref"):
+            kwargs["payment_ref"] = code_key or body.payment_ref
+        if hasattr(PremiumSubscription, "payment_at") and body.active:
+            kwargs["payment_at"] = now
         found = PremiumSubscription(**kwargs)
         db.add(found)
     else:
         found.status = "active" if body.active else "cancelled"
-        if hasattr(found, "payment_ref") and body.payment_ref:
-            found.payment_ref = body.payment_ref
-        if hasattr(found, "updated_at"):
-            found.updated_at = now
+        if hasattr(found, "payment_ref") and code_key:
+            found.payment_ref = code_key
+        if hasattr(found, "payment_at") and body.active:
+            found.payment_at = now
         db.add(found)
+
+    # mirror on user prefs if JSON
+    try:
+        prefs = dict(target.prefs or {}) if isinstance(target.prefs, dict) else {}
+        codes = list(prefs.get("premium_codes") or [])
+        if body.active and plan_code not in codes:
+            codes.append(plan_code)
+        prefs["premium_codes"] = codes
+        target.prefs = prefs
+        db.add(target)
+    except Exception:
+        pass
 
     db.commit()
     return {
@@ -649,5 +701,7 @@ async def premium_activate(
         "user_phone": target.phone,
         "user_name": target.name,
         "plan_code": plan_code,
+        "activation_code": code_key or None,
         "status": "active" if body.active else "cancelled",
     }
+
