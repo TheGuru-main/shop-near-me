@@ -561,6 +561,22 @@
     return m.last_from_phone || "";
   }
 
+  
+  function extractPhone(m) {
+    var from = m.from || {};
+    var phone = from.phone || m.last_from_phone || m.from_phone || "";
+    if (phone) return String(phone).trim();
+    var body = String(m.body || m.last_body || "");
+    var lines = body.split(/\n/);
+    for (var i = 0; i < lines.length; i++) {
+      var ln = lines[i].trim();
+      if (/^phone=/i.test(ln)) return ln.split("=").slice(1).join("=").trim();
+      if (/^\+?\d{10,15}$/.test(ln.replace(/\s/g, ""))) return ln.replace(/\s/g, "");
+    }
+    var m2 = body.match(/(\+234\d{10}|\+?\d{10,15})/);
+    return m2 ? m2[1] : "";
+  }
+
   async function loadInbox() {
     var box = document.getElementById("admInbox");
     if (!box) return;
@@ -578,76 +594,102 @@
           var pay =
             m.is_premium_payment ||
             String(body).indexOf("[PREMIUM_PAYMENT]") === 0;
-          var from = m.from || {};
-          var phone = from.phone || m.last_from_phone || "";
-          var name = from.name || "";
+          var phone = extractPhone(m);
+          var name = (m.from && m.from.name) || "";
           return (
-            '<article class="card" data-from-phone="' +
+            '<article class="card adm-msg-card" data-from-phone="' +
             esc(phone) +
-            '">' +
+            '" data-idx="' +
+            idx +
+            '" style="cursor:pointer">' +
             (pay ? '<span class="chip pay">Premium pay</span> ' : "") +
             "<span class='muted'>" +
             esc(m.created_at || m.updated_at || "") +
             "</span>" +
             (inboxFrom(m) ? " · " + esc(inboxFrom(m)) : "") +
+            (phone ? " · <strong>" + esc(phone) + "</strong>" : "") +
             "<pre class='msg'>" +
             esc(String(body || "(empty)")) +
             "</pre>" +
+            '<div class="adm-reply-panel hidden" id="adm-reply-' +
+            idx +
+            '">' +
             (phone
-              ? '<div class="toolbar" style="margin-top:0.5rem">' +
-                '<input type="text" class="adm-reply-input" data-idx="' +
-                idx +
-                '" placeholder="Reply to ' +
+              ? '<div class="toolbar" style="margin-top:0.5rem;flex-wrap:wrap;gap:0.35rem">' +
+                '<input type="text" class="adm-reply-input" placeholder="Reply to ' +
                 esc(name || phone) +
                 '…" style="flex:1;min-width:12rem" />' +
                 '<button type="button" class="btn small adm-reply-btn" data-phone="' +
                 esc(phone) +
-                '">Reply</button>' +
+                '">Send reply</button>' +
                 "</div>"
-              : "") +
-            "</article>"
+              : "<p class='muted small'>No sender phone on this message.</p>") +
+            "</div></article>"
           );
         })
         .join("");
-      box.querySelectorAll(".adm-reply-btn").forEach(function (btn) {
-        btn.onclick = async function () {
-          var phone = btn.getAttribute("data-phone") || "";
-          var card = btn.closest(".card");
-          var input = card && card.querySelector(".adm-reply-input");
-          var text = (input && input.value || "").trim();
-          if (!phone) {
-            alert("No sender phone on this message");
-            return;
-          }
-          if (!text) {
-            alert("Write a reply");
-            return;
-          }
-          btn.disabled = true;
-          try {
-            await admApi("/messages/threads", {
-              method: "POST",
-              body: {
-                to_phone: phone,
-                body: text,
-                context_type: "direct"
+
+      if (!box._snmReplyWired) {
+        box._snmReplyWired = true;
+        box.addEventListener("click", function (e) {
+          var sendBtn = e.target.closest(".adm-reply-btn");
+          if (sendBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            (async function () {
+              var phone = sendBtn.getAttribute("data-phone") || "";
+              var card = sendBtn.closest(".card");
+              var input = card && card.querySelector(".adm-reply-input");
+              var text = ((input && input.value) || "").trim();
+              if (!phone) {
+                alert("No sender phone");
+                return;
               }
-            });
-            if (input) input.value = "";
-            alert("Reply sent. User will see it in Messages.");
-          } catch (err) {
-            alert((err && err.message) || "Reply failed");
+              if (!text) {
+                alert("Write a reply");
+                return;
+              }
+              sendBtn.disabled = true;
+              try {
+                await admApi("/messages/threads", {
+                  method: "POST",
+                  body: {
+                    to_phone: phone,
+                    body: text,
+                    context_type: "direct"
+                  }
+                });
+                if (input) input.value = "";
+                alert("Reply sent. User sees it under Messages.");
+              } catch (err) {
+                alert((err && err.message) || "Reply failed");
+              }
+              sendBtn.disabled = false;
+            })();
+            return;
           }
-          btn.disabled = false;
-        };
-      });
+          var card = e.target.closest(".adm-msg-card");
+          if (!card || e.target.closest(".adm-reply-panel")) return;
+          var panel = card.querySelector(".adm-reply-panel");
+          if (!panel) return;
+          var open = !panel.classList.contains("hidden");
+          box.querySelectorAll(".adm-reply-panel").forEach(function (p) {
+            p.classList.add("hidden");
+          });
+          if (!open) {
+            panel.classList.remove("hidden");
+            var inp = panel.querySelector(".adm-reply-input");
+            if (inp) inp.focus();
+          }
+        });
+      }
     } catch (e) {
       box.innerHTML =
         "<p class='err'>" + esc((e && e.message) || "Inbox failed") + "</p>";
     }
   }
 
-  async function loadPremiumPending() {
+async function loadPremiumPending() {
     var el = document.getElementById("admPremium");
     if (!el) return;
     el.innerHTML = "<p class='muted'>Loading pending…</p>";

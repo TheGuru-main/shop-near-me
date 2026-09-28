@@ -472,6 +472,14 @@ SNM.ensureDetailSheet = function () {
         SNM.closeListingDetail();
       };
     }
+    var closeX = document.getElementById("btnCloseDetailX");
+    if (closeX) {
+      closeX.onclick = function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        SNM.closeListingDetail();
+      };
+    }
     sheet.addEventListener("click", function (e) {
       if (e.target === sheet) SNM.closeListingDetail();
     });
@@ -520,21 +528,12 @@ SNM.closeListingDetail = function () {
     SNM._detailMap = null;
   }
 
-  var mapEl =
-    document.getElementById("listingDetailMap") ||
-    document.getElementById("detailMap");
+  var mapEl = document.getElementById("listingDetailMap");
   if (mapEl) {
-    mapEl.innerHTML = "";
     mapEl.classList.remove("map-expanded");
+    mapEl.innerHTML = "";
     mapEl.style.height = "";
-    mapEl.style.minHeight = "180px";
-    mapEl._snmTap = false;
   }
-
-  var body =
-    document.getElementById("listingDetailBody") ||
-    document.getElementById("detailBody");
-  if (body) body.innerHTML = "";
 
   sheet.classList.remove("open");
   sheet.setAttribute("aria-hidden", "true");
@@ -542,149 +541,6 @@ SNM.closeListingDetail = function () {
   document.body.classList.remove("sheet-open");
 };
 
-
-
-SNM.renderDetailMap = async function (item) {
-  var mapEl =
-    document.getElementById("listingDetailMap") ||
-    document.getElementById("detailMap");
-  if (!mapEl) return;
-
-  var me = SNM.seekerGeo();
-  var aLat = me.lat;
-  var aLng = me.lng;
-  var bLat = item.lat != null ? Number(item.lat) : null;
-  var bLng = item.lng != null ? Number(item.lng) : null;
-  if (bLat != null && isNaN(bLat)) bLat = null;
-  if (bLng != null && isNaN(bLng)) bLng = null;
-
-  var meta = document.getElementById("detailRouteMeta");
-
-  if (bLat == null || bLng == null) {
-    var placeQ = [
-      item.primary_location,
-      item.community,
-      item.city,
-      item.region,
-      item.country || "Nigeria"
-    ]
-      .filter(Boolean)
-      .join(", ");
-    if (meta) meta.textContent = "Resolving seller place for route…";
-    if (placeQ) {
-      var pt = await SNM.geocodeText(placeQ);
-      if (pt) {
-        bLat = pt.lat;
-        bLng = pt.lng;
-        item.lat = pt.lat;
-        item.lng = pt.lng;
-        if (SNM._listingsById[item.id]) {
-          SNM._listingsById[item.id].lat = pt.lat;
-          SNM._listingsById[item.id].lng = pt.lng;
-        }
-      }
-    }
-  }
-
-  mapEl.style.display = "block";
-  mapEl.style.width = "100%";
-  mapEl.style.minHeight = "180px";
-  mapEl.style.height = mapEl.style.height || "200px";
-  mapEl.innerHTML = "";
-
-  if (typeof L === "undefined") {
-    mapEl.innerHTML =
-      "<p class='soft' style='padding:1rem'>Place: " +
-      SNM.escapeHtml(
-        [item.primary_location, item.community, item.city]
-          .filter(Boolean)
-          .join(" · ") || "—"
-      ) +
-      "</p>";
-    return;
-  }
-
-  if (SNM._detailMap) {
-    try {
-      SNM._detailMap.remove();
-    } catch (e) {}
-    SNM._detailMap = null;
-  }
-
-  var center =
-    bLat != null && bLng != null
-      ? [bLat, bLng]
-      : aLat != null && aLng != null
-        ? [aLat, aLng]
-        : [4.8156, 7.0498];
-
-  SNM._detailMap = L.map(mapEl, {
-    zoomControl: true,
-    attributionControl: true
-  }).setView(center, 14);
-
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 19,
-    attribution: "© OSM"
-  }).addTo(SNM._detailMap);
-
-  var bounds = [];
-
-  if (aLat != null && aLng != null) {
-    L.circleMarker([aLat, aLng], {
-      radius: 9,
-      color: "#14532d",
-      fillColor: "#86efac",
-      fillOpacity: 0.95,
-      weight: 2
-    })
-      .addTo(SNM._detailMap)
-      .bindPopup("You");
-    bounds.push([aLat, aLng]);
-  }
-
-  if (bLat != null && bLng != null) {
-    L.marker([bLat, bLng])
-      .addTo(SNM._detailMap)
-      .bindPopup(item.name || item.title || "Seller");
-    bounds.push([bLat, bLng]);
-  }
-
-  if (bounds.length === 2) {
-    var line = L.polyline(bounds, {
-      color: "#14532d",
-      weight: 5,
-      opacity: 0.95
-    }).addTo(SNM._detailMap);
-    try {
-      SNM._detailMap.fitBounds(line.getBounds(), { padding: [36, 36] });
-    } catch (e) {}
-    var km = SNM.haversineKm(
-      bounds[0][0],
-      bounds[0][1],
-      bounds[1][0],
-      bounds[1][1]
-    );
-    if (meta)
-      meta.textContent = "Route · ~" + km.toFixed(1) + " km (straight line)";
-  } else if (meta) {
-    meta.textContent =
-      bounds.length === 1
-        ? "Only one pin has coordinates — need both for the line."
-        : "No GPS yet — text location only.";
-  }
-
-  function fixSize() {
-    try {
-      SNM._detailMap.invalidateSize(true);
-      if (bounds.length === 2) {
-        SNM._detailMap.fitBounds(bounds, { padding: [36, 36] });
-      }
-    } catch (e) {}
-  }
-  setTimeout(fixSize, 150);
-  setTimeout(fixSize, 450);
-};
 
 SNM.openListingDetail = function (item) {
   item = SNM.normalizeListing(item);
@@ -1126,16 +982,23 @@ SNM._paintHomeShopPins = async function (lat, lng) {
         fillOpacity: 0.85,
         weight: 2
       }).addTo(SNM._homeMap);
-      m.bindPopup(
+      var place = [x.primary, x.primary_location, x.community, x.city]
+        .filter(Boolean)
+        .join(" · ");
+      var esc = typeof SNM.esc === "function" ? SNM.esc : function (s) { return String(s || ""); };
+      var html =
         "<strong>" +
-          (typeof SNM.esc === "function" ? SNM.esc(name) : name) +
-          "</strong>" +
-          (role
-            ? "<br/><span>" +
-              (typeof SNM.esc === "function" ? SNM.esc(role) : role) +
-              "</span>"
-            : "")
-      );
+        esc(name) +
+        "</strong>" +
+        (role ? "<br/><span class='muted'>" + esc(role) + "</span>" : "") +
+        (place ? "<br/><span>" + esc(place) + "</span>" : "") +
+        (x.km != null && !isNaN(Number(x.km))
+          ? "<br/><span class='muted'>" + Number(x.km).toFixed(1) + " km</span>"
+          : "");
+      m.bindPopup(html, { closeButton: true, autoClose: true, closeOnClick: true });
+      m.on("click", function () {
+        m.openPopup();
+      });
       bounds.push([Number(x.lat), Number(x.lng)]);
     });
     if (bounds.length > 1) {
