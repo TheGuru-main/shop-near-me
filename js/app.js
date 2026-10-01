@@ -1,5 +1,23 @@
 (function () {
-  function boot() {
+  SNM.toast = SNM.toast || function (msg) {
+  msg = String(msg || "");
+  var el = document.getElementById("snmToast");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "snmToast";
+    el.setAttribute("style",
+      "position:fixed;left:50%;bottom:88px;transform:translateX(-50%);"+
+      "background:#14532d;color:#fff;padding:0.55rem 0.9rem;border-radius:10px;"+
+      "z-index:9999;font-size:0.85rem;max-width:90%;text-align:center");
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.display = "block";
+  clearTimeout(SNM._toastTimer);
+  SNM._toastTimer = setTimeout(function () { el.style.display = "none"; }, 2200);
+};
+
+function boot() {
     if (typeof SNM === "undefined") {
       console.error("SNM missing");
       return;

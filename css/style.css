@@ -1446,3 +1446,15 @@ body.theme-dark #home > .top-bar .theme-switch-knob {
   padding: 0.5rem 0.75rem;
 }
 #userProfileSheet.sheet.open { display: flex; flex-direction: column; }
+
+.profile-avatar-wrap { text-align: center; margin: 0.5rem 0; }
+.profile-avatar {
+  width: 88px; height: 88px; border-radius: 50%;
+  object-fit: cover; background: #e5e7eb;
+  border: 2px solid #14532d;
+}
+.card-seller-link {
+  color: #14532d; font-weight: 700; text-decoration: underline;
+  cursor: pointer; background: none; border: none; padding: 0;
+  font: inherit;
+}

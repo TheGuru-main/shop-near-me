@@ -979,6 +979,29 @@
     <div id="profileSheet" class="sheet" aria-hidden="true">
       <div class="sheet-handle"></div>
       <div class="sheet-body" id="profileBody"></div>
+      <button type="button" class="btn danger block" 
+    <div id="profileEditBlock" class="card" style="margin:0.5rem 0.75rem">
+      <label class="muted small">Bio
+        <textarea id="profileBioInput" rows="2" placeholder="About your shop, car, or service…"></textarea>
+      </label>
+      <div class="photo-row">
+        <span class="muted small">Profile / shop / vehicle photo</span>
+        <div class="photo-actions">
+          <button type="button" class="btn secondary small" id="btnProfileCam">
+            <i class="fa-solid fa-camera"></i> Camera
+          </button>
+          <button type="button" class="btn secondary small" id="btnProfileGallery">
+            <i class="fa-solid fa-images"></i> Gallery
+          </button>
+        </div>
+        <input id="profile-image-cam" type="file" accept="image/*" capture="environment" class="hidden" />
+        <input id="profile-image-file" type="file" accept="image/*" class="hidden" />
+        <div id="profile-image-preview" class="img-preview hidden"></div>
+      </div>
+      <button type="button" class="btn block" id="btnProfileSave">Save profile</button>
+      <p id="profileSaveMsg" class="muted small"></p>
+    </div>
+
       <button type="button" class="btn danger block" id="btnLogoutProfile">Logout</button>
       <button type="button" class="btn secondary block" id="btnCloseProfile">Close</button>
     </div>
