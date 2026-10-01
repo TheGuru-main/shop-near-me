@@ -28,6 +28,7 @@ function boot() {
       if (typeof SNM.bindAuth === "function") SNM.bindAuth();
       if (typeof SNM.bindSetup === "function") SNM.bindSetup();
       if (typeof SNM.bindHome === "function") SNM.bindHome();
+      if (typeof SNM.bindCards === "function") SNM.bindCards();;
       if (typeof SNM.initPresenceForRole === "function") SNM.initPresenceForRole();
       if (typeof SNM.bindFairlyUsed === "function") SNM.bindFairlyUsed();
       if (typeof SNM.bindShell === "function") SNM.bindShell();

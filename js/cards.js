@@ -127,6 +127,7 @@ SNM.isMerchantListing = function (x) {
 
 SNM.cardHtml = function (item) {
   var x = SNM.normalizeListing(item);
+  if (x && x.id) SNM._listingsById[String(x.id)] = x;
   var dist = SNM.formatDistance(x.km);
   if (
     typeof SNM.crowFlyMeta === "function" &&
@@ -620,4 +621,71 @@ SNM.bindCardDetailTap = function (root) {
     },
     false
   );
+};
+
+
+
+/* CARD_TAP_PROFILE_V2 */
+SNM._listingsById = SNM._listingsById || {};
+
+SNM.bindCardActions = function (root) {
+  root = root || document;
+  if (!root.addEventListener) return;
+  if (root._snmCardClickV2) return;
+  root._snmCardClickV2 = true;
+  root.addEventListener("click", function (e) {
+    var actEl = e.target.closest("[data-act]");
+    var card = e.target.closest(".card[data-id], article.card[data-id], .card");
+    if (!card) return;
+
+    var id = card.getAttribute("data-id") || "";
+    var phone =
+      card.getAttribute("data-phone") ||
+      (actEl && actEl.getAttribute("data-phone")) ||
+      "";
+    var listing =
+      (id && SNM._listingsById && SNM._listingsById[id]) ||
+      (typeof SNM.normalizeListing === "function"
+        ? SNM.normalizeListing({
+            id: id,
+            phone: phone,
+            name: ((card.querySelector(".title") || {}).textContent || "")
+          })
+        : { id: id, phone: phone });
+
+    if (actEl) {
+      var act = actEl.getAttribute("data-act") || "";
+      e.preventDefault();
+      e.stopPropagation();
+      if (act === "profile") {
+        var ph = actEl.getAttribute("data-phone") || phone || listing.phone || "";
+        if (typeof SNM.openUserProfile === "function") SNM.openUserProfile(ph);
+        else alert("Profile unavailable");
+        return;
+      }
+      if (act === "detail") {
+        if (typeof SNM.openListingDetail === "function") SNM.openListingDetail(listing);
+        return;
+      }
+      if (act === "message") {
+        if (typeof SNM.messageSeller === "function") SNM.messageSeller(phone || listing.phone);
+        return;
+      }
+      if (act === "cart") {
+        if (typeof SNM.addToCart === "function") SNM.addToCart(listing);
+        return;
+      }
+      return;
+    }
+
+    if (e.target.closest("input, textarea, select, label")) return;
+    if (typeof SNM.openListingDetail === "function") {
+      e.preventDefault();
+      SNM.openListingDetail(listing);
+    }
+  }, false);
+};
+
+SNM.bindCards = function () {
+  SNM.bindCardActions(document);
 };
