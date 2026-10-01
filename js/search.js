@@ -261,6 +261,7 @@ SNM.doSearch = async function () {
         });
       } catch (eMob) {}
     }
+    strict = SNM.filterMobilityResults(strict, q);
     if (!strict.length) {
       out.innerHTML =
         "<p class='muted'>No matches for “" +
@@ -340,4 +341,26 @@ SNM.searchLiveDrivers = async function (q) {
   } catch (e) {
     return [];
   }
+};
+
+
+SNM.filterMobilityResults = function (rows, q) {
+  rows = rows || [];
+  q = String(q || "").toLowerCase();
+  var mobility = /ride|driver|keke|okada|bike|bus|tricycle|logistic|courier|van/;
+  if (!mobility.test(q)) return rows;
+  return rows.filter(function (r) {
+    var t = (
+      (r.name || "") + " " +
+      (r.title || "") + " " +
+      (r.category || "") + " " +
+      (r.business_type || "") + " " +
+      (r.role || "") + " " +
+      ((r.owner && r.owner.role) || "")
+    ).toLowerCase();
+    if (/salon|hair|spa|nail|fashion|cloth|hotel|room|rice|food|pharmacy/.test(t) && !mobility.test(t)) {
+      return false;
+    }
+    return mobility.test(t) || /driver|logistic|keke|okada|bike|bus|ride/.test(t);
+  });
 };

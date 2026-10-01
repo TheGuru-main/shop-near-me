@@ -760,25 +760,35 @@ SNM.applyShopCategoryFromSetup = function () {
   };
 })();
 
+
+
 SNM.paintDriverStatusCard = function (meta) {
   meta = meta || {};
   var liveEl = document.getElementById("drvStatusLive");
   var locEl = document.getElementById("drvStatusLoc");
+  var detail = document.getElementById("drvStatusDetail");
   var on = !!(meta.active || meta.live);
   if (liveEl) {
-    liveEl.textContent = on ? "Status: LIVE" : "Status: You're not live";
+    liveEl.textContent = on ? "Status: LIVE — accepting jobs" : "Status: You're not live";
   }
   if (locEl) {
     if (meta.lat != null && meta.lng != null) {
       locEl.textContent =
-        "Location: " +
-        Number(meta.lat).toFixed(5) +
-        ", " +
-        Number(meta.lng).toFixed(5);
-    } else if (meta.coverage) {
-      locEl.textContent = "Location: " + meta.coverage;
+        "GPS: " + Number(meta.lat).toFixed(5) + ", " + Number(meta.lng).toFixed(5);
     } else {
-      locEl.textContent = "Location: —";
+      locEl.textContent = "GPS: not updated";
     }
+  }
+  if (detail) {
+    detail.innerHTML =
+      "<p class='muted small' style='margin:0.25rem 0'>Vehicle: " +
+      (meta.vehicle_type || "—") +
+      "</p>" +
+      "<p class='muted small' style='margin:0.25rem 0'>Coverage: " +
+      (meta.coverage || "—") +
+      "</p>" +
+      "<p class='muted small' style='margin:0.25rem 0'>Base park: " +
+      (meta.base_park || "—") +
+      "</p>";
   }
 };

@@ -597,6 +597,7 @@
 <div id="shop-driver" class="shop-panel hidden">
         <div id="drvStatusCard" class="card">
           <p style="margin:0"><strong id="drvStatusLive">Status: —</strong></p>
+          <div id="drvStatusDetail"></div>
           <p class="muted small" id="drvStatusLoc" style="margin:0.35rem 0 0">Location: —</p>
         </div>
 
@@ -614,6 +615,18 @@
           <label class="check-row">
             <input type="checkbox" id="drv-use-gps" checked />
             Use live GPS while active (precise listing pin)
+          </label>
+          <button type="button" class="btn block" <label>Vehicle type
+            <select id="drv-vehicle">
+              <option value="keke">Keke</option>
+              <option value="bike">Bike / Okada</option>
+              <option value="bus">Bus</option>
+              <option value="car">Car</option>
+              <option value="van">Van</option>
+            </select>
+          </label>
+          <label>Base park
+            <input id="drv-base-park" type="text" placeholder="Park / base name" />
           </label>
           <button type="button" class="btn block" id="btnDrvSave">Save status</button>
           <p id="drvStatusMsg" class="muted small"></p>
@@ -976,58 +989,7 @@
     </section>
 
     <!-- ========== PROFILE SHEET ========== -->
-    <div id="profileSheet" class="sheet" aria-hidden="true">
-      <div class="sheet-handle"></div>
-      <div class="sheet-body" id="profileBody"></div>
-      <button type="button" class="btn danger block" 
-    <div id="profileEditBlock" class="card" style="margin:0.5rem 0.75rem">
-      <label class="muted small">Bio
-        <textarea id="profileBioInput" rows="2" placeholder="About your shop, car, or service…"></textarea>
-      </label>
-      <div class="photo-row">
-        <span class="muted small">Profile / shop / vehicle photo</span>
-        <div class="photo-actions">
-          <button type="button" class="btn secondary small" id="btnProfileCam">
-            <i class="fa-solid fa-camera"></i> Camera
-          </button>
-          <button type="button" class="btn secondary small" id="btnProfileGallery">
-            <i class="fa-solid fa-images"></i> Gallery
-          </button>
-        </div>
-        <input id="profile-image-cam" type="file" accept="image/*" capture="environment" class="hidden" />
-        <input id="profile-image-file" type="file" accept="image/*" class="hidden" />
-        <div id="profile-image-preview" class="img-preview hidden"></div>
-      </div>
-      <button type="button" class="btn block" id="btnProfileSave">Save profile</button>
-      <p id="profileSaveMsg" class="muted small"></p>
-    </div>
-
-      <button type="button" class="btn danger block" id="btnLogoutProfile">Logout</button>
-      <button type="button" class="btn secondary block" id="btnCloseProfile">Close</button>
-    </div>
-
-    <!-- ========== MENU ========== -->
-    <div id="menuSheet" class="top-menu hidden" role="menu">
-      <button type="button" data-menu="dashboard">Dashboard</button>
-      <button type="button" data-menu="calculator">Calculator</button>
-      <button type="button" data-menu="invoice">Invoice studio</button>
-      <button type="button" data-menu="notifications">Notifications</button>
-      <button type="button" data-menu="settings">Settings</button>
-      <button type="button" data-menu="logout" class="danger">Logout</button>
-    </div>
-
-    <!-- ========== LISTING DETAIL ========== -->
-    <div id="listingDetail" class="sheet listing-detail-sheet" aria-hidden="true">
-      <div class="sheet-handle"></div>
-      <button type="button" class="icon-btn detail-close-x" id="btnCloseDetailX" aria-label="Close detail">×</button>
-      <div id="listingDetailBody" class="sheet-body"></div>
-      <div id="listingDetailMap" class="map-stub detail-map"></div>
-      <button type="button" class="btn secondary block" id="btnCloseDetail">Close</button>
-    </div>
-
-  </div>
-
-  <footer class="app-footer">Powered by: Guru Innovations 🌀</footer>
+    <footer class="app-footer">Powered by: Guru Innovations 🌀</footer>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="js/config.js"></script>
@@ -1057,19 +1019,12 @@
  <script src="js/profile.js"></script>
   <script src="js/app.js"></script>
 
-    <div id="userProfileSheet" class="sheet" aria-hidden="true">
-      <div class="sheet-handle"></div>
-      <button type="button" class="icon-btn detail-close-x" id="btnCloseUserProfile" aria-label="Close">×</button>
-      <div class="sheet-body" id="userProfileBody"></div>
-      <div class="profile-react-row" id="userProfileReact">
-        <button type="button" class="btn secondary small" data-react="follow">Follow</button>
-        <button type="button" class="btn secondary small" data-react="up">👍</button>
-        <button type="button" class="btn secondary small" data-react="down">👎</button>
-        <button type="button" class="btn secondary small" data-react="rate">Rate</button>
-      </div>
-      <div id="userProfileListings" class="feed-list" style="padding:0.75rem"></div>
+    <div id="userProfileListings" class="feed-list" style="padding:0.75rem"></div>
       <button type="button" class="btn secondary block" id="btnCloseUserProfile2">Close</button>
     </div>
+
+
+    
 
 
     <section id="checkout" class="screen" data-screen="checkout">
@@ -1087,6 +1042,49 @@
         <p class="muted small">Escrow hold / OTP release comes next. Cart is saved on this device.</p>
       </div>
     </section>
+
+
+    <div id="profileSheet" class="sheet" aria-hidden="true">
+      <div class="sheet-handle"></div>
+      <div class="sheet-body" id="profileBody"></div>
+      <div id="profileEditBlock" class="card" style="margin:0.5rem 0.75rem">
+        <label class="muted small">Bio
+          <textarea id="profileBioInput" rows="2" placeholder="About your shop, car, or service…"></textarea>
+        </label>
+        <div class="photo-row">
+          <span class="muted small">Profile / shop / vehicle photo</span>
+          <div class="photo-actions">
+            <button type="button" class="btn secondary small" id="btnProfileCam"><i class="fa-solid fa-camera"></i> Camera</button>
+            <button type="button" class="btn secondary small" id="btnProfileGallery"><i class="fa-solid fa-images"></i> Gallery</button>
+          </div>
+          <input id="profile-image-cam" type="file" accept="image/*" capture="environment" class="hidden" />
+          <input id="profile-image-file" type="file" accept="image/*" class="hidden" />
+          <div id="profile-image-preview" class="img-preview hidden"></div>
+        </div>
+        <button type="button" class="btn block" id="btnProfileSave">Save profile</button>
+        <p id="profileSaveMsg" class="muted small"></p>
+      </div>
+      <button type="button" class="btn danger block" id="btnLogoutProfile">Logout</button>
+      <button type="button" class="btn secondary block" id="btnCloseProfile">Close</button>
+    </div>
+
+    <div id="userProfileSheet" class="sheet" aria-hidden="true">
+      <div class="sheet-handle"></div>
+      <button type="button" class="icon-btn detail-close-x" id="btnCloseUserProfile" aria-label="Close">×</button>
+      <div class="sheet-body">
+        <img id="userProfileAvatar" class="profile-avatar" alt="" style="display:none" />
+        <div id="userProfileBody"></div>
+        <p id="userProfileBio" class="muted"></p>
+        <div class="profile-react-row" id="userProfileReact">
+          <button type="button" class="btn secondary small" data-react="follow">Follow</button>
+          <button type="button" class="btn secondary small" data-react="up">👍</button>
+          <button type="button" class="btn secondary small" data-react="down">👎</button>
+          <button type="button" class="btn secondary small" data-react="rate">Rate</button>
+        </div>
+        <div id="userProfileListings" class="feed-list"></div>
+      </div>
+      <button type="button" class="btn secondary block" id="btnCloseUserProfile2">Close</button>
+    </div>
 
 </body>
 </html>
