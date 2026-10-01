@@ -761,7 +761,6 @@ SNM.applyShopCategoryFromSetup = function () {
 })();
 
 
-
 SNM.paintDriverStatusCard = function (meta) {
   meta = meta || {};
   var liveEl = document.getElementById("drvStatusLive");
@@ -769,26 +768,132 @@ SNM.paintDriverStatusCard = function (meta) {
   var detail = document.getElementById("drvStatusDetail");
   var on = !!(meta.active || meta.live);
   if (liveEl) {
-    liveEl.textContent = on ? "Status: LIVE — accepting jobs" : "Status: You're not live";
+    liveEl.textContent = on
+      ? "Status: LIVE — accepting jobs"
+      : "Status: You're not live";
   }
   if (locEl) {
-    if (meta.lat != null && meta.lng != null) {
+    if (meta.lat != null && meta.lng != null && !isNaN(Number(meta.lat))) {
       locEl.textContent =
-        "GPS: " + Number(meta.lat).toFixed(5) + ", " + Number(meta.lng).toFixed(5);
+        "GPS: " +
+        Number(meta.lat).toFixed(5) +
+        ", " +
+        Number(meta.lng).toFixed(5);
     } else {
       locEl.textContent = "GPS: not updated";
     }
   }
   if (detail) {
+    var primary = meta.primary_location || meta.primary || "—";
     detail.innerHTML =
-      "<p class='muted small' style='margin:0.25rem 0'>Vehicle: " +
+      "<p class='muted small' style='margin:0.25rem 0'><strong>Vehicle:</strong> " +
       (meta.vehicle_type || "—") +
       "</p>" +
-      "<p class='muted small' style='margin:0.25rem 0'>Coverage: " +
+      "<p class='muted small' style='margin:0.25rem 0'><strong>Coverage:</strong> " +
       (meta.coverage || "—") +
       "</p>" +
-      "<p class='muted small' style='margin:0.25rem 0'>Base park: " +
+      "<p class='muted small' style='margin:0.25rem 0'><strong>Base park:</strong> " +
       (meta.base_park || "—") +
+      "</p>" +
+      "<p class='muted small' style='margin:0.25rem 0'><strong>Primary:</strong> " +
+      primary +
       "</p>";
   }
 };
+
+SNM.saveDriverWorkspace = async function () {
+  var active = !!((document.getElementById("drv-active") || {}).checked);
+  var coverage = (
+    (document.getElementById("drv-coverage") || {}).value || ""
+  ).trim();
+  var vehicle = (
+    (document.getElementById("drv-vehicle") || {}).value || ""
+  ).trim();
+  var basePark = (
+    (document.getElementById("drv-base-park") || {}).value || ""
+  ).trim();
+  var useGps = !!((document.getElementById("drv-use-gps") || {}).checked);
+  // Always try GPS when going live
+  if (active) useGps = true;
+
+  var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+  var meta = {
+    active: active,
+    live: active,
+    coverage: coverage,
+    vehicle_type: vehicle,
+    base_park: basePark,
+    use_gps: useGps,
+    primary_location:
+      u.primary_location ||
+      [u.community, u.city, u.region].filter(Boolean).join(", ") ||
+      "",
+    updated_at: new Date().toISOString()
+  };
+
+  if (useGps && typeof SNM._geo === "function") {
+    try {
+      var g = await SNM._geo();
+      if (g && g.lat != null && g.lng != null) {
+        meta.lat = g.lat;
+        meta.lng = g.lng;
+        SNM._lastLat = g.lat;
+        SNM._lastLng = g.lng;
+      }
+    } catch (e) {}
+  }
+
+  try {
+    localStorage.setItem("snm_driver_meta", JSON.stringify(meta));
+  } catch (e2) {}
+
+  if (typeof SNM.setPresence === "function") {
+    try {
+      await SNM.setPresence({
+        active: active,
+        heartbeat: active,
+        available: active,
+        live: active,
+        lat: meta.lat,
+        lng: meta.lng,
+        vehicle_type: meta.vehicle_type,
+        coverage: meta.coverage,
+        base_park: meta.base_park,
+        primary_location: meta.primary_location
+      });
+    } catch (e3) {
+      alert("Presence save failed: " + ((e3 && e3.message) || ""));
+    }
+  }
+
+  SNM.paintDriverStatusCard(meta);
+  if (typeof SNM.toast === "function") {
+    SNM.toast(active ? "You're now online" : "You're offline");
+  } else {
+    alert(active ? "You're now online" : "You're offline");
+  }
+};
+
+
+/* driver save override */
+(function(){
+
+  var drvSave = document.getElementById("btnDrvSave");
+  if (drvSave) {
+    drvSave.onclick = function () {
+      if (typeof SNM.saveDriverWorkspace === "function") {
+        SNM.saveDriverWorkspace();
+      }
+    };
+  }
+  var drvActive = document.getElementById("drv-active");
+  if (drvActive && !drvActive._snmLiveWired) {
+    drvActive._snmLiveWired = true;
+    drvActive.onchange = function () {
+      if (typeof SNM.saveDriverWorkspace === "function") {
+        SNM.saveDriverWorkspace();
+      }
+    };
+  }
+
+})();
