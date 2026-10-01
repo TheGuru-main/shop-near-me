@@ -1048,6 +1048,8 @@ SNM.fillProfile = function () {
 };
 
 SNM.bindHome = function () {
+  if (typeof SNM.bindHomeQuickSearch === "function") SNM.bindHomeQuickSearch();
+
   if (typeof SNM.wireHomeActiveToggle === "function") SNM.wireHomeActiveToggle();
 
   SNM.ensureDetailSheet();
@@ -1355,4 +1357,24 @@ SNM.bindCart = function () {
 SNM.onCheckoutEnter = function () {
   if (typeof SNM.bindCart === "function") SNM.bindCart();
   if (typeof SNM.renderCart === "function") SNM.renderCart();
+};
+
+
+SNM.bindHomeQuickSearch = function () {
+  var row = document.getElementById("homeChips");
+  if (!row || row._snmSearchWired) return;
+  row._snmSearchWired = true;
+  row.addEventListener("click", function (e) {
+    var btn = e.target.closest("[data-search]");
+    if (!btn) return;
+    e.preventDefault();
+    var q = btn.getAttribute("data-search") || "";
+    if (typeof SNM.showScreen === "function") SNM.showScreen("search");
+    setTimeout(function () {
+      var input = document.getElementById("searchQ");
+      if (input) input.value = q;
+      if (typeof SNM.doSearch === "function") SNM.doSearch();
+      else if (typeof SNM.runSearch === "function") SNM.runSearch();
+    }, 80);
+  });
 };

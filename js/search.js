@@ -1,4 +1,58 @@
 
+SNM.MOBILITY_KEYS = ["bus", "keke", "car", "dispatch", "okada", "bike", "tricycle", "driver", "logistics", "courier", "van", "ride"];
+SNM.HOUSING_KEYS = ["self-contained", "self contained", "apartment", "flat", "lodge", "short-let", "room"];
+
+SNM.isMobilityQuery = function (q) {
+  q = String(q || "").toLowerCase();
+  return SNM.MOBILITY_KEYS.some(function (k) { return q.indexOf(k) >= 0; });
+};
+SNM.isHousingQuery = function (q) {
+  q = String(q || "").toLowerCase();
+  return SNM.HOUSING_KEYS.some(function (k) { return q.indexOf(k) >= 0; });
+};
+
+SNM.listingSearchBlob = function (r) {
+  r = r || {};
+  var o = r.owner || r.seller || r.merchant || {};
+  return [
+    r.name, r.title, r.category, r.business_type, r.role, r.kind,
+    r.description, r.body, o.role, o.name, o.business_name,
+    r.vehicle_type, r.coverage
+  ].join(" ").toLowerCase();
+};
+
+/** Strict: mobility query must match mobility tokens; never salon/barber/food */
+SNM.filterByQueryCategory = function (rows, q) {
+  rows = rows || [];
+  q = String(q || "").toLowerCase().trim();
+  if (!q) return rows;
+
+  var mobility = SNM.isMobilityQuery(q);
+  var housing = SNM.isHousingQuery(q);
+
+  var block = /barber|salon|hair|spa|nail|beauty|fashion|cloth|rice|food|pharmacy|clinic/;
+
+  return rows.filter(function (r) {
+    var blob = SNM.listingSearchBlob(r);
+    if (mobility) {
+      if (block.test(blob) && !SNM.MOBILITY_KEYS.some(function (k) { return blob.indexOf(k) >= 0; })) {
+        return false;
+      }
+      return SNM.MOBILITY_KEYS.some(function (k) { return blob.indexOf(k) >= 0; }) ||
+        /driver|logistic/.test(blob);
+    }
+    if (housing) {
+      return SNM.HOUSING_KEYS.some(function (k) { return blob.indexOf(k) >= 0; }) ||
+        /apartment|flat|room|lodge|rent/.test(blob);
+    }
+    // general: require at least one query token in blob
+    var tokens = q.split(/\s+/).filter(function (t) { return t.length >= 2; });
+    if (!tokens.length) return true;
+    return tokens.some(function (t) { return blob.indexOf(t) >= 0; });
+  });
+};
+
+
 SNM.LOCAL_SYNONYMS = SNM.LOCAL_SYNONYMS || {};
 SNM.LOCAL_SYNONYMS.ride = ["driver", "keke", "okada", "bike", "bus", "tricycle", "logistics", "courier", "van"];
 SNM.LOCAL_SYNONYMS.driver = ["ride", "keke", "okada", "bike", "bus", "logistics", "courier"];
@@ -262,6 +316,7 @@ SNM.doSearch = async function () {
       } catch (eMob) {}
     }
     strict = SNM.filterMobilityResults(strict, q);
+    strict = SNM.filterByQueryCategory(strict, q);
     if (!strict.length) {
       out.innerHTML =
         "<p class='muted'>No matches for “" +

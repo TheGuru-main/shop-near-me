@@ -1495,3 +1495,9 @@ body.theme-dark #home > .top-bar .theme-switch-knob {
 .app-footer {
   flex-shrink: 0;
 }
+
+.quick-nav-btn.qn-bus { background: linear-gradient(135deg, #dbeafe, #3b82f6); color: #1e3a8a; }
+.quick-nav-btn.qn-keke { background: linear-gradient(135deg, #fef3c7, #f59e0b); color: #78350f; }
+.quick-nav-btn.qn-car { background: linear-gradient(135deg, #e0e7ff, #6366f1); color: #312e81; }
+.quick-nav-btn.qn-dispatch { background: linear-gradient(135deg, #ede9fe, #9333ea); color: #581c87; }
+.quick-nav-btn.qn-apt, .quick-nav-btn.qn-apt2 { background: linear-gradient(135deg, #d1fae5, #10b981); color: #064e3b; }
