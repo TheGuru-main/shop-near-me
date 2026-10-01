@@ -653,6 +653,11 @@ SNM.bindShop = function () {
         }
         if (typeof SNM.paintDriverStatusCard === "function") {
           SNM.paintDriverStatusCard(meta);
+        if (typeof SNM.toast === "function") {
+          SNM.toast(active ? "You're now online" : "You're offline");
+        } else {
+          alert(active ? "You're now online" : "You're offline");
+        }
         }
       }
       if (useGps && typeof SNM._geo === "function") {

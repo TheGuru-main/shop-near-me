@@ -1,3 +1,12 @@
+
+SNM.LOCAL_SYNONYMS = SNM.LOCAL_SYNONYMS || {};
+SNM.LOCAL_SYNONYMS.ride = ["driver", "keke", "okada", "bike", "bus", "tricycle", "logistics", "courier", "van"];
+SNM.LOCAL_SYNONYMS.driver = ["ride", "keke", "okada", "bike", "bus", "logistics", "courier"];
+SNM.LOCAL_SYNONYMS.keke = ["tricycle", "ride", "driver", "okada"];
+SNM.LOCAL_SYNONYMS.bike = ["okada", "ride", "driver", "motorcycle"];
+SNM.LOCAL_SYNONYMS.bus = ["ride", "driver", "transport", "logistics"];
+SNM.LOCAL_SYNONYMS.okada = ["bike", "ride", "driver"];
+
 window.SNM = window.SNM || {};
 
 /* Local fallback when API dictionary is empty */
@@ -243,6 +252,15 @@ SNM.doSearch = async function () {
 
     if (ai) ai.textContent = SNM.buildSearchAssist(q, strict);
 
+    
+    if (typeof SNM.isMobilityQuery === "function" && SNM.isMobilityQuery(q)) {
+      try {
+        var more = await SNM.searchLiveDrivers(q);
+        more.forEach(function (r) {
+          strict.push(r);
+        });
+      } catch (eMob) {}
+    }
     if (!strict.length) {
       out.innerHTML =
         "<p class='muted'>No matches for “" +
@@ -296,5 +314,30 @@ SNM.bindSearch = function () {
         SNM.doSearch();
       }
     });
+  }
+};
+
+
+SNM.isMobilityQuery = function (q) {
+  q = String(q || "").toLowerCase();
+  var keys = ["ride", "driver", "keke", "okada", "bike", "bus", "tricycle", "logistics", "courier"];
+  return keys.some(function (k) { return q.indexOf(k) >= 0; });
+};
+
+SNM.searchLiveDrivers = async function (q) {
+  try {
+    var data = await SNM.api(
+      "/search/products" +
+        SNM.qs({
+          q: q + " driver logistics ride",
+          max_km: SNM.MAX_KM || 80,
+          limit: 40,
+          lat: SNM._lastLat,
+          lng: SNM._lastLng
+        })
+    );
+    return data.results || data.items || [];
+  } catch (e) {
+    return [];
   }
 };
