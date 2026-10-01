@@ -631,30 +631,43 @@ SNM.bindShop = function () {
         (document.getElementById("drv-coverage") || {}).value || ""
       ).trim();
       var useGps = !!((document.getElementById("drv-use-gps") || {}).checked);
-      try {
-        localStorage.setItem(
-          "snm_driver_meta",
-          JSON.stringify({
-            coverage: coverage,
+      var meta = {
+        coverage: coverage,
+        active: active,
+        live: active,
+        use_gps: useGps
+      };
+      function finish() {
+        try {
+          localStorage.setItem("snm_driver_meta", JSON.stringify(meta));
+        } catch (e) {}
+        if (typeof SNM.setPresence === "function") {
+          SNM.setPresence({
             active: active,
-            use_gps: useGps
-          })
-        );
-      } catch (e) {}
+            heartbeat: active,
+            available: active,
+            live: active,
+            lat: meta.lat,
+            lng: meta.lng
+          });
+        }
+        if (typeof SNM.paintDriverStatusCard === "function") {
+          SNM.paintDriverStatusCard(meta);
+        }
+      }
       if (useGps && typeof SNM._geo === "function") {
         SNM._geo().then(function (g) {
           if (g && g.lat != null) {
+            meta.lat = g.lat;
+            meta.lng = g.lng;
             SNM._lastLat = g.lat;
             SNM._lastLng = g.lng;
           }
+          finish();
         });
+      } else {
+        finish();
       }
-      SNM.setPresence({
-        active: active,
-        heartbeat: active,
-        available: active,
-        live: active
-      });
     };
   }
 
@@ -673,7 +686,14 @@ SNM.bindShop = function () {
 
 SNM.onShopEnter = function () {
   SNM.loadShop();
+  try {
+    var raw = localStorage.getItem("snm_driver_meta");
+    if (raw && typeof SNM.paintDriverStatusCard === "function") {
+      SNM.paintDriverStatusCard(JSON.parse(raw));
+    }
+  } catch (e) {}
 };
+
 
 SNM.SERVICE_LABELS = {
   hotel: "Hotel",
@@ -734,3 +754,26 @@ SNM.applyShopCategoryFromSetup = function () {
     if (typeof prev === "function") return prev.apply(this, arguments);
   };
 })();
+
+SNM.paintDriverStatusCard = function (meta) {
+  meta = meta || {};
+  var liveEl = document.getElementById("drvStatusLive");
+  var locEl = document.getElementById("drvStatusLoc");
+  var on = !!(meta.active || meta.live);
+  if (liveEl) {
+    liveEl.textContent = on ? "Status: LIVE" : "Status: You're not live";
+  }
+  if (locEl) {
+    if (meta.lat != null && meta.lng != null) {
+      locEl.textContent =
+        "Location: " +
+        Number(meta.lat).toFixed(5) +
+        ", " +
+        Number(meta.lng).toFixed(5);
+    } else if (meta.coverage) {
+      locEl.textContent = "Location: " + meta.coverage;
+    } else {
+      locEl.textContent = "Location: —";
+    }
+  }
+};
