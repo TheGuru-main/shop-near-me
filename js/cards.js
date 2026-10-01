@@ -534,7 +534,15 @@ SNM.bindCardActions = function (root) {
       SNM.messageSeller(listing.phone, listing.seller_name);
       return;
     }
-    if (act === "detail") {
+    if (act === "view" || act === "detail") {
+        if (typeof SNM.openListingDetail === "function") {
+          SNM.openListingDetail(listing);
+        } else {
+          alert("Detail unavailable");
+        }
+        return;
+      }
+      if (act === "message") {
       SNM.openListingDetail(listing);
     }
   });
