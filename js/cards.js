@@ -115,6 +115,16 @@ SNM._catClass = function (kind) {
   return "cat-retail";
 };
 
+SNM.isMerchantListing = function (x) {
+  x = x || {};
+  var role = String(x.role || x.business_type || x.kind || "").toLowerCase();
+  if (role.indexOf("service") >= 0) return false;
+  if (role.indexOf("emergency") >= 0) return false;
+  if (role.indexOf("driver") >= 0 || role.indexOf("logistic") >= 0) return false;
+  if (x.kind === "fairly_used" || x.kind === "service") return false;
+  return true;
+};
+
 SNM.cardHtml = function (item) {
   var x = SNM.normalizeListing(item);
   var dist = SNM.formatDistance(x.km);
@@ -248,6 +258,10 @@ SNM.cardHtml = function (item) {
     '<button type="button" data-act="comment">Comment</button>' +
     '<button type="button" data-act="share">Share</button>' +
     '<button type="button" data-act="message">Message seller</button>' +
+    (typeof SNM.isMerchantListing === "function" && SNM.isMerchantListing(x)
+      ? '<button type="button" class="btn small" data-act="cart">Add to cart</button>'
+      : "") +
+    '<button type="button" data-act="profile">Profile</button>' +
     '<button type="button" data-act="detail">Details</button>' +
     "</div>" +
     '<div class="card-comment hidden" data-comment-box>' +
@@ -457,6 +471,9 @@ SNM.bindCardActions = function (root) {
     var listing = SNM._listingFromCard(card);
 
     if (act === "comment") {
+      var kind = (card.getAttribute("data-kind") || "").toLowerCase();
+      if (kind !== "fairly_used") return;
+ {
       var box = card.querySelector("[data-comment-box]");
       if (box) box.classList.toggle("hidden");
       return;
@@ -494,6 +511,20 @@ SNM.bindCardActions = function (root) {
         }
         sheet.classList.remove("open");
       };
+      return;
+    }
+    if (act === "cart") {
+      var id = card.getAttribute("data-id") || "";
+      var listing =
+        (SNM._listingsById && SNM._listingsById[id]) ||
+        (typeof SNM.normalizeListing === "function"
+          ? SNM.normalizeListing({ id: id, phone: phone })
+          : { id: id, phone: phone });
+      if (typeof SNM.addToCart === "function") SNM.addToCart(listing);
+      return;
+    }
+    if (act === "profile") {
+      if (typeof SNM.openUserProfile === "function") SNM.openUserProfile(phone);
       return;
     }
     if (act === "message") {

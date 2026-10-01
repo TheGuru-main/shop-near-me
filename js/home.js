@@ -1048,6 +1048,8 @@ SNM.fillProfile = function () {
 };
 
 SNM.bindHome = function () {
+  if (typeof SNM.wireHomeActiveToggle === "function") SNM.wireHomeActiveToggle();
+
   SNM.ensureDetailSheet();
   SNM.bindCardActions(document.body);
   var refresh = document.getElementById("btnRefreshFeed");
@@ -1222,3 +1224,78 @@ SNM.startMapPromoCarousel = function () {
     });
   }
 })();
+
+
+/* ---- cart (local until escrow) ---- */
+SNM.getCart = function () {
+  try {
+    return JSON.parse(localStorage.getItem("snm_cart") || "[]");
+  } catch (e) {
+    return [];
+  }
+};
+SNM.setCart = function (items) {
+  try {
+    localStorage.setItem("snm_cart", JSON.stringify(items || []));
+  } catch (e) {}
+};
+SNM.addToCart = function (item) {
+  item = item || {};
+  var id = item.id || item.product_id || "";
+  if (!id) {
+    alert("Cannot add — missing item id");
+    return;
+  }
+  var cart = SNM.getCart();
+  var found = null;
+  for (var i = 0; i < cart.length; i++) {
+    if (String(cart[i].id) === String(id)) {
+      found = cart[i];
+      break;
+    }
+  }
+  if (found) {
+    found.qty = (found.qty || 1) + 1;
+  } else {
+    cart.push({
+      id: id,
+      title: item.title || item.name || "Item",
+      price: item.price,
+      currency: item.currency || "NGN",
+      seller_phone: item.phone || item.owner_phone || "",
+      seller_name: item.sellerName || item.owner_name || "",
+      qty: 1
+    });
+  }
+  SNM.setCart(cart);
+  if (typeof SNM.toast === "function") SNM.toast("Added to cart");
+  else alert("Added to cart");
+};
+
+SNM.wireHomeActiveToggle = function () {
+  var el = document.getElementById("homeActiveToggle");
+  if (!el || el._snmWired) return;
+  el._snmWired = true;
+  var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+  el.checked = !!(u.live || u.active);
+  el.onchange = function () {
+    var on = !!el.checked;
+    if (typeof SNM.setPresence === "function") {
+      SNM.setPresence({
+        active: on,
+        heartbeat: on,
+        available: on,
+        live: on
+      });
+    }
+    try {
+      var meta = JSON.parse(localStorage.getItem("snm_driver_meta") || "{}");
+      meta.active = on;
+      meta.live = on;
+      localStorage.setItem("snm_driver_meta", JSON.stringify(meta));
+      if (typeof SNM.paintDriverStatusCard === "function") {
+        SNM.paintDriverStatusCard(meta);
+      }
+    } catch (e) {}
+  };
+};

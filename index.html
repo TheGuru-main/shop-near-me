@@ -339,6 +339,13 @@
         <button type="button" class="icon-btn" id="btnPremiumTop" data-go="premium" title="Premium" aria-label="Premium">
           <i class="fa-solid fa-crown"></i>
         </button>
+        <label class="header-active" title="Active / live">
+          <input type="checkbox" id="homeActiveToggle" />
+          <span class="header-active-label">Live</span>
+        </label>
+        <button type="button" class="icon-btn" id="btnCartTop" data-go="checkout" aria-label="Cart" title="Cart">
+          <i class="fa-solid fa-cart-shopping"></i>
+        </button>
         <button type="button" class="icon-btn" id="btnSearchTop" aria-label="Search">
           <i class="fa-solid fa-magnifying-glass"></i>
         </button>
@@ -588,6 +595,11 @@
         <!-- Driver -->
 
 <div id="shop-driver" class="shop-panel hidden">
+        <div id="drvStatusCard" class="card">
+          <p style="margin:0"><strong id="drvStatusLive">Status: —</strong></p>
+          <p class="muted small" id="drvStatusLoc" style="margin:0.35rem 0 0">Location: —</p>
+        </div>
+
           <h3 class="section-h">Driver / logistics status</h3>
           <p class="muted">Turn on when you are available for jobs. Heartbeat stays live while active.</p>
           <label class="check-row">
@@ -1021,5 +1033,20 @@
   <script src="js/premium.js"></script>
  <script src="js/profile.js"></script>
   <script src="js/app.js"></script>
+
+    <div id="userProfileSheet" class="sheet" aria-hidden="true">
+      <div class="sheet-handle"></div>
+      <button type="button" class="icon-btn detail-close-x" id="btnCloseUserProfile" aria-label="Close">×</button>
+      <div class="sheet-body" id="userProfileBody"></div>
+      <div class="profile-react-row" id="userProfileReact">
+        <button type="button" class="btn secondary small" data-react="follow">Follow</button>
+        <button type="button" class="btn secondary small" data-react="up">👍</button>
+        <button type="button" class="btn secondary small" data-react="down">👎</button>
+        <button type="button" class="btn secondary small" data-react="rate">Rate</button>
+      </div>
+      <div id="userProfileListings" class="feed-list" style="padding:0.75rem"></div>
+      <button type="button" class="btn secondary block" id="btnCloseUserProfile2">Close</button>
+    </div>
+
 </body>
 </html>
