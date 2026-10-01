@@ -932,6 +932,7 @@ SNM.initHomeMap = function () {
   }
 };
 
+
 SNM._paintHomeShopPins = async function (lat, lng) {
   try {
     var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
@@ -952,55 +953,56 @@ SNM._paintHomeShopPins = async function (lat, lng) {
     var rows = data.results || data.items || [];
     var seen = {};
     var bounds = [[lat, lng]];
-    rows.forEach(function (raw) {
+    for (var i = 0; i < rows.length; i++) {
+      var raw = rows[i];
       var x =
         typeof SNM.normalizeListing === "function"
           ? SNM.normalizeListing(raw)
           : raw;
-      if (x.lat == null || x.lng == null) return;
-      var key = String(x.lat) + "," + String(x.lng) + ":" + (x.phone || x.sellerName || "");
-      if (seen[key]) return;
+      var coords =
+        typeof SNM.resolveListingCoords === "function"
+          ? await SNM.resolveListingCoords(x)
+          : x.lat != null
+            ? { lat: Number(x.lat), lng: Number(x.lng) }
+            : null;
+      if (!coords) continue;
+      // never pin every seller on seeker GPS
+      if (
+        Math.abs(coords.lat - lat) < 1e-5 &&
+        Math.abs(coords.lng - lng) < 1e-5 &&
+        coords.source === "listing"
+      ) {
+        /* ok if truly same */
+      }
+      var key =
+        String(coords.lat) +
+        "," +
+        String(coords.lng) +
+        ":" +
+        (x.phone || x.sellerName || i);
+      if (seen[key]) continue;
       seen[key] = 1;
-      var name =
-        x.sellerName ||
-        x.business_name ||
-        x.title ||
-        "Shop";
-      var role = x.roleLabel || x.role || "";
-      var color =
-        role.indexOf("Driver") >= 0
-          ? "#9333ea"
-          : role.indexOf("Service") >= 0
-            ? "#4f46e5"
-            : role.indexOf("Emergency") >= 0
-              ? "#dc2626"
-              : "#2563eb";
-      var m = L.circleMarker([Number(x.lat), Number(x.lng)], {
-        radius: 8,
-        color: color,
-        fillColor: color,
-        fillOpacity: 0.85,
-        weight: 2
-      }).addTo(SNM._homeMap);
+      var name = x.sellerName || x.business_name || x.title || "Shop";
       var place = [x.primary, x.primary_location, x.community, x.city]
         .filter(Boolean)
         .join(" · ");
-      var esc = typeof SNM.esc === "function" ? SNM.esc : function (s) { return String(s || ""); };
-      var html =
+      var m = L.circleMarker([coords.lat, coords.lng], {
+        radius: 8,
+        color: "#2563eb",
+        fillColor: "#2563eb",
+        fillOpacity: 0.85,
+        weight: 2
+      }).addTo(SNM._homeMap);
+      var esc = typeof SNM.esc === "function" ? SNM.esc : String;
+      m.bindPopup(
         "<strong>" +
-        esc(name) +
-        "</strong>" +
-        (role ? "<br/><span class='muted'>" + esc(role) + "</span>" : "") +
-        (place ? "<br/><span>" + esc(place) + "</span>" : "") +
-        (x.km != null && !isNaN(Number(x.km))
-          ? "<br/><span class='muted'>" + Number(x.km).toFixed(1) + " km</span>"
-          : "");
-      m.bindPopup(html, { closeButton: true, autoClose: true, closeOnClick: true });
-      m.on("click", function () {
-        m.openPopup();
-      });
-      bounds.push([Number(x.lat), Number(x.lng)]);
-    });
+          esc(name) +
+          "</strong>" +
+          (place ? "<br/>" + esc(place) : "") +
+          (coords.source === "osm" ? "<br/><span class='muted'>place pin</span>" : "")
+      );
+      bounds.push([coords.lat, coords.lng]);
+    }
     if (bounds.length > 1) {
       try {
         SNM._homeMap.fitBounds(bounds, { padding: [24, 24], maxZoom: 15 });
@@ -1010,6 +1012,7 @@ SNM._paintHomeShopPins = async function (lat, lng) {
     console.warn("home shop pins", e);
   }
 };
+
 
 SNM.enterHome = function (navigate) {
   if (navigate === true && typeof SNM.showScreen === "function") {
@@ -1377,4 +1380,49 @@ SNM.bindHomeQuickSearch = function () {
       else if (typeof SNM.runSearch === "function") SNM.runSearch();
     }, 80);
   });
+};
+
+document.addEventListener("click", function (e) {
+  var b = e.target.closest("#checkout [data-back]");
+  if (!b) return;
+  e.preventDefault();
+  e.stopPropagation();
+  if (typeof SNM.showScreen === "function") SNM.showScreen(b.getAttribute("data-back") || "home");
+}, true);
+
+
+SNM.geocodePlace = async function (query) {
+  query = String(query || "").trim();
+  if (!query) return null;
+  SNM._geoCache = SNM._geoCache || {};
+  if (SNM._geoCache[query]) return SNM._geoCache[query];
+  try {
+    var url =
+      "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" +
+      encodeURIComponent(query);
+    var res = await fetch(url, {
+      headers: { Accept: "application/json", "Accept-Language": "en" }
+    });
+    var data = await res.json();
+    if (data && data[0]) {
+      var out = { lat: Number(data[0].lat), lng: Number(data[0].lon) };
+      SNM._geoCache[query] = out;
+      return out;
+    }
+  } catch (e) {}
+  return null;
+};
+
+SNM.resolveListingCoords = async function (x) {
+  x = x || {};
+  if (x.lat != null && x.lng != null && !isNaN(Number(x.lat))) {
+    return { lat: Number(x.lat), lng: Number(x.lng), source: "listing" };
+  }
+  var place = [x.primary, x.primary_location, x.community, x.city, x.region, "Nigeria"]
+    .filter(Boolean)
+    .join(", ");
+  if (!place || place === "Nigeria") return null;
+  var g = await SNM.geocodePlace(place);
+  if (g) return { lat: g.lat, lng: g.lng, source: "osm" };
+  return null;
 };

@@ -458,6 +458,8 @@ SNM.messageSeller = async function (phoneOrMeta, nameHint) {
 };
 
 SNM.bindCardActions = function (root) {
+  if (typeof SNM.bindCardDetailTap === "function") SNM.bindCardDetailTap(root || document);
+
   root = root || document;
   if (root._snmCardClickWired) return;
   root._snmCardClickWired = true;
@@ -592,3 +594,30 @@ SNM._wireCardCarousel = function (root) {
     };
   }
 })();
+
+
+SNM.bindCardDetailTap = function (root) {
+  root = root || document;
+  if (root._snmDetailTap) return;
+  root._snmDetailTap = true;
+  root.addEventListener(
+    "click",
+    function (e) {
+      if (e.target.closest("button, a, input, textarea, label, [data-act]")) return;
+      var card = e.target.closest(".card[data-id], article.card[data-id]");
+      if (!card) return;
+      var id = card.getAttribute("data-id") || "";
+      var phone = card.getAttribute("data-phone") || "";
+      var item =
+        (SNM._listingsById && SNM._listingsById[id]) ||
+        (typeof SNM.normalizeListing === "function"
+          ? SNM.normalizeListing({ id: id, phone: phone })
+          : { id: id, phone: phone });
+      if (typeof SNM.openListingDetail === "function") {
+        e.preventDefault();
+        SNM.openListingDetail(item);
+      }
+    },
+    false
+  );
+};
