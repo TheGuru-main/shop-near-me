@@ -1288,6 +1288,11 @@ SNM.wireHomeActiveToggle = function () {
         live: on
       });
     }
+    if (typeof SNM.toast === "function") {
+      SNM.toast(on ? "You're now online" : "You're offline");
+    } else {
+      alert(on ? "You're now online" : "You're offline");
+    }
     try {
       var meta = JSON.parse(localStorage.getItem("snm_driver_meta") || "{}");
       meta.active = on;
@@ -1298,4 +1303,56 @@ SNM.wireHomeActiveToggle = function () {
       }
     } catch (e) {}
   };
+};
+
+
+SNM.renderCart = function () {
+  var list = document.getElementById("cartList");
+  var totalEl = document.getElementById("cartTotal");
+  var cart = typeof SNM.getCart === "function" ? SNM.getCart() : [];
+  if (!list) return;
+  if (!cart.length) {
+    list.innerHTML = "<p class='muted'>Cart is empty. Add merchant items from the feed.</p>";
+    if (totalEl) totalEl.innerHTML = "<strong>Total:</strong> —";
+    return;
+  }
+  var sum = 0;
+  list.innerHTML = cart
+    .map(function (it) {
+      var line = (Number(it.price) || 0) * (Number(it.qty) || 1);
+      sum += line;
+      return (
+        "<article class='card'><strong>" +
+        (typeof SNM.esc === "function" ? SNM.esc(it.title) : it.title) +
+        "</strong>" +
+        "<p class='muted small'>Qty " +
+        (it.qty || 1) +
+        " · " +
+        (it.currency || "NGN") +
+        " " +
+        line +
+        "</p></article>"
+      );
+    })
+    .join("");
+  if (totalEl) {
+    totalEl.innerHTML = "<strong>Total:</strong> NGN " + sum;
+  }
+};
+
+SNM.bindCart = function () {
+  if (SNM._cartBound) return;
+  SNM._cartBound = true;
+  var clr = document.getElementById("btnCartClear");
+  if (clr) {
+    clr.onclick = function () {
+      if (typeof SNM.setCart === "function") SNM.setCart([]);
+      SNM.renderCart();
+    };
+  }
+};
+
+SNM.onCheckoutEnter = function () {
+  if (typeof SNM.bindCart === "function") SNM.bindCart();
+  if (typeof SNM.renderCart === "function") SNM.renderCart();
 };
