@@ -1285,6 +1285,7 @@ SNM.wireHomeActiveToggle = function () {
   el.checked = !!(u.live || u.active);
   el.onchange = function () {
     var on = !!el.checked;
+    if (typeof SNM.setOnline === "function") { SNM.setOnline(on); return; }
     if (typeof SNM.setPresence === "function") {
       SNM.setPresence({
         active: on,
@@ -1425,4 +1426,74 @@ SNM.resolveListingCoords = async function (x) {
   var g = await SNM.geocodePlace(place);
   if (g) return { lat: g.lat, lng: g.lng, source: "osm" };
   return null;
+};
+
+
+/* PRESENCE_TOGGLE_SYNC_V1 */
+SNM.syncActiveToggleUI = function (on) {
+  on = !!on;
+  var a = document.getElementById("homeActiveToggle");
+  var d = document.getElementById("drv-active");
+  if (a) a.checked = on;
+  if (d) d.checked = on;
+};
+
+SNM.setOnline = async function (on) {
+  on = !!on;
+  SNM.syncActiveToggleUI(on);
+  var meta = {};
+  try {
+    meta = JSON.parse(localStorage.getItem("snm_driver_meta") || "{}");
+  } catch (e) {}
+  meta.active = on;
+  meta.live = on;
+  if (on && typeof SNM._geo === "function") {
+    try {
+      var g = await SNM._geo();
+      if (g && g.lat != null) {
+        meta.lat = g.lat;
+        meta.lng = g.lng;
+        SNM._lastLat = g.lat;
+        SNM._lastLng = g.lng;
+      }
+    } catch (e2) {}
+  }
+  try {
+    localStorage.setItem("snm_driver_meta", JSON.stringify(meta));
+  } catch (e3) {}
+  if (typeof SNM.setPresence === "function") {
+    await SNM.setPresence({
+      active: on,
+      heartbeat: on,
+      available: on,
+      live: on,
+      lat: meta.lat,
+      lng: meta.lng
+    });
+  }
+  if (typeof SNM.paintDriverStatusCard === "function") {
+    SNM.paintDriverStatusCard(meta);
+  }
+  if (typeof SNM.toast === "function") {
+    SNM.toast(on ? "You're now online" : "You're offline");
+  }
+  // heartbeat while online
+  if (SNM._hbTimer) {
+    clearInterval(SNM._hbTimer);
+    SNM._hbTimer = null;
+  }
+  if (on) {
+    SNM._hbTimer = setInterval(function () {
+      if (typeof SNM.setPresence === "function") {
+        SNM.setPresence({
+          active: true,
+          heartbeat: true,
+          available: true,
+          live: true,
+          lat: SNM._lastLat,
+          lng: SNM._lastLng
+        }).catch(function () {});
+      }
+    }, 45000);
+  }
 };

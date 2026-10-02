@@ -317,6 +317,9 @@ SNM.doSearch = async function () {
     }
     strict = SNM.filterMobilityResults(strict, q);
     strict = SNM.filterByQueryCategory(strict, q);
+    if (typeof SNM.mergeLiveDriversIntoSearch === "function") {
+      strict = await SNM.mergeLiveDriversIntoSearch(q, strict);
+    }
     if (!strict.length) {
       out.innerHTML =
         "<p class='muted'>No matches for “" +
@@ -418,4 +421,59 @@ SNM.filterMobilityResults = function (rows, q) {
     }
     return mobility.test(t) || /driver|logistic|keke|okada|bike|bus|ride/.test(t);
   });
+};
+
+
+/* LIVE_DRIVER_SEARCH_V1 */
+SNM.mergeLiveDriversIntoSearch = async function (q, rows) {
+  rows = rows || [];
+  q = String(q || "").toLowerCase();
+  var keys = ["bus", "keke", "car", "dispatch", "okada", "bike", "driver", "ride", "logistics", "courier", "van"];
+  var isMob = keys.some(function (k) { return q.indexOf(k) >= 0; });
+  if (!isMob) return rows;
+
+  var live = [];
+  try {
+    var data = await SNM.api(
+      "/search/products" +
+        SNM.qs({
+          q: "driver logistics " + q,
+          max_km: SNM.MAX_KM || 80,
+          limit: 40,
+          lat: SNM._lastLat,
+          lng: SNM._lastLng,
+          live: 1,
+          role: "driver"
+        })
+    );
+    live = data.results || data.items || [];
+  } catch (e) {}
+
+  // Prefer rows marked live / active / driver role
+  function score(r) {
+    r = r || {};
+    var o = r.owner || r.seller || {};
+    var s = 0;
+    if (r.live || r.active || o.live || o.active) s += 100;
+    var blob = [r.name, r.title, r.category, r.business_type, r.role, o.role, r.vehicle_type]
+      .join(" ")
+      .toLowerCase();
+    if (/driver|logistic|keke|okada|bike|bus|dispatch|car|van/.test(blob)) s += 50;
+    if (r.km != null) s -= Number(r.km);
+    return s;
+  }
+
+  var merged = live.concat(rows);
+  var seen = {};
+  var out = [];
+  merged.forEach(function (r) {
+    var id = String((r && (r.id || r.product_id)) || Math.random());
+    if (seen[id]) return;
+    seen[id] = 1;
+    out.push(r);
+  });
+  out.sort(function (a, b) {
+    return score(b) - score(a);
+  });
+  return out;
 };
