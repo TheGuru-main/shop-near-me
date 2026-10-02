@@ -652,7 +652,21 @@ SNM.bindShop = function () {
           });
         }
         if (typeof SNM.paintDriverStatusCard === "function") {
-          SNM.paintDriverStatusCard(meta);
+          if (meta.active) {
+    try { await SNM.upsertDriverListing(meta); } catch (eUp) {}
+  } else {
+    /* offline: mark listing unavailable */
+    try {
+      var lid = localStorage.getItem("snm_driver_listing_id");
+      if (lid) {
+        await SNM.api("/products/" + encodeURIComponent(lid), {
+          method: "PATCH",
+          body: { available: false, live: false }
+        });
+      }
+    } catch (eOff) {}
+  }
+  SNM.paintDriverStatusCard(meta);
         if (typeof SNM.toast === "function") {
           SNM.toast(active ? "You're now online" : "You're offline");
         } else {
@@ -1052,5 +1066,98 @@ SNM.wireDriverWorkspace = function () {
     act.onchange = function () {
       SNM.saveDriverWorkspace();
     };
+  }
+};
+
+
+/* DRIVER_LISTING_OBJECT_V1
+ * Upsert a catalogue-style object so search/ride can find live drivers by GPS.
+ */
+SNM.upsertDriverListing = async function (meta) {
+  meta = meta || {};
+  var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+  var vehicle = meta.vehicle_type || "ride";
+  var title =
+    (vehicle.charAt(0).toUpperCase() + vehicle.slice(1)) +
+    " · " +
+    (meta.coverage || u.community || "nearby");
+  var body =
+    "Driver live" +
+    (meta.base_park ? " · Base: " + meta.base_park : "") +
+    (meta.primary_location ? " · " + meta.primary_location : "") +
+    (meta.coverage ? " · Coverage: " + meta.coverage : "");
+
+  var payload = {
+    name: title,
+    title: title,
+    category: "logistics",
+    business_type: "driver",
+    description: body,
+    body: body,
+    price: 0,
+    currency: "NGN",
+    available: !!meta.active,
+    quantity: 1,
+    perishable: false,
+    vehicle_type: meta.vehicle_type || "",
+    coverage: meta.coverage || "",
+    base_park: meta.base_park || "",
+    lat: meta.lat,
+    lng: meta.lng,
+    live: !!meta.active,
+    role: "driver"
+  };
+
+  var listingId = null;
+  try {
+    listingId = localStorage.getItem("snm_driver_listing_id") || "";
+  } catch (e) {}
+
+  try {
+    if (listingId) {
+      await SNM.api("/products/" + encodeURIComponent(listingId), {
+        method: "PATCH",
+        body: payload
+      });
+      return listingId;
+    }
+  } catch (e2) {
+    listingId = null;
+  }
+
+  try {
+    var created = await SNM.api("/products", {
+      method: "POST",
+      body: payload
+    });
+    var id =
+      (created && (created.id || created.product_id)) ||
+      (created && created.product && created.product.id) ||
+      "";
+    if (id) {
+      try {
+        localStorage.setItem("snm_driver_listing_id", String(id));
+      } catch (e3) {}
+    }
+    return id;
+  } catch (e4) {
+    // alternate path some APIs use
+    try {
+      var created2 = await SNM.api("/shop/products", {
+        method: "POST",
+        body: payload
+      });
+      var id2 =
+        (created2 && (created2.id || created2.product_id)) || "";
+      if (id2) {
+        try {
+          localStorage.setItem("snm_driver_listing_id", String(id2));
+        } catch (e5) {}
+      }
+      return id2;
+    } catch (e6) {
+      console.warn("driver listing upsert failed", e6);
+      return null;
+    }
   }
 };
