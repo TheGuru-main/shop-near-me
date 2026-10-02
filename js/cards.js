@@ -734,3 +734,118 @@ SNM.bindCardActions = function (root) {
 SNM.bindCards = function () {
   SNM.bindCardActions(document);
 };
+
+
+
+/* CARD_OPEN_DETAIL_V3 */
+SNM._listingsById = SNM._listingsById || {};
+
+SNM.bindCardActions = function (root) {
+  root = root || document;
+  if (!root.addEventListener) return;
+  if (root._snmCardOpenV3) return;
+  root._snmCardOpenV3 = true;
+
+  root.addEventListener(
+    "click",
+    function (e) {
+      var actEl = e.target.closest("[data-act]");
+      var card = e.target.closest(
+        ".card[data-id], article.card[data-id], article.card, .card"
+      );
+      if (!card) return;
+
+      var id = card.getAttribute("data-id") || "";
+      var phone =
+        card.getAttribute("data-phone") ||
+        (actEl && actEl.getAttribute("data-phone")) ||
+        "";
+
+      var listing =
+        (id && SNM._listingsById[id]) ||
+        (typeof SNM.normalizeListing === "function"
+          ? SNM.normalizeListing({
+              id: id,
+              phone: phone,
+              name: ((card.querySelector(".title") || {}).textContent || "")
+            })
+          : { id: id, phone: phone });
+
+      function openDetail() {
+        if (typeof SNM.openListingDetail === "function") {
+          SNM.openListingDetail(listing);
+        } else {
+          alert("openListingDetail missing");
+        }
+      }
+
+      if (actEl) {
+        var act = (actEl.getAttribute("data-act") || "").toLowerCase();
+        e.preventDefault();
+        e.stopPropagation();
+        if (act === "view" || act === "detail") {
+          openDetail();
+          return;
+        }
+        if (act === "profile") {
+          var ph =
+            actEl.getAttribute("data-phone") || phone || listing.phone || "";
+          if (typeof SNM.openUserProfile === "function") SNM.openUserProfile(ph);
+          return;
+        }
+        if (act === "message") {
+          if (typeof SNM.messageSeller === "function")
+            SNM.messageSeller(phone || listing.phone);
+          return;
+        }
+        if (act === "cart") {
+          if (typeof SNM.addToCart === "function") SNM.addToCart(listing);
+          return;
+        }
+        if (act === "share") return;
+        return;
+      }
+
+      if (e.target.closest("input, textarea, select, label, a")) return;
+      openDetail();
+    },
+    false
+  );
+};
+
+SNM.bindCards = function () {
+  SNM.bindCardActions(document);
+};
+
+// Also catch plain "View" buttons without data-act
+if (!window._snmViewBtnWire) {
+  window._snmViewBtnWire = true;
+  document.addEventListener(
+    "click",
+    function (e) {
+      var btn = e.target.closest("button");
+      if (!btn) return;
+      var label = (btn.textContent || "").trim().toLowerCase();
+      if (label !== "view" && !btn.getAttribute("data-act")) return;
+      if (label === "view" && !btn.getAttribute("data-act")) {
+        var card = btn.closest(".card, article.card");
+        if (!card) return;
+        e.preventDefault();
+        e.stopPropagation();
+        var id = card.getAttribute("data-id") || "";
+        var listing =
+          (id && SNM._listingsById && SNM._listingsById[id]) ||
+          (typeof SNM.normalizeListing === "function"
+            ? SNM.normalizeListing({
+                id: id,
+                phone: card.getAttribute("data-phone") || ""
+              })
+            : { id: id });
+        if (typeof SNM.openListingDetail === "function") {
+          SNM.openListingDetail(listing);
+        }
+      }
+    },
+    true
+  );
+}

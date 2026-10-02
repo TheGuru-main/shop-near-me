@@ -1497,3 +1497,221 @@ SNM.setOnline = async function (on) {
     }, 45000);
   }
 };
+
+
+
+/* DETAIL_MAP_LINE_V3 — card tap → detail + pin-to-pin */
+SNM._detailMap = SNM._detailMap || null;
+SNM._detailItem = SNM._detailItem || null;
+
+SNM.seekerGeoForDetail = function () {
+  var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+  var lat =
+    SNM._lastLat != null
+      ? Number(SNM._lastLat)
+      : u.lat != null
+        ? Number(u.lat)
+        : null;
+  var lng =
+    SNM._lastLng != null
+      ? Number(SNM._lastLng)
+      : u.lng != null
+        ? Number(u.lng)
+        : null;
+  if (lat != null && !isNaN(lat)) return { lat: lat, lng: lng };
+  return { lat: null, lng: null };
+};
+
+SNM.listingCoordsFromItem = function (item) {
+  item = item || {};
+  var lat = item.lat != null ? Number(item.lat) : null;
+  var lng = item.lng != null ? Number(item.lng) : null;
+  if (lat == null || isNaN(lat)) {
+    var o = item.owner || item.seller || item.raw || {};
+    if (o.lat != null) lat = Number(o.lat);
+    if (o.lng != null) lng = Number(o.lng);
+  }
+  if (lat == null || isNaN(lat) || lng == null || isNaN(lng)) return null;
+  return { lat: lat, lng: lng };
+};
+
+SNM.closeListingDetail = function () {
+  var sheet = document.getElementById("listingDetail");
+  if (!sheet) return;
+  sheet.classList.remove("open");
+  sheet.setAttribute("aria-hidden", "true");
+  sheet.style.display = "none";
+  try {
+    if (SNM._detailMap) {
+      SNM._detailMap.remove();
+      SNM._detailMap = null;
+    }
+  } catch (e) {}
+};
+
+SNM.paintDetailMapLine = function (item) {
+  if (typeof L === "undefined") return;
+  var mapEl = document.getElementById("listingDetailMap");
+  if (!mapEl) return;
+
+  var you = SNM.seekerGeoForDetail();
+  var them = SNM.listingCoordsFromItem(item);
+
+  try {
+    if (SNM._detailMap) {
+      SNM._detailMap.remove();
+      SNM._detailMap = null;
+    }
+  } catch (e) {}
+
+  mapEl.innerHTML = "";
+  mapEl.style.display = "block";
+  mapEl.style.height = "220px";
+
+  var centerLat = them ? them.lat : you.lat;
+  var centerLng = them ? them.lng : you.lng;
+  if (centerLat == null || centerLng == null) {
+    mapEl.innerHTML =
+      "<p class='muted small' style='padding:0.5rem'>No map coordinates for this listing yet.</p>";
+    return;
+  }
+
+  SNM._detailMap = L.map(mapEl).setView([centerLat, centerLng], 14);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: "&copy; OSM"
+  }).addTo(SNM._detailMap);
+
+  var bounds = [];
+  if (you.lat != null && you.lng != null) {
+    L.circleMarker([you.lat, you.lng], {
+      radius: 8,
+      color: "#16a34a",
+      fillColor: "#16a34a",
+      fillOpacity: 0.9
+    })
+      .addTo(SNM._detailMap)
+      .bindPopup("You");
+    bounds.push([you.lat, you.lng]);
+  }
+  if (them) {
+    L.circleMarker([them.lat, them.lng], {
+      radius: 9,
+      color: "#2563eb",
+      fillColor: "#2563eb",
+      fillOpacity: 0.9
+    })
+      .addTo(SNM._detailMap)
+      .bindPopup(
+        (item.sellerName || item.title || item.name || "Listing") + ""
+      );
+    bounds.push([them.lat, them.lng]);
+  }
+  if (you.lat != null && them) {
+    L.polyline(
+      [
+        [you.lat, you.lng],
+        [them.lat, them.lng]
+      ],
+      { color: "#14532d", weight: 3, opacity: 0.85 }
+    ).addTo(SNM._detailMap);
+  }
+  if (bounds.length > 1) {
+    try {
+      SNM._detailMap.fitBounds(bounds, { padding: [28, 28], maxZoom: 16 });
+    } catch (e2) {}
+  }
+  setTimeout(function () {
+    try {
+      SNM._detailMap.invalidateSize();
+    } catch (e3) {}
+  }, 200);
+};
+
+SNM.openListingDetail = function (item) {
+  item = item || {};
+  if (item.raw && !item.lat && item.raw.lat != null) {
+    item.lat = item.raw.lat;
+    item.lng = item.raw.lng;
+  }
+  SNM._detailItem = item;
+
+  var sheet = document.getElementById("listingDetail");
+  var body = document.getElementById("listingDetailBody");
+  if (!sheet) {
+    alert("Detail sheet missing in HTML");
+    return;
+  }
+
+  var esc =
+    typeof SNM.esc === "function"
+      ? SNM.esc
+      : function (s) {
+          return String(s == null ? "" : s);
+        };
+
+  if (body) {
+    var place = [item.primary, item.primary_location, item.community, item.city]
+      .filter(Boolean)
+      .join(" · ");
+    body.innerHTML =
+      "<p><strong>" +
+      esc(item.title || item.name || "Listing") +
+      "</strong></p>" +
+      "<p class='muted'>" +
+      esc(item.sellerName || item.seller_name || "") +
+      "</p>" +
+      "<p>" +
+      esc(item.phone || "") +
+      "</p>" +
+      (place ? "<p class='muted small'>" + esc(place) + "</p>" : "") +
+      (item.price != null
+        ? "<p>NGN " + esc(String(item.price)) + "</p>"
+        : "") +
+      (item.km != null
+        ? "<p class='muted small'>" + esc(String(item.km)) + " km</p>"
+        : "");
+  }
+
+  sheet.classList.add("open");
+  sheet.setAttribute("aria-hidden", "false");
+  sheet.style.display = "flex";
+  sheet.style.flexDirection = "column";
+
+  // GPS for "You" then paint line
+  var paint = function () {
+    SNM.paintDetailMapLine(item);
+  };
+  if (
+    (SNM._lastLat == null || SNM._lastLng == null) &&
+    typeof SNM._geo === "function"
+  ) {
+    SNM._geo().then(function (g) {
+      if (g && g.lat != null) {
+        SNM._lastLat = g.lat;
+        SNM._lastLng = g.lng;
+      }
+      paint();
+    });
+  } else {
+    paint();
+  }
+};
+
+// close buttons
+if (!window._snmDetailCloseWired) {
+  window._snmDetailCloseWired = true;
+  document.addEventListener(
+    "click",
+    function (e) {
+      if (
+        e.target.closest("#btnCloseDetail") ||
+        e.target.closest("#btnCloseDetail2")
+      ) {
+        e.preventDefault();
+        SNM.closeListingDetail();
+      }
+    },
+    true
+  );
+}

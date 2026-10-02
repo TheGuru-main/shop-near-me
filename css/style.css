@@ -1544,3 +1544,34 @@ body.theme-dark #home > .top-bar .theme-switch-knob {
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch;
 }
+
+
+/* LISTING_DETAIL_SHEET_V3 */
+#listingDetail.sheet {
+  display: none;
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 0;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90dvh;
+  overflow-y: auto;
+  z-index: 2300;
+  background: #f8fafc;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -8px 32px rgba(0,0,0,0.2);
+  padding: 0.5rem 0.75rem 1rem;
+  flex-direction: column;
+}
+#listingDetail.sheet.open {
+  display: flex !important;
+}
+#listingDetailMap {
+  height: 220px !important;
+  min-height: 180px;
+  width: 100%;
+  border-radius: 12px;
+  margin: 0.5rem 0;
+  background: #e5e7eb;
+}
