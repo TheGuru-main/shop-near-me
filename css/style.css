@@ -1522,3 +1522,25 @@ body.theme-dark #home > .top-bar .theme-switch-knob {
 }
 /* never treat checkout as a bottom sheet */
 #checkout.sheet { display: none !important; }
+
+
+/* CHECKOUT_FIX_V2 */
+#checkout.screen { display: none; }
+#checkout.screen.active {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  overflow: hidden !important;
+}
+#checkout.screen.active > .top-bar {
+  flex: 0 0 52px !important;
+  height: 52px !important;
+  z-index: 5;
+}
+#checkout.screen.active > .container {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+}

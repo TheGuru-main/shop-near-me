@@ -1,3 +1,39 @@
+
+/* MERCHANT_CART_BTN_V1 */
+SNM.isMerchantListing = function (x) {
+  x = x || {};
+  var role = String(
+    x.role ||
+      x.business_type ||
+      (x.owner && x.owner.role) ||
+      (x.raw && x.raw.business_type) ||
+      ""
+  ).toLowerCase();
+  var cat = String(x.category || "").toLowerCase();
+  if (/driver|logistic|service|hotel|hospitality|dispatch|keke|okada|ride|bus/.test(role))
+    return false;
+  if (/driver|logistic|service|hotel|dispatch|ride/.test(cat)) return false;
+  if (x.kind === "fairly_used") return false;
+  // merchant / product / retail / empty role with a price → cart ok
+  if (/merchant|retail|product|food|grocery|fashion|electronics/.test(role + " " + cat))
+    return true;
+  if (role === "" || role === "buyer") {
+    // product rows from search often omit role — allow if has price and not mobility name
+    var name = String(x.title || x.name || "").toLowerCase();
+    if (/keke|okada|driver|ride|dispatch|bus\b/.test(name)) return false;
+    return x.price != null || x.amount != null;
+  }
+  return role === "merchant";
+};
+
+SNM.cartButtonHtml = function (x) {
+  if (!SNM.isMerchantListing(x)) return "";
+  return (
+    '<button type="button" class="btn small cart-add-btn" data-act="cart" aria-label="Add to cart">' +
+    '<i class="fa-solid fa-plus"></i></button>'
+  );
+};
+
 window.SNM = window.SNM || {};
 
 SNM.esc =
@@ -259,6 +295,7 @@ SNM.cardHtml = function (item) {
     '<button type="button" data-act="comment">Comment</button>' +
     '<button type="button" data-act="share">Share</button>' +
     '<button type="button" data-act="message">Message seller</button>' +
+    (typeof SNM.cartButtonHtml === "function" ? SNM.cartButtonHtml(x) : "") + '' +
     (typeof SNM.isMerchantListing === "function" && SNM.isMerchantListing(x)
       ? '<button type="button" class="btn small" data-act="cart">Add to cart</button>'
       : "") +
