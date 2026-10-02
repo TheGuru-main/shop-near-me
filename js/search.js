@@ -1,4 +1,23 @@
 
+/* QUICK_ACTION_SYNONYMS_V1 — keep in sync with home chips + backend seed */
+SNM.LOCAL_SYNONYMS = Object.assign(SNM.LOCAL_SYNONYMS || {}, {
+  food: ["eatery", "restaurant", "rice", "beans", "meal", "kitchen", "buka", "catering"],
+  breakfast: ["bread", "egg", "tea", "akara", "pap", "coffee", "toast"],
+  hotel: ["lodge", "guest house", "short-let", "room", "suite", "bnb", "inn"],
+  bus: ["transport", "coach", "driver", "logistics", "terminal"],
+  keke: ["tricycle", "keke napep", "ride", "driver"],
+  car: ["taxi", "cab", "ride", "driver", "hire"],
+  dispatch: ["courier", "delivery", "bike", "okada", "logistics", "parcel", "errand"],
+  "self-contained": ["self contained", "mini flat", "room", "apartment", "lodge", "rent"],
+  apartment: ["flat", "self-contained", "duplex", "rent", "housing", "lodge"],
+  fashion: ["clothes", "wear", "shirt", "boutique", "okirika", "tailor", "shoes"],
+  repair: ["fix", "mechanic", "electrician", "plumber", "technician", "maintenance"],
+  emergency: ["ambulance", "hospital", "clinic", "police", "fire", "rescue"],
+  ride: ["keke", "okada", "bike", "car", "bus", "dispatch", "driver"],
+  driver: ["keke", "okada", "bike", "car", "bus", "dispatch", "logistics"]
+});
+
+
 SNM.MOBILITY_KEYS = ["bus", "keke", "car", "dispatch", "okada", "bike", "tricycle", "driver", "logistics", "courier", "van", "ride"];
 SNM.HOUSING_KEYS = ["self-contained", "self contained", "apartment", "flat", "lodge", "short-let", "room"];
 

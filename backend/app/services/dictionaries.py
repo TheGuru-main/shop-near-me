@@ -142,19 +142,117 @@ _FALLBACK_SYN = {
     "driver": ["okada", "keke", "courier"],
 }
 
+
+# Quick-action aligned synonym seed (Shop Near Me home chips)
+_QUICK_ACTION_SYN = {
+    "food": [
+        "food", "eatery", "restaurant", "kitchen", "meal", "rice", "beans",
+        "oil", "swallow", "soup", "indomie", "yam", "egg", "fish", "meat",
+        "snacks", "catering", "canteen", "buka",
+    ],
+    "breakfast": [
+        "breakfast", "tea", "bread", "egg", "akara", "pap", "oatmeal",
+        "coffee", "morning meal", "toast", "beans", "yaji",
+    ],
+    "hotel": [
+        "hotel", "lodge", "guest house", "guesthouse", "short-let", "short let",
+        "hospitality", "room", "suite", "bnb", "inn", "motel", "accommodation",
+    ],
+    "bus": [
+        "bus", "transport", "commuter", "coach", "logistics", "driver",
+        "park", "terminal", "mass transit",
+    ],
+    "keke": [
+        "keke", "tricycle", "keke napep", "ride", "driver", "okada park",
+        "local transport",
+    ],
+    "car": [
+        "car", "taxi", "cab", "ride", "driver", "hire", "private car",
+        "sedan", "suv",
+    ],
+    "dispatch": [
+        "dispatch", "courier", "delivery", "bike", "okada", "logistics",
+        "errand", "parcel", "express", "rider",
+    ],
+    "self-contained": [
+        "self-contained", "self contained", "selfcontain", "mini flat",
+        "room and parlour", "single room", "apartment", "lodge", "rent",
+    ],
+    "apartment": [
+        "apartment", "flat", "self-contained", "duplex", "bungalow",
+        "rent", "lease", "housing", "accommodation", "lodge",
+    ],
+    "fashion": [
+        "fashion", "clothes", "clothing", "wear", "shirt", "trouser",
+        "gown", "okirika", "boutique", "tailor", "fabric", "shoes",
+    ],
+    "repair": [
+        "repair", "fix", "mechanic", "electrician", "plumber",
+        "technician", "service", "maintenance", "phone repair",
+    ],
+    "emergency": [
+        "emergency", "ambulance", "hospital", "clinic", "police", "fire",
+        "first aid", "rescue",
+    ],
+    "fairly used": [
+        "fairly used", "fairly-used", "second hand", "secondhand", "used",
+        "preowned", "tokunbo", "thrift", "okirika",
+    ],
+    "banqueue": [
+        "banqueue", "queue", "line status", "road", "traffic", "block",
+    ],
+    # mobility umbrella
+    "ride": ["keke", "okada", "bike", "car", "bus", "dispatch", "driver", "taxi"],
+    "driver": ["keke", "okada", "bike", "car", "bus", "dispatch", "logistics", "ride"],
+    "logistics": ["dispatch", "courier", "delivery", "driver", "van", "bus"],
+}
+
+# Merge into fallback dict used when Datamuse fails
+
+
+def _merge_quick_synonyms(key: str, syns: list) -> list:
+    """Attach home quick-action synonym clusters."""
+    key = (key or "").strip().lower()
+    out = list(syns or [])
+    seen = {s.lower() for s in out}
+    cluster = None
+    if "_QUICK_ACTION_SYN" in globals():
+        for k, words in _QUICK_ACTION_SYN.items():
+            if key == k or key in words or k in key:
+                cluster = words
+                break
+            # partial: breakfast in query etc
+        if cluster is None:
+            for k, words in _QUICK_ACTION_SYN.items():
+                if key in k or k in key:
+                    cluster = words
+                    break
+    if cluster:
+        for w in cluster:
+            wl = w.lower()
+            if wl not in seen:
+                seen.add(wl)
+                out.append(w)
+    return out
+
+
 CATEGORY_DICTIONARY = {
     "merchant": [
-        "Retail", "Food", "Electronics", "Fashion", "Agriculture", "Pharmacy", "Fuel",
+        "Retail", "Food", "Breakfast", "Groceries", "Electronics", "Fashion",
+        "Agriculture", "Pharmacy", "Fuel", "Fairly used",
     ],
     "service": [
-        "Hotel", "Salon", "Clinic", "Repair", "Education", "Hospitality",
+        "Hotel", "Hospitality", "Salon", "Clinic", "Repair", "Education",
+        "Apartment", "Self-contained", "Short-let",
     ],
-    "driver": ["Okada", "Keke", "Van", "Courier", "Truck"],
-    "emergency": [
-        "Police", "Ambulance", "Fire", "Clinic", "Neighborhood Watch",
+    "driver": [
+        "Okada", "Keke", "Bike", "Car", "Bus", "Van", "Courier", "Dispatch", "Truck",
     ],
+    "emergency": ["Police", "Ambulance", "Fire", "Clinic", "Neighborhood Watch"],
     "agriculture": ["Farm", "Poultry", "Fishery", "Feed", "Produce"],
+    "logistics": ["Dispatch", "Courier", "Delivery", "Bus", "Van"],
 }
+
 
 LANGUAGE_DICTIONARY = {
     "en": {"name": "English", "dir": "ltr"},
@@ -313,7 +411,8 @@ async def expand_synonyms(token: str) -> dict[str, Any]:
                 "source": "fallback",
             }
 
-    return {"canonical": key, "synonyms": [], "source": "none"}
+    synonyms = _merge_quick_synonyms(key, synonyms if "synonyms" in dir() else [])
+    return {"canonical": key, "synonyms": _merge_quick_synonyms(key, []), "source": "none"}
 
 
 async def define_word(word: str) -> dict[str, Any]:
