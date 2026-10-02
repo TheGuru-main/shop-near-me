@@ -1269,3 +1269,72 @@ SNM.onShopEnter = function () {
     }
   } catch (e2) {}
 };
+
+
+
+/* DRIVER_WORKSPACE_SHOW_V2 */
+SNM.showShopPanels = function () {
+  var user = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+  var role = String(
+    (user && user.role) ||
+      (typeof SNM.getRole === "function" && SNM.getRole()) ||
+      (sessionStorage.getItem("snm_role") || "") ||
+      "buyer"
+  )
+    .toLowerCase()
+    .trim();
+  if (role === "logistics") role = "driver";
+
+  var panels = [
+    "shop-merchant",
+    "shop-service",
+    "shop-driver",
+    "shop-emergency",
+    "shop-buyer"
+  ];
+  panels.forEach(function (id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.classList.add("hidden");
+    el.setAttribute("hidden", "hidden");
+    el.style.display = "none";
+  });
+
+  var want = "shop-buyer";
+  if (role === "merchant") want = "shop-merchant";
+  else if (role === "service") want = "shop-service";
+  else if (role === "driver") want = "shop-driver";
+  else if (role === "emergency") want = "shop-emergency";
+
+  var show = document.getElementById(want);
+  if (show) {
+    show.classList.remove("hidden");
+    show.removeAttribute("hidden");
+    show.style.display = "block";
+    show.style.visibility = "visible";
+    show.style.opacity = "1";
+    show.style.minHeight = "120px";
+  } else {
+    console.warn("shop panel missing", want, "role", role);
+  }
+};
+
+SNM.onShopEnter = function () {
+  try {
+    SNM.showShopPanels();
+  } catch (e) {
+    console.warn(e);
+  }
+  try {
+    if (typeof SNM.wireDriverWorkspace === "function") SNM.wireDriverWorkspace();
+  } catch (e2) {}
+  try {
+    if (typeof SNM.loadShop === "function") SNM.loadShop();
+  } catch (e3) {}
+  try {
+    var raw = localStorage.getItem("snm_driver_meta");
+    if (raw && typeof SNM.paintDriverStatusCard === "function") {
+      SNM.paintDriverStatusCard(JSON.parse(raw));
+    }
+  } catch (e4) {}
+};

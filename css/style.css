@@ -1578,3 +1578,48 @@ body.theme-dark #home > .top-bar .theme-switch-knob {
 
 .shop-panel.hidden { display: none !important; }
 .shop-panel:not(.hidden) { display: block !important; visibility: visible !important; }
+
+
+/* MENU_AND_SHOP_V2 */
+.shop-panel.hidden,
+#shop-driver.hidden { display: none !important; }
+.shop-panel:not(.hidden),
+#shop-driver:not(.hidden) {
+  display: block !important;
+  visibility: visible !important;
+}
+#menuSheet.menu-sheet,
+#menuSheet {
+  position: fixed;
+  top: 56px;
+  right: 8px;
+  left: auto;
+  width: min(280px, 88vw);
+  max-height: 70dvh;
+  overflow-y: auto;
+  z-index: 2500;
+  background: #fff;
+  border: 1px solid rgba(20,83,45,0.15);
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+  padding: 0.5rem;
+  display: none;
+}
+#menuSheet.open,
+#menuSheet:not(.hidden).open {
+  display: block !important;
+}
+#menuSheet button,
+#menuSheet [data-go],
+#menuSheet [data-menu] {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: #14532d;
+  border-radius: 10px;
+}
+#menuSheet button:active { background: #ecfdf5; }

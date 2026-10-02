@@ -367,3 +367,75 @@ SNM.bindRouter = function () {
     if (hid) SNM.showScreen(hid);
   });
 };
+
+/* MENU_HAMBURGER_V1 */
+SNM.toggleMenuSheet = function () {
+  var menu = document.getElementById("menuSheet");
+  if (!menu) {
+    console.warn("menuSheet missing");
+    return;
+  }
+  var open = menu.classList.contains("open") || !menu.classList.contains("hidden");
+  if (menu.classList.contains("hidden") || !menu.classList.contains("open")) {
+    menu.classList.remove("hidden");
+    menu.classList.add("open");
+    menu.style.display = "block";
+    menu.setAttribute("aria-hidden", "false");
+  } else {
+    menu.classList.add("hidden");
+    menu.classList.remove("open");
+    menu.style.display = "none";
+    menu.setAttribute("aria-hidden", "true");
+  }
+};
+
+SNM.bindMenuHamburger = function () {
+  if (SNM._menuHamWired) return;
+  SNM._menuHamWired = true;
+  document.addEventListener(
+    "click",
+    function (e) {
+      var btn =
+        e.target.closest("#btnMenu") ||
+        e.target.closest("[data-menu-toggle]") ||
+        e.target.closest(".btn-menu");
+      if (btn) {
+        e.preventDefault();
+        e.stopPropagation();
+        SNM.toggleMenuSheet();
+        return;
+      }
+      var item = e.target.closest("#menuSheet [data-menu], #menuSheet [data-go]");
+      if (item) {
+        e.preventDefault();
+        e.stopPropagation();
+        var menu = document.getElementById("menuSheet");
+        if (menu) {
+          menu.classList.add("hidden");
+          menu.classList.remove("open");
+          menu.style.display = "none";
+        }
+        var act = item.getAttribute("data-menu") || item.getAttribute("data-go");
+        if (act === "logout") {
+          if (typeof SNM.clearSession === "function") SNM.clearSession();
+          if (typeof SNM.showScreen === "function") SNM.showScreen("role-select");
+          return;
+        }
+        if (act && typeof SNM.showScreen === "function") SNM.showScreen(act);
+        return;
+      }
+      var menu2 = document.getElementById("menuSheet");
+      if (
+        menu2 &&
+        (menu2.classList.contains("open") || !menu2.classList.contains("hidden")) &&
+        !e.target.closest("#menuSheet") &&
+        !e.target.closest("#btnMenu")
+      ) {
+        menu2.classList.add("hidden");
+        menu2.classList.remove("open");
+        menu2.style.display = "none";
+      }
+    },
+    true
+  );
+};
