@@ -69,40 +69,39 @@ SNM._shopItems = [];
 
 SNM.showShopPanels = function () {
   var user = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
-  var role =
+  var role = String(
     (user && user.role) ||
-    (typeof SNM.getRole === "function" && SNM.getRole()) ||
-    "buyer";
-  role = String(role).toLowerCase().trim();
+      (typeof SNM.getRole === "function" && SNM.getRole()) ||
+      "buyer"
+  )
+    .toLowerCase()
+    .trim();
   if (role === "logistics") role = "driver";
 
-  var panels = {
-    merchant: document.getElementById("shop-merchant"),
-    service: document.getElementById("shop-service"),
-    driver: document.getElementById("shop-driver"),
-    emergency: document.getElementById("shop-emergency"),
-    buyer: document.getElementById("shop-buyer")
+  var ids = {
+    merchant: "shop-merchant",
+    service: "shop-service",
+    driver: "shop-driver",
+    emergency: "shop-emergency",
+    buyer: "shop-buyer"
   };
 
-  Object.keys(panels).forEach(function (k) {
-    if (panels[k]) {
-      panels[k].classList.add("hidden");
-      panels[k].style.display = "none";
-    }
+  Object.keys(ids).forEach(function (k) {
+    var el = document.getElementById(ids[k]);
+    if (!el) return;
+    el.classList.add("hidden");
+    el.style.display = "none";
   });
 
-  var show = null;
-  if (role === "merchant") show = panels.merchant;
-  else if (role === "service") show = panels.service;
-  else if (role === "driver") show = panels.driver;
-  else if (role === "emergency") show = panels.emergency;
-  else show = panels.buyer;
-
+  var key = ids[role] ? role : "buyer";
+  if (!ids[key]) key = "buyer";
+  var show = document.getElementById(ids[key]);
   if (show) {
     show.classList.remove("hidden");
-    show.style.display = "flex";
+    show.style.display = "block";
   }
 };
+;
 
 SNM.renderShopList = function (items) {
   items = items || [];
@@ -1160,4 +1159,113 @@ SNM.upsertDriverListing = async function (meta) {
       return null;
     }
   }
+};
+
+
+/* SHOP_PANELS_FIX_V1 */
+
+SNM.showShopPanels = function () {
+  var user = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+  var role = String(
+    (user && user.role) ||
+      (typeof SNM.getRole === "function" && SNM.getRole()) ||
+      "buyer"
+  )
+    .toLowerCase()
+    .trim();
+  if (role === "logistics") role = "driver";
+
+  var ids = {
+    merchant: "shop-merchant",
+    service: "shop-service",
+    driver: "shop-driver",
+    emergency: "shop-emergency",
+    buyer: "shop-buyer"
+  };
+
+  Object.keys(ids).forEach(function (k) {
+    var el = document.getElementById(ids[k]);
+    if (!el) return;
+    el.classList.add("hidden");
+    el.style.display = "none";
+  });
+
+  var key = ids[role] ? role : "buyer";
+  if (!ids[key]) key = "buyer";
+  var show = document.getElementById(ids[key]);
+  if (show) {
+    show.classList.remove("hidden");
+    show.style.display = "block";
+  }
+};
+
+SNM.onShopEnter = function () {
+  if (typeof SNM.showShopPanels === "function") SNM.showShopPanels();
+  if (typeof SNM.wireDriverWorkspace === "function") SNM.wireDriverWorkspace();
+  if (typeof SNM.loadShop === "function") SNM.loadShop();
+  try {
+    var raw = localStorage.getItem("snm_driver_meta");
+    if (raw && typeof SNM.paintDriverStatusCard === "function") {
+      SNM.paintDriverStatusCard(JSON.parse(raw));
+    }
+  } catch (e) {}
+};
+
+
+
+/* FORCE_SHOW_DRIVER_PANEL_V1 */
+SNM.showShopPanels = function () {
+  var user = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+  var role = String(
+    (user && user.role) ||
+      (typeof SNM.getRole === "function" && SNM.getRole()) ||
+      sessionStorage.getItem("snm_role") ||
+      "buyer"
+  )
+    .toLowerCase()
+    .trim();
+  if (role === "logistics") role = "driver";
+
+  var map = {
+    merchant: "shop-merchant",
+    service: "shop-service",
+    driver: "shop-driver",
+    emergency: "shop-emergency",
+    buyer: "shop-buyer"
+  };
+
+  Object.keys(map).forEach(function (k) {
+    var el = document.getElementById(map[k]);
+    if (!el) return;
+    el.classList.add("hidden");
+    el.style.display = "none";
+  });
+
+  var id = map[role] || map.buyer;
+  var show = document.getElementById(id);
+  if (!show && role === "driver") {
+    show = document.getElementById("shop-driver");
+  }
+  if (show) {
+    show.classList.remove("hidden");
+    show.style.display = "block";
+    show.style.visibility = "visible";
+    show.style.opacity = "1";
+  }
+};
+
+SNM.onShopEnter = function () {
+  SNM.showShopPanels();
+  if (typeof SNM.wireDriverWorkspace === "function") SNM.wireDriverWorkspace();
+  if (typeof SNM.loadShop === "function") {
+    try {
+      SNM.loadShop();
+    } catch (e) {}
+  }
+  try {
+    var raw = localStorage.getItem("snm_driver_meta");
+    if (raw && typeof SNM.paintDriverStatusCard === "function") {
+      SNM.paintDriverStatusCard(JSON.parse(raw));
+    }
+  } catch (e2) {}
 };

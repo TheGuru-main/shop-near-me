@@ -95,6 +95,7 @@ SNM.showScreen = function (id) {
     if (typeof SNM.wireSetupDoneButton === "function") SNM.wireSetupDoneButton();
     if (typeof SNM.initSetupScreens === "function") SNM.initSetupScreens();
   }
+  if (id === "shop") { if (typeof SNM.onShopEnter === "function") SNM.onShopEnter(); }
   if (id === "home" && typeof SNM.enterHome === "function") {
     SNM.enterHome(false);
   }

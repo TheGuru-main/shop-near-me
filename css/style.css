@@ -1575,3 +1575,6 @@ body.theme-dark #home > .top-bar .theme-switch-knob {
   margin: 0.5rem 0;
   background: #e5e7eb;
 }
+
+.shop-panel.hidden { display: none !important; }
+.shop-panel:not(.hidden) { display: block !important; visibility: visible !important; }
