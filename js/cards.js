@@ -956,3 +956,133 @@ SNM.listingRoleLabel = SNM.listingRoleLabel || function (raw) {
   };
 })();
 
+
+/* CARD_ROLE_PRESENCE_CART_V1 */
+SNM.listingRoleLabel = function (raw) {
+  raw = raw || {};
+  var p = raw.product || raw;
+  var o = raw.seller || raw.owner || {};
+  var role = String(raw.role || raw.business_type || p.business_type || o.role || "").toLowerCase();
+  var cat = String(raw.category || p.category || "").toLowerCase();
+  if (role === "logistics") role = "driver";
+  if (role === "driver" || cat === "logistics") return "Driver";
+  if (role === "merchant" || role === "retail") return "Merchant";
+  if (role === "service") {
+    if (/hotel|lodge|hospitality|guest|short-let/.test(cat + " " + (p.name || "")))
+      return "Hotel / hospitality";
+    return "Service";
+  }
+  if (role === "emergency") return "Emergency";
+  return role ? role.charAt(0).toUpperCase() + role.slice(1) : "Provider";
+};
+
+SNM.presenceLabel = function (raw) {
+  raw = raw || {};
+  var p = raw.product || raw;
+  var o = raw.seller || raw.owner || {};
+  var live = !!(raw.live || p.live || o.live || raw.active);
+  var hb = o.hb_at || raw.hb_at || p.hb_at;
+  if (!live && p.available === false) return "Inactive";
+  if (!live) return "Inactive";
+  if (hb) {
+    var age = Date.now() - new Date(hb).getTime();
+    if (!isNaN(age) && age < 5 * 60 * 1000) return "Active now";
+    if (!isNaN(age) && age < 60 * 60 * 1000) return "Active moments ago";
+  }
+  return "Active now";
+};
+
+SNM.stockLabel = function (raw) {
+  var p = (raw && raw.product) || raw || {};
+  if (p.available === false) return "Out of stock";
+  return "In stock";
+};
+
+(function () {
+  var prev = SNM.normalizeListing;
+  SNM.normalizeListing = function (raw) {
+    raw = raw || {};
+    var p = raw.product || raw;
+    var o = raw.seller || raw.owner || raw.merchant || {};
+    var x = typeof prev === "function" ? prev(raw) : {};
+    x.id = x.id || p.id || raw.id || "";
+    x.title = p.name || p.title || x.title || "Listing";
+    x.phone = o.phone || x.phone || "";
+    x.sellerName = o.name || o.business_name || x.sellerName || "Provider";
+    x.roleLabel = SNM.listingRoleLabel(raw);
+    x.role = String(raw.role || raw.business_type || p.business_type || "").toLowerCase();
+    if (x.role === "logistics") x.role = "driver";
+    x.km = raw.km != null ? raw.km : x.km;
+    x.available = p.available !== false;
+    x.live = !!(raw.live || p.live || o.live);
+    x.community = o.community || x.community || "";
+    x.city = o.city || x.city || "";
+    x.primary = o.primary_location || x.primary || "";
+    x.raw = raw;
+    return x;
+  };
+})();
+
+(function () {
+  var prevCard = SNM.cardHtml;
+  SNM.cardHtml = function (item) {
+    var x = typeof SNM.normalizeListing === "function" ? SNM.normalizeListing(item) : item || {};
+    var role = (x.role || "").toLowerCase();
+    var isDriver = role === "driver";
+    var isService = role === "service";
+    var isMerchant = role === "merchant" || role === "retail" || (!isDriver && !isService && role !== "emergency");
+    var statusChip;
+    if (isDriver || isService || role === "emergency") {
+      statusChip = SNM.presenceLabel(item);
+    } else {
+      statusChip = SNM.stockLabel(item);
+    }
+    var esc = typeof SNM.esc === "function" ? SNM.esc : function (s) { return String(s || ""); };
+    var dist = typeof SNM.formatDistance === "function" ? SNM.formatDistance(x.km) : (x.km != null ? x.km + " km" : "");
+    var phone = x.phone || "";
+    var place = [x.primary, x.community, x.city].filter(Boolean).join(" · ");
+
+    var actions =
+      '<div class="card-actions">' +
+      '<button type="button" class="btn secondary small" data-act="detail">View</button>' +
+      '<button type="button" class="btn secondary small" data-act="share">Share</button>' +
+      '<button type="button" class="btn secondary small" data-act="message">Message</button>';
+    if (isMerchant && x.available) {
+      actions +=
+        '<button type="button" class="btn small" data-act="cart" aria-label="Add to cart">+</button>';
+    }
+    actions += "</div>";
+
+    return (
+      '<article class="card listing-card" data-id="' +
+      esc(x.id) +
+      '" data-phone="' +
+      esc(phone) +
+      '" data-role="' +
+      esc(role) +
+      '">' +
+      '<div class="card-top">' +
+      '<span class="chip">' +
+      esc(statusChip) +
+      "</span> " +
+      '<span class="chip role-chip">' +
+      esc(x.roleLabel || "") +
+      "</span>" +
+      "</div>" +
+      '<div class="title"><strong>' +
+      esc(x.title) +
+      "</strong></div>" +
+      '<p class="muted small">' +
+      esc(x.roleLabel || "Provider") +
+      ": " +
+      esc(x.sellerName) +
+      "</p>" +
+      (phone ? '<p class="muted small">Phone: ' + esc(phone) + "</p>" : "") +
+      (place ? '<p class="muted small">Location: ' + esc(place) + "</p>" : "") +
+      (dist ? '<p class="muted small">' + esc(dist) + "</p>" : "") +
+      actions +
+      "</article>"
+    );
+  };
+})();
+
