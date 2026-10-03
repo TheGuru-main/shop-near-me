@@ -835,7 +835,8 @@ textarea:focus {
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
 }
 @media (min-width: 480px) {
-  #menuSheet.top-menu {
+  /* kept top-menu only if class used */
+#menuSheet.top-menu {
     left: auto;
     right: calc(50% - 240px + 0.75rem);
     transform: none;
@@ -1580,103 +1581,52 @@ body.theme-dark #home > .top-bar .theme-switch-knob {
 .shop-panel:not(.hidden) { display: block !important; visibility: visible !important; }
 
 
-/* MENU_AND_SHOP_V2 */
-.shop-panel.hidden,
-#shop-driver.hidden { display: none !important; }
-.shop-panel:not(.hidden),
-#shop-driver:not(.hidden) {
+/* ========== MENU + DRIVER (single source — do not duplicate) ========== */
+
+.shop-panel.hidden {
+  display: none !important;
+}
+.shop-panel:not(.hidden) {
   display: block !important;
   visibility: visible !important;
 }
-#menuSheet.menu-sheet,
+
 #menuSheet {
   position: fixed;
-  top: 56px;
+  top: 52px;
   right: 8px;
   left: auto;
-  width: min(280px, 88vw);
-  max-height: 70dvh;
-  overflow-y: auto;
-  z-index: 2500;
-  background: #fff;
-  border: 1px solid rgba(20,83,45,0.15);
-  border-radius: 14px;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.15);
-  padding: 0.5rem;
-  display: none;
-}
-#menuSheet.open,
-#menuSheet:not(.hidden).open {
-  display: block !important;
-}
-#menuSheet button,
-#menuSheet [data-go],
-#menuSheet [data-menu] {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: 0.65rem 0.75rem;
-  border: 0;
-  background: transparent;
-  font: inherit;
-  color: #14532d;
-  border-radius: 10px;
-}
-#menuSheet button:active { background: #ecfdf5; }
-
-
-/* MENU_OPEN_FIX */
-#menuSheet.menu-sheet,
-#menuSheet {
-  position: fixed;
-  top: 56px;
-  right: 8px;
-  width: min(280px, 88vw);
-  z-index: 3000;
-  background: #fff;
-  border-radius: 14px;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.18);
-  padding: 0.5rem;
-  display: none !important;
-}
-#menuSheet:not(.hidden),
-#menuSheet.open {
-  display: block !important;
-}
-#menuSheet button {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: 0.65rem 0.75rem;
-  border: 0;
-  background: transparent;
-  font: inherit;
-  color: #14532d;
-}
-.shop-panel.hidden { display: none !important; }
-.shop-panel:not(.hidden) { display: block !important; }
-
-
-/* MENU_DRIVER_VIS */
-#menuSheet {
-  position: fixed;
-  top: 56px;
-  right: 8px;
-  width: min(280px, 88vw);
+  width: min(280px, 90vw);
   max-height: 75dvh;
   overflow-y: auto;
-  z-index: 3000;
+  z-index: 9999;
   background: #fff;
+  border: 1px solid rgba(20, 83, 45, 0.15);
   border-radius: 14px;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.18);
-  padding: 0.5rem;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+  padding: 0.35rem 0.5rem 0.6rem;
+  display: none;
+}
+#menuSheet.hidden {
   display: none !important;
 }
-#menuSheet:not(.hidden),
-#menuSheet.open {
+#menuSheet:not(.hidden) {
   display: block !important;
 }
-#menuSheet button {
+.menu-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.25rem 0.35rem 0.45rem;
+  border-bottom: 1px solid rgba(20, 83, 45, 0.12);
+  margin-bottom: 0.25rem;
+}
+.menu-sheet-title {
+  font-weight: 700;
+  color: #14532d;
+  font-size: 0.95rem;
+}
+#menuSheet > button {
   display: block;
   width: 100%;
   text-align: left;
@@ -1687,33 +1637,38 @@ body.theme-dark #home > .top-bar .theme-switch-knob {
   color: #14532d;
   border-radius: 10px;
 }
-#shop-driver.shop-panel:not(.hidden) {
+#menuSheet > button:active {
+  background: #ecfdf5;
+}
+
+#shop.screen.active #shop-driver:not(.hidden) {
   display: block !important;
   visibility: visible !important;
   opacity: 1 !important;
+  min-height: 200px;
 }
-#shop-driver label,
-#shop-driver input,
-#shop-driver select,
-#shop-driver button {
+#shop.screen.active #shop-driver label {
+  display: block;
+  margin: 0.4rem 0;
+}
+#shop.screen.active #shop-driver input[type="text"],
+#shop.screen.active #shop-driver select {
   display: block;
   width: 100%;
-  margin: 0.35rem 0;
+  box-sizing: border-box;
 }
-#shop-driver .check-row {
-  display: flex !important;
+#shop.screen.active #shop-driver .check-row {
+  display: flex;
   align-items: center;
   gap: 0.5rem;
-  width: 100%;
 }
-#shop-driver .check-row input {
+#shop.screen.active #shop-driver .check-row input {
   width: auto;
-  margin: 0;
 }
 
-
-/* CHECKOUT_DRIVER_SCREEN_FIX */
-#checkout.screen { display: none; }
+#checkout.screen {
+  display: none;
+}
 #checkout.screen.active {
   display: flex !important;
   flex-direction: column !important;
@@ -1729,130 +1684,6 @@ body.theme-dark #home > .top-bar .theme-switch-knob {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
   padding: 0.75rem;
 }
-#shop-driver.shop-panel:not(.hidden) {
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-}
-#shop-driver label { display: block; margin: 0.4rem 0; }
-#shop-driver input[type="text"],
-#shop-driver select {
-  width: 100%;
-  display: block;
-  box-sizing: border-box;
-}
 
-
-/* MENU_SLIM_V1 */
-#menuSheet {
-  position: fixed;
-  top: 52px;
-  right: 8px;
-  width: min(280px, 88vw);
-  max-height: 75dvh;
-  overflow-y: auto;
-  z-index: 3000;
-  background: #fff;
-  border-radius: 14px;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.18);
-  padding: 0.35rem 0.5rem 0.5rem;
-  display: none !important;
-}
-#menuSheet:not(.hidden),
-#menuSheet.open {
-  display: block !important;
-}
-.menu-sheet-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.25rem 0.35rem 0.45rem;
-  border-bottom: 1px solid rgba(20,83,45,0.12);
-  margin-bottom: 0.25rem;
-}
-.menu-sheet-title {
-  font-weight: 700;
-  color: #14532d;
-  font-size: 0.95rem;
-}
-#btnMenuClose {
-  font-size: 1.35rem;
-  line-height: 1;
-  min-width: 36px;
-}
-#menuSheet > button {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: 0.65rem 0.75rem;
-  border: 0;
-  background: transparent;
-  font: inherit;
-  color: #14532d;
-  border-radius: 10px;
-}
-
-
-/* MENU_DRIVER_EMERGENCY_FIX */
-#menuSheet {
-  position: fixed !important;
-  top: 52px !important;
-  right: 8px !important;
-  left: auto !important;
-  width: min(280px, 90vw) !important;
-  max-height: 75dvh !important;
-  overflow-y: auto !important;
-  z-index: 9999 !important;
-  background: #ffffff !important;
-  border: 1px solid rgba(20,83,45,0.15) !important;
-  border-radius: 14px !important;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.2) !important;
-  padding: 0.35rem 0.5rem 0.5rem !important;
-}
-#menuSheet.hidden {
-  display: none !important;
-}
-#menuSheet:not(.hidden) {
-  display: block !important;
-}
-.menu-sheet-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.25rem 0.35rem 0.45rem;
-  border-bottom: 1px solid rgba(20,83,45,0.12);
-  margin-bottom: 0.25rem;
-}
-.menu-sheet-title { font-weight: 700; color: #14532d; }
-#menuSheet > button {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: 0.65rem 0.75rem;
-  border: 0;
-  background: transparent;
-  font: inherit;
-  color: #14532d;
-  border-radius: 10px;
-}
-#shop.screen.active #shop-driver:not(.hidden) {
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  height: auto !important;
-  max-height: none !important;
-  overflow: visible !important;
-}
-#shop.screen.active #shop-driver label {
-  display: block !important;
-  margin: 0.45rem 0;
-}
-#shop.screen.active #shop-driver input[type="text"],
-#shop.screen.active #shop-driver select {
-  display: block !important;
-  width: 100% !important;
-  box-sizing: border-box;
-}
