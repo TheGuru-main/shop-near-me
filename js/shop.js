@@ -251,6 +251,24 @@ SNM.bindShopListActions = function (root) {
 };
 
 SNM.loadShop = async function () {
+  /* LOADSHOP_DRIVER_GUARD */
+  var _role = String(
+    ((typeof SNM.getUser === "function" && SNM.getUser()) || {}).role ||
+      (typeof SNM.getRole === "function" && SNM.getRole()) ||
+      ""
+  ).toLowerCase();
+  if (_role === "logistics") _role = "driver";
+  if (_role === "driver") {
+    if (typeof SNM.showDriverWorkspace === "function") SNM.showDriverWorkspace();
+    else {
+      var d = document.getElementById("shop-driver");
+      if (d) {
+        d.classList.remove("hidden");
+        d.style.display = "block";
+      }
+    }
+    return;
+  }
   SNM.showShopPanels();
 
   var role =

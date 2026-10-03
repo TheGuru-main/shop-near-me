@@ -102,13 +102,12 @@ SNM.showScreen = function (id) {
     if (typeof SNM.wireSetupDoneButton === "function") SNM.wireSetupDoneButton();
     if (typeof SNM.initSetupScreens === "function") SNM.initSetupScreens();
   }
-  if (id === "shop") { if (typeof SNM.onShopEnter === "function") SNM.onShopEnter(); }
+  if (id === "shop") {
+    if (typeof SNM.onShopEnter === "function") SNM.onShopEnter();
+    /* loadShop is owned by onShopEnter — do not call again (hides driver panel) */
+  }
   if (id === "home" && typeof SNM.enterHome === "function") {
     SNM.enterHome(false);
-  }
-  if (id === "shop") {
-    if (typeof SNM.loadShop === "function") SNM.loadShop();
-    else if (typeof SNM.loadMyProducts === "function") SNM.loadMyProducts();
   }
   if (id === "messages") {
     if (typeof SNM.bindMessages === "function") SNM.bindMessages();
@@ -253,25 +252,7 @@ SNM.bindShell = function () {
         return;
       }
 
-      if (e.target.closest("#btnMenu")) {
-        e.preventDefault();
-        e.stopPropagation();
-        var menu = document.getElementById("menuSheet");
-        if (!menu) return;
-        var opening = menu.classList.contains("hidden");
-        if (opening) {
-          menu.classList.remove("hidden");
-          menu.classList.add("open");
-          menu.style.display = "block";
-          menu.setAttribute("aria-hidden", "false");
-        } else {
-          menu.classList.add("hidden");
-          menu.classList.remove("open");
-          menu.style.display = "none";
-          menu.setAttribute("aria-hidden", "true");
-        }
-        return;
-      }
+      /* btnMenu -> menu_driver_fix.js */
 
       var item = e.target.closest("#menuSheet [data-menu]");
       if (item) {
