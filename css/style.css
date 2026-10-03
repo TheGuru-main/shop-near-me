@@ -1692,3 +1692,28 @@ body.theme-dark #home > .top-bar .theme-switch-knob {
 #menuSheet.hidden { display: none !important; }
 #menuSheet:not(.hidden),
 #menuSheet.open { display: block !important; z-index: 99999 !important; }
+
+/* HAMBURGER_FORCE_V3 */
+#menuSheet {
+  position: fixed !important;
+  top: 52px !important;
+  right: 8px !important;
+  width: min(280px, 92vw) !important;
+  z-index: 2147483646 !important;
+  background: #fff !important;
+  border-radius: 14px !important;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.25) !important;
+  padding: 0.4rem 0.5rem !important;
+  max-height: 75dvh !important;
+  overflow-y: auto !important;
+}
+#menuSheet.hidden { display: none !important; }
+#menuSheet:not(.hidden) { display: block !important; }
+#menuSheet .menu-sheet-head {
+  display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 1px solid #e5e7eb; margin-bottom: 0.25rem; padding: 0.25rem 0.35rem;
+}
+#menuSheet > button {
+  display: block; width: 100%; text-align: left; border: 0; background: transparent;
+  padding: 0.7rem 0.75rem; color: #14532d; font: inherit; border-radius: 10px;
+}

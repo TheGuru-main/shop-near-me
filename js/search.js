@@ -273,7 +273,7 @@ SNM.doSearch = async function () {
           city: u.city || "",
           region: u.region || "",
           country: u.country || "",
-          max_km: SNM.MAX_KM || 80,
+          max_km: (SNM.MAX_KM || 80),
           limit: 40
         })
     );
@@ -408,7 +408,7 @@ SNM.searchLiveDrivers = async function (q) {
       "/search/products" +
         SNM.qs({
           q: q + " driver logistics ride",
-          max_km: SNM.MAX_KM || 80,
+          max_km: (SNM.MAX_KM || 80),
           limit: 40,
           lat: SNM._lastLat,
           lng: SNM._lastLng
@@ -457,7 +457,7 @@ SNM.mergeLiveDriversIntoSearch = async function (q, rows) {
       "/search/products" +
         SNM.qs({
           q: "driver logistics " + q,
-          max_km: SNM.MAX_KM || 80,
+          max_km: (SNM.MAX_KM || 80),
           limit: 40,
           lat: SNM._lastLat,
           lng: SNM._lastLng,
