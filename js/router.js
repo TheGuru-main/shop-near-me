@@ -115,12 +115,11 @@ SNM.showScreen = function (id) {
   }
   if (id === "news") {
     if (typeof SNM.onNewsEnter === "function") SNM.onNewsEnter();
+    else if (typeof SNM.loadNews === "function") SNM.loadNews(SNM._newsCat || "business");
+  }
   if (id === "checkout" && typeof SNM.onCheckoutEnter === "function") SNM.onCheckoutEnter();
   if (id === "rules" && typeof SNM.onRulesEnter === "function") SNM.onRulesEnter();
-    else if (typeof SNM.loadNews === "function") {
-      SNM.loadNews(SNM._newsCat || "business");
-    }
-  }
+
   if (id === "fairly-used") {
     if (typeof SNM.onFairlyUsedEnter === "function") SNM.onFairlyUsedEnter();
     else if (typeof SNM.loadFairlyUsed === "function") SNM.loadFairlyUsed();
@@ -251,7 +250,19 @@ SNM.bindShell = function () {
         e.preventDefault();
         e.stopPropagation();
         var menu = document.getElementById("menuSheet");
-        if (menu) menu.classList.toggle("hidden");
+        if (!menu) return;
+        var opening = menu.classList.contains("hidden");
+        if (opening) {
+          menu.classList.remove("hidden");
+          menu.classList.add("open");
+          menu.style.display = "block";
+          menu.setAttribute("aria-hidden", "false");
+        } else {
+          menu.classList.add("hidden");
+          menu.classList.remove("open");
+          menu.style.display = "none";
+          menu.setAttribute("aria-hidden", "true");
+        }
         return;
       }
 

@@ -99,6 +99,12 @@ SNM.api = async function (path, options) {
     var err = new Error(String(detail));
     err.status = res.status;
     err.data = data;
+    if (res.status === 401) {
+      try {
+        if (typeof SNM.clearSession === "function") SNM.clearSession();
+      } catch (e401) {}
+      err.message = "Session expired — log in again";
+    }
     throw err;
   }
   return data;

@@ -599,35 +599,36 @@
 
         <!-- Driver -->
 
-<div id="shop-driver" class="shop-panel hidden">
-        <div id="drvStatusCard" class="card">
-          <p style="margin:0"><strong id="drvStatusLive">Status: —</strong></p>
-          <div id="drvStatusDetail"></div>
-          <p class="muted small" id="drvStatusLoc" style="margin:0.35rem 0 0">Location: —</p>
-        </div>
 
+        <div id="shop-driver" class="shop-panel hidden">
+          <div id="drvStatusCard" class="card">
+            <p style="margin:0"><strong id="drvStatusLive">Status: —</strong></p>
+            <div id="drvStatusDetail"></div>
+            <p class="muted small" id="drvStatusLoc" style="margin:0.35rem 0 0">Location: —</p>
+          </div>
           <h3 class="section-h">Driver / logistics status</h3>
-          <p class="muted">Turn on when you are available for jobs. Heartbeat stays live while active.</p>
+          <p class="muted">Turn on when you are available for jobs.</p>
           <label class="check-row">
             <input type="checkbox" id="drv-active" /> Active for jobs (heartbeat)
           </label>
-          <label>Coverage note
-            <input id="drv-coverage" placeholder="Bike, Bus, Keke · Areas: Eneka - Diobu" />
-          </label>
-          <label>Primary location (text)
-            <input id="drv-primary" type="text" placeholder="Stand / park / base" />
-          </label>
           <label class="check-row">
             <input type="checkbox" id="drv-use-gps" checked />
-            Use live GPS while active (precise listing pin)
+            Use live GPS while active
           </label>
-          <button type="button" class="btn block" <label>Vehicle type
+          <label>Coverage note
+            <input id="drv-coverage" placeholder="Areas: Eneka – Diobu" />
+          </label>
+          <label>Primary location
+            <input id="drv-primary" type="text" placeholder="Stand / park / base" />
+          </label>
+          <label>Vehicle type
             <select id="drv-vehicle">
               <option value="keke">Keke</option>
               <option value="bike">Bike / Okada</option>
               <option value="bus">Bus</option>
               <option value="car">Car</option>
               <option value="van">Van</option>
+              <option value="dispatch">Dispatch</option>
             </select>
           </label>
           <label>Base park
@@ -638,7 +639,7 @@
           <div id="drvJobs" class="feed-list"></div>
         </div>
 
-          <!-- Emergency -->
+        
         <div id="shop-emergency" class="shop-panel hidden">
           <h3 class="section-h">Unit status</h3>
           <label class="check-row"><input type="checkbox" id="emg-active" /> On-call / active</label>
@@ -1098,7 +1099,7 @@
     </div>
 
 
-    <div id="menuSheet" class="menu-sheet hidden" aria-hidden="true" style="display:none">
+    <div id="menuSheet" class="menu-sheet hidden" aria-hidden="true">
       <button type="button" data-go="home">Home</button>
       <button type="button" data-go="shop">Workspace</button>
       <button type="button" data-go="messages">Messages</button>

@@ -1623,3 +1623,35 @@ body.theme-dark #home > .top-bar .theme-switch-knob {
   border-radius: 10px;
 }
 #menuSheet button:active { background: #ecfdf5; }
+
+
+/* MENU_OPEN_FIX */
+#menuSheet.menu-sheet,
+#menuSheet {
+  position: fixed;
+  top: 56px;
+  right: 8px;
+  width: min(280px, 88vw);
+  z-index: 3000;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+  padding: 0.5rem;
+  display: none !important;
+}
+#menuSheet:not(.hidden),
+#menuSheet.open {
+  display: block !important;
+}
+#menuSheet button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: #14532d;
+}
+.shop-panel.hidden { display: none !important; }
+.shop-panel:not(.hidden) { display: block !important; }

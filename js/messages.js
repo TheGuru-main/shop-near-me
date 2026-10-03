@@ -617,3 +617,35 @@ SNM.onMessagesEnter = function () {
   if (SNM._validThreadId(SNM._threadId)) return;
   SNM.loadInbox({ closeThread: true });
 };
+/* INBOX_401_V1 */
+(function () {
+  var _load = SNM.loadInbox;
+  if (typeof _load !== "function" || SNM._inbox401Wrap) return;
+  SNM._inbox401Wrap = true;
+  SNM.loadInbox = async function (opts) {
+    try {
+      return await _load.call(SNM, opts);
+    } catch (e) {
+      var box =
+        document.getElementById("inboxList") ||
+        document.getElementById("threadList");
+      var msg = (e && e.message) || "Inbox failed";
+      if (
+        (e && e.status === 401) ||
+        /invalid token|credentials|unauthorized/i.test(msg)
+      ) {
+        if (box)
+          box.innerHTML =
+            "<p class='muted'>Session expired. Please log in again.</p>";
+        if (typeof SNM.clearSession === "function") SNM.clearSession();
+        if (typeof SNM.showScreen === "function") SNM.showScreen("login");
+        return;
+      }
+      if (box)
+        box.innerHTML =
+          "<p class='muted'>" +
+          (typeof SNM.esc === "function" ? SNM.esc(msg) : msg) +
+          "</p>";
+    }
+  };
+})();
