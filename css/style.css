@@ -1744,3 +1744,53 @@ body.theme-dark #home > .top-bar .theme-switch-knob {
   display: block;
   box-sizing: border-box;
 }
+
+
+/* MENU_SLIM_V1 */
+#menuSheet {
+  position: fixed;
+  top: 52px;
+  right: 8px;
+  width: min(280px, 88vw);
+  max-height: 75dvh;
+  overflow-y: auto;
+  z-index: 3000;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+  padding: 0.35rem 0.5rem 0.5rem;
+  display: none !important;
+}
+#menuSheet:not(.hidden),
+#menuSheet.open {
+  display: block !important;
+}
+.menu-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.25rem 0.35rem 0.45rem;
+  border-bottom: 1px solid rgba(20,83,45,0.12);
+  margin-bottom: 0.25rem;
+}
+.menu-sheet-title {
+  font-weight: 700;
+  color: #14532d;
+  font-size: 0.95rem;
+}
+#btnMenuClose {
+  font-size: 1.35rem;
+  line-height: 1;
+  min-width: 36px;
+}
+#menuSheet > button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: #14532d;
+  border-radius: 10px;
+}

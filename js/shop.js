@@ -1411,3 +1411,74 @@ SNM.onShopEnter = function () {
     } catch (e3) {}
   }
 };
+
+
+/* DRIVER_FORCE_V3 */
+SNM.onShopEnter = function () {
+  var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+  var role = String(
+    (u && u.role) ||
+      (typeof SNM.getRole === "function" && SNM.getRole()) ||
+      sessionStorage.getItem("snm_role") ||
+      ""
+  )
+    .toLowerCase()
+    .trim();
+  if (role === "logistics") role = "driver";
+
+  ["shop-merchant", "shop-service", "shop-driver", "shop-emergency"].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.classList.add("hidden");
+    el.style.display = "none";
+  });
+
+  var panelId =
+    role === "merchant"
+      ? "shop-merchant"
+      : role === "service"
+        ? "shop-service"
+        : role === "driver"
+          ? "shop-driver"
+          : role === "emergency"
+            ? "shop-emergency"
+            : null;
+
+  // If Status tab is open for driver nav, force driver panel even if role string is off
+  if (!panelId) {
+    var nav = document.querySelector('.bottom-nav button.active[data-nav="shop"]');
+    if (nav) panelId = "shop-driver";
+  }
+
+  if (panelId === "shop-driver" || role === "driver") {
+    var d = document.getElementById("shop-driver");
+    if (d) {
+      d.classList.remove("hidden");
+      d.removeAttribute("hidden");
+      d.style.display = "block";
+      d.style.visibility = "visible";
+      d.style.opacity = "1";
+    }
+    if (typeof SNM.wireDriverWorkspace === "function") {
+      try {
+        SNM.wireDriverWorkspace();
+      } catch (e) {}
+    }
+    return;
+  }
+
+  if (panelId) {
+    var p = document.getElementById(panelId);
+    if (p) {
+      p.classList.remove("hidden");
+      p.style.display = "block";
+    }
+  }
+  if (role === "merchant" || role === "service") {
+    if (typeof SNM.loadShop === "function") {
+      try {
+        SNM.loadShop();
+      } catch (e2) {}
+    }
+  }
+};

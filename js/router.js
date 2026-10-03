@@ -44,6 +44,13 @@ SNM.showScreen = function (id) {
   }
 
   SNM.hideSplash();
+  /* close hamburger when leaving home */
+  try {
+    if (id !== "home" && typeof SNM.closeMenuSheet === "function") {
+      SNM.closeMenuSheet();
+    }
+  } catch (eMenu) {}
+
 
   document.querySelectorAll(".screen").forEach(function (s) {
     s.classList.remove("active");
@@ -450,3 +457,86 @@ SNM.bindMenuHamburger = function () {
     true
   );
 };
+
+
+/* MENU_CLOSE_NAV_V1 */
+SNM.closeMenuSheet = function () {
+  var menu = document.getElementById("menuSheet");
+  if (!menu) return;
+  menu.classList.add("hidden");
+  menu.classList.remove("open");
+  menu.style.display = "none";
+  menu.setAttribute("aria-hidden", "true");
+};
+
+SNM.openMenuSheet = function () {
+  var menu = document.getElementById("menuSheet");
+  if (!menu) return;
+  menu.classList.remove("hidden");
+  menu.classList.add("open");
+  menu.style.display = "block";
+  menu.setAttribute("aria-hidden", "false");
+};
+
+
+/* MENU_WIRE_SLIM_V1 */
+SNM.bindMenuSlim = function () {
+  if (SNM._menuSlimWired) return;
+  SNM._menuSlimWired = true;
+  document.addEventListener(
+    "click",
+    function (e) {
+      if (e.target.closest("#btnMenuClose")) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof SNM.closeMenuSheet === "function") SNM.closeMenuSheet();
+        return;
+      }
+      if (e.target.closest("#btnMenu")) {
+        e.preventDefault();
+        e.stopPropagation();
+        var menu = document.getElementById("menuSheet");
+        if (!menu) return;
+        if (menu.classList.contains("hidden") || menu.style.display === "none") {
+          if (typeof SNM.openMenuSheet === "function") SNM.openMenuSheet();
+        } else {
+          if (typeof SNM.closeMenuSheet === "function") SNM.closeMenuSheet();
+        }
+        return;
+      }
+      var item = e.target.closest("#menuSheet [data-go], #menuSheet [data-menu]");
+      if (item) {
+        e.preventDefault();
+        e.stopPropagation();
+        var act = item.getAttribute("data-menu") || item.getAttribute("data-go");
+        if (typeof SNM.closeMenuSheet === "function") SNM.closeMenuSheet();
+        if (act === "logout") {
+          if (typeof SNM.clearSession === "function") SNM.clearSession();
+          SNM.showScreen("role-select");
+          return;
+        }
+        if (act) SNM.showScreen(act);
+        return;
+      }
+      var menu2 = document.getElementById("menuSheet");
+      if (
+        menu2 &&
+        !menu2.classList.contains("hidden") &&
+        !e.target.closest("#menuSheet") &&
+        !e.target.closest("#btnMenu")
+      ) {
+        if (typeof SNM.closeMenuSheet === "function") SNM.closeMenuSheet();
+      }
+    },
+    true
+  );
+};
+if (typeof SNM.bindShell === "function") {
+  var _bs = SNM.bindShell;
+  SNM.bindShell = function () {
+    _bs.apply(this, arguments);
+    SNM.bindMenuSlim();
+  };
+} else {
+  SNM.bindMenuSlim();
+}
