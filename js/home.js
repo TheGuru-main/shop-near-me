@@ -713,7 +713,7 @@ SNM.bindCardActions = function (root) {
       })
         .then(function () {
           if (status) status.textContent = "Saved";
-          if (typeof SNM.loadFeed === "function") SNM.loadFeed();
+          if (typeof SNM.loadFeed === "function") SNM.loadFeed({ force: false });
         })
         .catch(function (err) {
           if (status) status.textContent = "Failed";
@@ -725,7 +725,7 @@ SNM.bindCardActions = function (root) {
       if (!confirm("Delete this listing?")) return;
       SNM.api("/products/" + encodeURIComponent(id), { method: "DELETE" })
         .then(function () {
-          if (typeof SNM.loadFeed === "function") SNM.loadFeed();
+          if (typeof SNM.loadFeed === "function") SNM.loadFeed({ force: false });
         })
         .catch(function (err) {
           alert((err && err.message) || "Delete failed");
@@ -1022,7 +1022,7 @@ SNM.enterHome = function (navigate) {
   if (typeof SNM.fillHomeHeader === "function") SNM.fillHomeHeader();
   if (typeof SNM.renderTabbar === "function") SNM.renderTabbar("home");
   setTimeout(function () {
-    if (typeof SNM.loadFeed === "function") SNM.loadFeed();
+    if (typeof SNM.loadFeed === "function") SNM.loadFeed({ force: false });
     if (typeof SNM.initHomeMap === "function") SNM.initHomeMap();
   }, 0);
 };
@@ -1715,3 +1715,128 @@ if (!window._snmDetailCloseWired) {
     true
   );
 }
+
+
+
+/* FEED_CACHE_V1 — per-user; skip network on home re-entry unless force */
+SNM._feedCacheKey = function () {
+  var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+  var id = u.id || u.phone || "anon";
+  return "snm_feed_cache_" + String(id);
+};
+
+SNM._readFeedCache = function () {
+  try {
+    var raw = localStorage.getItem(SNM._feedCacheKey());
+    if (!raw) return null;
+    var o = JSON.parse(raw);
+    if (!o || !Array.isArray(o.items)) return null;
+    // optional TTL 10 min — still show cache, mark stale
+    o.stale = !o.ts || Date.now() - o.ts > 10 * 60 * 1000;
+    return o;
+  } catch (e) {
+    return null;
+  }
+};
+
+SNM._writeFeedCache = function (items) {
+  try {
+    localStorage.setItem(
+      SNM._feedCacheKey(),
+      JSON.stringify({ ts: Date.now(), items: items || [] })
+    );
+  } catch (e) {}
+};
+
+SNM.loadFeed = async function (opts) {
+  opts = opts || {};
+  var force = opts.force === true || opts.refresh === true;
+  var box = document.getElementById("homeFeed");
+  if (!box) return;
+
+  if (!force) {
+    var cached = SNM._readFeedCache();
+    if (cached && cached.items && cached.items.length) {
+      SNM._paintFeed(cached.items);
+      // optional quiet background refresh when stale
+      if (cached.stale) {
+        SNM.loadFeed({ force: true, silent: true }).catch(function () {});
+      }
+      return;
+    }
+  }
+
+  if (!opts.silent) {
+    box.innerHTML = "<p class='muted'>Loading feed…</p>";
+  }
+  try {
+    // keep your existing fetch path if present
+    var geo = {};
+    if (typeof SNM.seekerGeo === "function") geo = SNM.seekerGeo() || {};
+    else if (typeof SNM._geo === "function") {
+      try {
+        geo = await SNM._geo();
+      } catch (e0) {}
+    }
+    var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+    var data = await SNM.api(
+      "/search/products" +
+        SNM.qs({
+          community: u.community || "",
+          city: u.city || "",
+          region: u.region || "",
+          country: u.country || "Nigeria",
+          max_km: SNM.MAX_KM || 80,
+          limit: 40,
+          lat: geo.lat != null ? geo.lat : SNM._lastLat,
+          lng: geo.lng != null ? geo.lng : SNM._lastLng
+        })
+    );
+    var items = data.results || data.items || data.products || [];
+    if (!Array.isArray(items)) items = [];
+    SNM._writeFeedCache(items);
+    if (!opts.silent || force) SNM._paintFeed(items);
+  } catch (e) {
+    if (opts.silent) return;
+    var cached2 = SNM._readFeedCache();
+    if (cached2 && cached2.items && cached2.items.length) {
+      SNM._paintFeed(cached2.items);
+      return;
+    }
+    box.innerHTML =
+      "<p class='muted'>Feed unavailable. " +
+      (typeof SNM.esc === "function" ? SNM.esc((e && e.message) || "") : "") +
+      "</p>";
+  }
+};
+
+SNM._paintFeed = function (items) {
+  var box = document.getElementById("homeFeed");
+  if (!box) return;
+  items = items || [];
+  if (!items.length) {
+    box.innerHTML = "<p class='muted'>Nothing near you yet.</p>";
+    return;
+  }
+  box.innerHTML =
+    '<div class="card-rail">' +
+    items
+      .map(function (r) {
+        return typeof SNM.cardHtml === "function" ? SNM.cardHtml(r) : "";
+      })
+      .join("") +
+    "</div>";
+  if (typeof SNM.bindCardActions === "function") SNM.bindCardActions(box);
+};
+
+// Refresh button always forces network
+document.addEventListener(
+  "click",
+  function (e) {
+    if (e.target.closest("#btnRefreshFeed")) {
+      e.preventDefault();
+      if (typeof SNM.loadFeed === "function") SNM.loadFeed({ force: true });
+    }
+  },
+  true
+);

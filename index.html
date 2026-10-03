@@ -992,6 +992,22 @@
     </section>
 
     <!-- ========== PROFILE SHEET ========== -->
+    <section id="checkout" class="screen" data-screen="checkout">
+      <header class="top-bar">
+        <button type="button" class="icon-btn" data-back="home" aria-label="Back">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <span class="screen-title">Cart / Checkout</span>
+        <span class="spacer"></span>
+      </header>
+      <div class="container stack">
+        <div id="cartList" class="feed-list"></div>
+        <p id="cartTotal" class="card"><strong>Total:</strong> —</p>
+        <button type="button" class="btn block" id="btnCartClear">Clear cart</button>
+        <p class="muted small">Escrow hold / OTP release comes next. Cart is saved on this device.</p>
+      </div>
+    </section>
+
     <footer class="app-footer">Powered by: Guru Innovations 🌀</footer>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -1021,30 +1037,7 @@
   <script src="js/premium.js"></script>
  <script src="js/profile.js"></script>
   <script src="js/app.js"></script>
-
-    <div id="userProfileListings" class="feed-list" style="padding:0.75rem"></div>
-      <button type="button" class="btn secondary block" id="btnCloseUserProfile2">Close</button>
-    </div>
-
-
-    
-    <section id="checkout" class="screen" data-screen="checkout">
-      <header class="top-bar">
-        <button type="button" class="icon-btn" data-back="home" aria-label="Back">
-          <i class="fa-solid fa-arrow-left"></i>
-        </button>
-        <span class="screen-title">Cart / Checkout</span>
-        <span class="spacer"></span>
-      </header>
-      <div class="container stack">
-        <div id="cartList" class="feed-list"></div>
-        <p id="cartTotal" class="card"><strong>Total:</strong> —</p>
-        <button type="button" class="btn block" id="btnCartClear">Clear cart</button>
-        <p class="muted small">Escrow hold / OTP release comes next. Cart is saved on this device.</p>
-      </div>
-    </section>
-
-    <div id="profileSheet" class="sheet" aria-hidden="true">
+<div id="profileSheet" class="sheet" aria-hidden="true">
       <div class="sheet-handle"></div>
       <div class="sheet-body" id="profileBody"></div>
       <div id="profileEditBlock" class="card" style="margin:0.5rem 0.75rem">
@@ -1096,6 +1089,7 @@
     </div>
 
 
+    
     
     <div id="menuSheet" class="menu-sheet hidden" aria-hidden="true">
       <button type="button" data-go="home">Home</button>

@@ -1338,3 +1338,76 @@ SNM.onShopEnter = function () {
     }
   } catch (e4) {}
 };
+
+
+
+/* SHOP_PANEL_FINAL */
+SNM.getActiveRole = function () {
+  var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+  var role = String(
+    (u && u.role) ||
+      (typeof SNM.getRole === "function" && SNM.getRole()) ||
+      sessionStorage.getItem("snm_role") ||
+      sessionStorage.getItem("snm_reg_role") ||
+      "buyer"
+  )
+    .toLowerCase()
+    .trim();
+  if (role === "logistics") role = "driver";
+  return role;
+};
+
+SNM.showShopPanels = function () {
+  var role = SNM.getActiveRole();
+  var map = {
+    merchant: "shop-merchant",
+    service: "shop-service",
+    driver: "shop-driver",
+    emergency: "shop-emergency"
+  };
+  var ids = ["shop-merchant", "shop-service", "shop-driver", "shop-emergency", "shop-buyer"];
+  ids.forEach(function (id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.classList.add("hidden");
+    el.removeAttribute("hidden");
+    el.style.display = "none";
+  });
+  var want = map[role] || null;
+  if (!want) {
+    // buyer: no panel required
+    return role;
+  }
+  var show = document.getElementById(want);
+  if (show) {
+    show.classList.remove("hidden");
+    show.removeAttribute("hidden");
+    show.style.cssText = "display:block;visibility:visible;opacity:1;min-height:120px";
+  } else {
+    console.warn("missing panel", want, "role", role);
+  }
+  return role;
+};
+
+SNM.onShopEnter = function () {
+  var role = SNM.showShopPanels();
+  if (typeof SNM.wireDriverWorkspace === "function") {
+    try {
+      SNM.wireDriverWorkspace();
+    } catch (e) {}
+  }
+  if (role === "driver" || role === "emergency") {
+    try {
+      var raw = localStorage.getItem("snm_driver_meta");
+      if (raw && typeof SNM.paintDriverStatusCard === "function") {
+        SNM.paintDriverStatusCard(JSON.parse(raw));
+      }
+    } catch (e2) {}
+    return;
+  }
+  if (typeof SNM.loadShop === "function") {
+    try {
+      SNM.loadShop();
+    } catch (e3) {}
+  }
+};
