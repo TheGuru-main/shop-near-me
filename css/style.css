@@ -1687,3 +1687,8 @@ body.theme-dark #home > .top-bar .theme-switch-knob {
   padding: 0.75rem;
 }
 
+
+/* MENU_DISPLAY_FORCE_V2 */
+#menuSheet.hidden { display: none !important; }
+#menuSheet:not(.hidden),
+#menuSheet.open { display: block !important; z-index: 99999 !important; }
