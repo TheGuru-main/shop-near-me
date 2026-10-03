@@ -1,4 +1,27 @@
 
+SNM.listingRoleLabel = function (raw) {
+  raw = raw || {};
+  var p = raw.product || raw;
+  var o = raw.seller || raw.owner || raw.merchant || {};
+  var role = String(
+    raw.role || raw.business_type || p.business_type || o.role || ""
+  ).toLowerCase();
+  var cat = String(raw.category || p.category || "").toLowerCase();
+  if (role === "logistics") role = "driver";
+  if (role === "driver" || cat === "logistics") return "Driver";
+  if (role === "merchant" || role === "retail") return "Merchant";
+  if (role === "service") {
+    if (/hotel|lodge|hospitality|guest/.test(cat + " " + (p.name || "")))
+      return "Hotel / hospitality";
+    return "Service";
+  }
+  if (role === "emergency") return "Emergency";
+  if (role === "buyer") return "Buyer";
+  if (role) return role.charAt(0).toUpperCase() + role.slice(1);
+  return "Provider";
+};
+
+
 /* MERCHANT_CART_BTN_V1 */
 SNM.isMerchantListing = function (x) {
   x = x || {};
@@ -849,3 +872,87 @@ if (!window._snmViewBtnWire) {
     true
   );
 }
+
+
+/* ROLE_LABEL_ON_CARDS_V1 */
+SNM.listingRoleLabel = SNM.listingRoleLabel || function (raw) {
+  raw = raw || {};
+  var p = raw.product || raw;
+  var o = raw.seller || raw.owner || raw.merchant || {};
+  var role = String(
+    raw.role || raw.business_type || p.business_type || o.role || ""
+  ).toLowerCase();
+  var cat = String(raw.category || p.category || "").toLowerCase();
+  if (role === "logistics") role = "driver";
+  if (role === "driver" || cat === "logistics") return "Driver";
+  if (role === "merchant" || role === "retail") return "Merchant";
+  if (role === "service") {
+    if (/hotel|lodge|hospitality|guest|short-let/.test(cat + " " + (p.name || p.title || "")))
+      return "Hotel / hospitality";
+    return "Service";
+  }
+  if (role === "emergency") return "Emergency";
+  return role ? role.charAt(0).toUpperCase() + role.slice(1) : "Provider";
+};
+
+(function () {
+  var prev = SNM.normalizeListing;
+  SNM.normalizeListing = function (raw) {
+    raw = raw || {};
+    var p = raw.product || raw;
+    var o = raw.seller || raw.owner || raw.merchant || {};
+    var base =
+      typeof prev === "function"
+        ? prev(raw)
+        : {
+            id: p.id || raw.id || "",
+            title: p.name || p.title || raw.name || "Listing",
+            phone: o.phone || raw.phone || "",
+            km: raw.km
+          };
+    base.title = base.title || p.name || p.title || "Listing";
+    base.phone = base.phone || o.phone || "";
+    base.sellerName =
+      o.name || o.business_name || base.sellerName || "Provider";
+    base.roleLabel = SNM.listingRoleLabel(raw);
+    base.role = raw.role || raw.business_type || p.business_type || "";
+    base.business_type = raw.business_type || p.business_type || "";
+    base.community = o.community || base.community || "";
+    base.city = o.city || base.city || "";
+    if (raw.km != null) base.km = raw.km;
+    base.raw = raw;
+    return base;
+  };
+})();
+
+(function () {
+  var prevCard = SNM.cardHtml;
+  if (typeof prevCard !== "function") return;
+  SNM.cardHtml = function (item) {
+    var html = prevCard(item);
+    var x =
+      typeof SNM.normalizeListing === "function"
+        ? SNM.normalizeListing(item)
+        : item || {};
+    var label = x.roleLabel || SNM.listingRoleLabel(item);
+    // Replace visible "Seller" chip/text once if present
+    html = html.replace(/>\s*Seller\s*</g, ">" + label + "<");
+    html = html.replace(
+      /class="[^"]*seller[^"]*"[^>]*>\s*Seller/i,
+      function (m) {
+        return m.replace(/Seller/i, label);
+      }
+    );
+    // If card has no role chip, inject after title-ish
+    if (html.indexOf("role-chip") === -1 && label) {
+      html = html.replace(
+        /(<[^>]*class="[^"]*title[^"]*"[^>]*>[\s\S]*?<\/[^>]+>)/,
+        "$1<span class=\"chip role-chip\">" +
+          (typeof SNM.esc === "function" ? SNM.esc(label) : label) +
+          "</span>"
+      );
+    }
+    return html;
+  };
+})();
+
