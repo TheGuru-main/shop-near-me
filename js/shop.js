@@ -1500,3 +1500,43 @@ SNM.onShopEnter = function () {
     }
   }
 };
+
+
+/* SHOW_SHOP_PANELS_ROLE_V2 */
+SNM.showShopPanels = function () {
+  var user = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+  var role = String(
+    (user && user.role) ||
+      (typeof SNM.getRole === "function" && SNM.getRole()) ||
+      sessionStorage.getItem("snm_role") ||
+      "buyer"
+  )
+    .toLowerCase()
+    .trim();
+  if (role === "logistics") role = "driver";
+
+  var map = {
+    merchant: "shop-merchant",
+    service: "shop-service",
+    driver: "shop-driver",
+    emergency: "shop-emergency",
+    buyer: "shop-buyer"
+  };
+
+  Object.keys(map).forEach(function (k) {
+    var el = document.getElementById(map[k]);
+    if (!el) return;
+    el.classList.add("hidden");
+    el.style.display = "none";
+  });
+
+  var id = map[role] || map.buyer;
+  var show = document.getElementById(id);
+  if (show) {
+    show.classList.remove("hidden");
+    show.style.display = "block";
+    show.style.visibility = "visible";
+    show.style.opacity = "1";
+  }
+};
+

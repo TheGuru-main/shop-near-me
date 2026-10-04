@@ -306,3 +306,81 @@ if (document.readyState === "loading") {
 } else {
   SNM.bindMenuFixed();
 }
+
+
+/* SHOP_ENTER_BY_ROLE_V2 — do not force driver panel on merchants */
+SNM.onShopEnter = function () {
+  var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+  var role = String(
+    (u && u.role) ||
+      (typeof SNM.getRole === "function" && SNM.getRole()) ||
+      sessionStorage.getItem("snm_role") ||
+      "buyer"
+  )
+    .toLowerCase()
+    .trim();
+  if (role === "logistics") role = "driver";
+
+  ["shop-merchant", "shop-service", "shop-driver", "shop-emergency", "shop-buyer"].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.classList.add("hidden");
+    el.style.display = "none";
+  });
+
+  if (role === "driver") {
+    var d = document.getElementById("shop-driver");
+    if (d) {
+      d.classList.remove("hidden");
+      d.style.display = "block";
+      d.style.visibility = "visible";
+    }
+    if (typeof SNM.wireDriverWorkspace === "function") {
+      try { SNM.wireDriverWorkspace(); } catch (e) {}
+    }
+    try {
+      var raw = localStorage.getItem("snm_driver_meta");
+      if (raw && typeof SNM.paintDriverStatusCard === "function") {
+        SNM.paintDriverStatusCard(JSON.parse(raw));
+      }
+    } catch (e2) {}
+    return;
+  }
+
+  if (role === "merchant") {
+    var m = document.getElementById("shop-merchant");
+    if (m) {
+      m.classList.remove("hidden");
+      m.style.display = "block";
+      m.style.visibility = "visible";
+    }
+    if (typeof SNM.loadShop === "function") SNM.loadShop();
+    return;
+  }
+
+  if (role === "service") {
+    var s = document.getElementById("shop-service");
+    if (s) {
+      s.classList.remove("hidden");
+      s.style.display = "block";
+    }
+    if (typeof SNM.loadShop === "function") SNM.loadShop();
+    return;
+  }
+
+  if (role === "emergency") {
+    var em = document.getElementById("shop-emergency");
+    if (em) {
+      em.classList.remove("hidden");
+      em.style.display = "block";
+    }
+    return;
+  }
+
+  var b = document.getElementById("shop-buyer");
+  if (b) {
+    b.classList.remove("hidden");
+    b.style.display = "block";
+  }
+};
+
