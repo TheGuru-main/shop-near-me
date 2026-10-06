@@ -1,4 +1,4 @@
-var CACHE = "snm-shell-v3";
+var CACHE = "snm-shell-v9";
 
 self.addEventListener("install", function (e) {
   self.skipWaiting();
