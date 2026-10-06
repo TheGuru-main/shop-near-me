@@ -297,21 +297,28 @@ SNM.bindRouter = function () {
   document.addEventListener(
     "click",
     function (e) {
-      var roleBtn = e.target.closest("[data-role]");
+      /* Only role-select buttons — never listing cards (they also use data-role) */
+      var roleBtn = e.target.closest(
+        "#role-select [data-role], button[data-role], .role-pick[data-role], .role-btn[data-role]"
+      );
       if (roleBtn && roleBtn.getAttribute("data-role")) {
-        e.preventDefault();
-        e.stopPropagation();
-        var role = roleBtn.getAttribute("data-role");
-        SNM.selectedRole = role;
-        try {
-          sessionStorage.setItem("snm_role", role);
-          sessionStorage.setItem("snm_reg_role", role);
-        } catch (err) {}
-        if (typeof SNM.setRolePick === "function") SNM.setRolePick(role);
-        var label = document.getElementById("regRoleLabel");
-        if (label) label.textContent = role;
-        SNM.showScreen("register");
-        return;
+        if (roleBtn.closest(".listing-card, article.card, #searchResults, #homeFeed, .feed-list")) {
+          /* ignore */
+        } else {
+          e.preventDefault();
+          e.stopPropagation();
+          var role = roleBtn.getAttribute("data-role");
+          SNM.selectedRole = role;
+          try {
+            sessionStorage.setItem("snm_role", role);
+            sessionStorage.setItem("snm_reg_role", role);
+          } catch (err) {}
+          if (typeof SNM.setRolePick === "function") SNM.setRolePick(role);
+          var label = document.getElementById("regRoleLabel");
+          if (label) label.textContent = role;
+          SNM.showScreen("register");
+          return;
+        }
       }
 
       var backEl = e.target.closest("[data-back]");
