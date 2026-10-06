@@ -1717,3 +1717,20 @@ body.theme-dark #home > .top-bar .theme-switch-knob {
   display: block; width: 100%; text-align: left; border: 0; background: transparent;
   padding: 0.7rem 0.75rem; color: #14532d; font: inherit; border-radius: 10px;
 }
+
+/* PHOTO_ACTIONS_CLICK_V1 */
+.photo-row, .photo-actions { position: relative; z-index: 2; }
+.photo-actions .btn,
+.photo-actions button {
+  pointer-events: auto !important;
+  position: relative;
+  z-index: 3;
+  min-height: 40px;
+}
+input.hidden[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}

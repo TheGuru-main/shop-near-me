@@ -1540,3 +1540,68 @@ SNM.showShopPanels = function () {
   }
 };
 
+
+/* MERCHANT_PHOTO_REWIRE_V1 */
+SNM.wireMerchantPhotos = function () {
+  function preview(boxId, input) {
+    var box = document.getElementById(boxId);
+    if (!box || !input) return;
+    var f = input.files && input.files[0];
+    if (!f) {
+      box.innerHTML = "";
+      box.classList.add("hidden");
+      return;
+    }
+    var url = URL.createObjectURL(f);
+    box.innerHTML =
+      '<div class="shop-card-media preview"><img class="card-thumb shop-thumb" src="' +
+      url +
+      '" alt="Item preview" /></div>';
+    box.classList.remove("hidden");
+  }
+
+  function wire(btnId, inputId, clearId, boxId) {
+    var btn = document.getElementById(btnId);
+    var input = document.getElementById(inputId);
+    var clear = document.getElementById(clearId);
+    if (!btn || !input) {
+      console.warn("photo wire missing", btnId, inputId);
+      return;
+    }
+    btn.type = "button";
+    btn.style.pointerEvents = "auto";
+    btn.style.position = "relative";
+    btn.style.zIndex = "5";
+    btn.onclick = function (e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      if (clear) clear.value = "";
+      input.click();
+    };
+    input.onchange = function () {
+      preview(boxId, input);
+    };
+  }
+
+  wire("btnShopCam", "shop-item-image-cam", "shop-item-image-file", "shop-item-preview");
+  wire("btnShopGallery", "shop-item-image-file", "shop-item-image-cam", "shop-item-preview");
+  wire("btnSvcCam", "svc-item-image-cam", "svc-item-image-file", "svc-item-preview");
+  wire("btnSvcGallery", "svc-item-image-file", "svc-item-image-cam", "svc-item-preview");
+};
+
+(function () {
+  var prev = SNM.onShopEnter;
+  SNM.onShopEnter = function () {
+    if (typeof prev === "function") prev.apply(this, arguments);
+    if (typeof SNM.wireMerchantPhotos === "function") SNM.wireMerchantPhotos();
+    if (typeof SNM.bindShop === "function") {
+      try {
+        SNM._shopBound = false;
+        SNM.bindShop();
+      } catch (e) {}
+    }
+  };
+})();
+
