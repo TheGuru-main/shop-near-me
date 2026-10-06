@@ -350,91 +350,111 @@ SNM.renderFeedCarousel = function (items) {
 
 SNM.cardHtml = function (item) {
   item = SNM.normalizeListing(item);
-  var place = [item.primary_location, item.community, item.city]
+  var esc = typeof SNM.escapeHtml === "function" ? SNM.escapeHtml : SNM.esc;
+  var place = [item.primary_location || item.primary, item.community, item.city]
     .filter(Boolean)
     .join(" · ");
   var price =
     item.price != null && item.price !== ""
-      ? SNM.escapeHtml(String(item.currency || "NGN") + " " + item.price)
+      ? esc(String(item.currency || "NGN") + " " + item.price)
       : "";
   var dist =
     item.km != null && item.km !== "" && !isNaN(Number(item.km))
-      ? SNM.escapeHtml(Number(item.km).toFixed(1) + " km")
+      ? esc(Number(item.km).toFixed(1) + " km")
       : "";
 
-  var cat = String(
-    item.kind || item.category || item.business_type || "retail"
-  )
-    .toLowerCase()
-    .replace(/\s+/g, "_");
+  var role = String(item.role || item.kind || item.business_type || "retail").toLowerCase();
+  var isDriver = /driver|logistic|keke|okada/.test(role);
+  var isService = /service|hotel|salon|hospitality/.test(role);
+  var isEmergency = /emergency/.test(role);
+
   var catClass = "cat-retail";
-  if (/fairly/.test(cat)) catClass = "cat-fairly_used";
-  else if (/food|perish/.test(cat)) catClass = "cat-food";
-  else if (/service|hospitality|hotel|salon/.test(cat)) catClass = "cat-service";
-  else if (/driver|logistic/.test(cat)) catClass = "cat-driver";
-  else if (/merchant|retail/.test(cat)) catClass = "cat-merchant";
+  if (/fairly/.test(role)) catClass = "cat-fairly_used";
+  else if (/food|perish/.test(role)) catClass = "cat-food";
+  else if (isService) catClass = "cat-service";
+  else if (isDriver) catClass = "cat-driver";
+  else if (/merchant|retail/.test(role)) catClass = "cat-merchant";
 
-  var stock =
-    item.available === false
-      ? '<span class="badge-stock out">Out of stock</span>'
-      : '<span class="badge-stock in">In stock ✓</span>';
+  /* Role chip always */
+  var roleLabel =
+    item.roleLabel ||
+    (isDriver ? "Driver" : isService ? "Service" : isEmergency ? "Emergency" : "Merchant");
 
-  var img = item.image_url
-    ? '<img class="card-thumb" src="' +
-      SNM.escapeHtml(item.image_url) +
-      '" alt="" />'
+  /* Stock for goods; Live/Offline for drivers/services/emergency */
+  var statusChip;
+  if (isDriver || isService || isEmergency) {
+    statusChip =
+      item.live || item.seller_live || item.active
+        ? '<span class="badge-live">● Live</span>'
+        : '<span class="badge-live hb-off">○ Offline</span>';
+  } else {
+    statusChip =
+      item.available === false
+        ? '<span class="badge-stock out">Out of stock</span>'
+        : '<span class="badge-stock in">In stock ✓</span>';
+  }
+
+  var imgSrc = item.image_url || "";
+  if (imgSrc && typeof SNM.mediaDisplayUrl === "function") {
+    imgSrc = SNM.mediaDisplayUrl(imgSrc);
+  }
+  var img = imgSrc
+    ? '<img class="card-thumb" data-act="zoom" src="' + esc(imgSrc) + '" alt="" />'
     : "";
 
-  var live =
-    item.live || item.seller_live
-      ? '<span class="badge-live">● Live</span>'
-      : "";
+  var seller = item.owner_name || item.sellerName || item.seller_name || "";
+  var phone = item.phone || "";
+  var meta = [seller, phone, place, dist].filter(Boolean).join(" · ");
+
+  var actions =
+    '<div class="card-actions">' +
+    '<button type="button" class="btn small" data-act="detail" data-id="' +
+    esc(item.id) +
+    '">View</button>' +
+    '<button type="button" class="btn small secondary" data-act="share" data-id="' +
+    esc(item.id) +
+    '">Share</button>' +
+    '<button type="button" class="btn small" data-act="message" data-phone="' +
+    esc(phone) +
+    '">Message</button>' +
+    '<button type="button" class="btn small secondary" data-act="speak">Listen</button>';
+  if (!isDriver && !isService && !isEmergency && item.available !== false) {
+    actions +=
+      '<button type="button" class="btn small" data-act="cart">+ Cart</button>';
+  }
+  actions += "</div>";
+
+  if (item.id) {
+    SNM._listingsById = SNM._listingsById || {};
+    SNM._listingsById[String(item.id)] = item;
+  }
 
   return (
     '<article class="card listing-card ' +
     catClass +
+    '" data-id="' +
+    esc(item.id) +
     '" data-listing-id="' +
-    SNM.escapeHtml(item.id) +
+    esc(item.id) +
+    '" data-phone="' +
+    esc(phone) +
+    '" data-role="' +
+    esc(role) +
     '">' +
     img +
     '<div class="card-top">' +
-    '<span class="card-cat">' +
-    SNM.escapeHtml(cat.replace(/_/g, " ")) +
+    '<span class="chip role-chip">' +
+    esc(roleLabel) +
     "</span> " +
-    stock +
-    " " +
-    live +
+    statusChip +
     "</div>" +
     '<div class="title">' +
-    SNM.escapeHtml(item.name) +
+    esc(item.name || item.title || "Listing") +
     (price ? " · " + price : "") +
     "</div>" +
-    '<div class="meta">' +
-    (item.owner_name
-      ? "<div><strong>Seller:</strong> " +
-        SNM.escapeHtml(item.owner_name) +
-        "</div>"
-      : "") +
-    (item.phone
-      ? "<div><strong>Phone:</strong> " + SNM.escapeHtml(item.phone) + "</div>"
-      : "") +
-    (place
-      ? "<div><strong>Location:</strong> " + SNM.escapeHtml(place) + "</div>"
-      : "") +
-    (dist ? "<div class='dist'>" + dist + "</div>" : "") +
-    "</div>" +
-    '<div class="card-actions">' +
-    '<button type="button" class="btn small" data-act="detail" data-id="' +
-    SNM.escapeHtml(item.id) +
-    '">View</button>' +
-    '<button type="button" class="btn small secondary" data-act="share" data-id="' +
-    SNM.escapeHtml(item.id) +
-    '">Share</button>' +
-    '<button type="button" class="btn small" data-act="message" data-phone="' +
-    SNM.escapeHtml(item.phone || "") +
-    '">Message</button>' +
-    "</div>" +
-    SNM.ownerEditHtml(item) +
+    (meta ? '<div class="meta card-meta-line">' + esc(meta) + "</div>" : "") +
+    actions +
+    (typeof SNM.ownerEditHtml === "function" ? SNM.ownerEditHtml(item) : "") +
     "</article>"
   );
 };

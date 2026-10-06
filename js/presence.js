@@ -178,3 +178,49 @@ SNM.renderNotifications = function () {
     })
     .join("");
 };
+
+
+/* HB_DECAY_V1 — miss 2 intervals (\~90s) => offline locally + API */
+SNM._hbLastOk = 0;
+SNM._hbDecayMs = 90000;
+
+(function () {
+  var _hb = SNM.heartbeat;
+  if (typeof _hb !== "function") return;
+  SNM.heartbeat = async function () {
+    try {
+      var res = await _hb.apply(this, arguments);
+      if (res != null) {
+        SNM._hbLastOk = Date.now();
+        SNM._liveOn = true;
+        SNM.syncPresenceUI();
+      } else {
+        SNM._checkHbDecay();
+      }
+      return res;
+    } catch (e) {
+      SNM._checkHbDecay();
+      return null;
+    }
+  };
+})();
+
+SNM._checkHbDecay = function () {
+  if (!SNM._liveOn) return;
+  if (!SNM._hbLastOk) SNM._hbLastOk = Date.now();
+  if (Date.now() - SNM._hbLastOk < (SNM._hbDecayMs || 90000)) return;
+  SNM._liveOn = false;
+  SNM.startHeartbeatLoop(false);
+  SNM.syncPresenceUI();
+  if (typeof SNM.setLive === "function") {
+    SNM.setLive(false).catch(function () {});
+  }
+};
+
+(function () {
+  if (SNM._hbDecayTimer) return;
+  SNM._hbDecayTimer = setInterval(function () {
+    SNM._checkHbDecay();
+  }, 15000);
+})();
+
