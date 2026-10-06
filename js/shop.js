@@ -669,26 +669,25 @@ SNM.bindShop = function () {
           });
         }
         if (typeof SNM.paintDriverStatusCard === "function") {
-          if (meta.active) {
-    try { await SNM.upsertDriverListing(meta); } catch (eUp) {}
-  } else {
-    /* offline: mark listing unavailable */
-    try {
-      var lid = localStorage.getItem("snm_driver_listing_id");
-      if (lid) {
-        await SNM.api("/products/" + encodeURIComponent(lid), {
-          method: "PATCH",
-          body: { available: false, live: false }
-        });
-      }
-    } catch (eOff) {}
-  }
-  SNM.paintDriverStatusCard(meta);
+          SNM.paintDriverStatusCard(meta);
+        }
+        if (meta.active && typeof SNM.upsertDriverListing === "function") {
+          Promise.resolve(SNM.upsertDriverListing(meta)).catch(function () {});
+        } else if (!meta.active) {
+          try {
+            var lid = localStorage.getItem("snm_driver_listing_id");
+            if (lid && typeof SNM.api === "function") {
+              SNM.api("/products/" + encodeURIComponent(lid), {
+                method: "PATCH",
+                body: { available: false, live: false }
+              }).catch(function () {});
+            }
+          } catch (eOff) {}
+        }
         if (typeof SNM.toast === "function") {
           SNM.toast(active ? "You're now online" : "You're offline");
         } else {
           alert(active ? "You're now online" : "You're offline");
-        }
         }
       }
       if (useGps && typeof SNM._geo === "function") {
