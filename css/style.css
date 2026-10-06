@@ -1885,3 +1885,38 @@ input.hidden[type="file"] {
   object-fit: cover;
 }
 
+
+/* CARD_LISTEN_HEIGHT_V2 */
+.listing-card {
+  padding: 0.45rem 0.6rem !important;
+  margin-bottom: 0.4rem !important;
+}
+.listing-card .card-meta-line {
+  margin: 0.2rem 0 0.3rem !important;
+  font-size: 0.75rem !important;
+  line-height: 1.25 !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.listing-card .card-actions {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 0.3rem !important;
+  visibility: visible !important;
+}
+.listing-card .card-actions button[data-act="speak"],
+.listing-card .card-actions [data-act="speak"] {
+  display: inline-flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  min-width: 3.5rem;
+  background: #ecfdf5 !important;
+  color: #14532d !important;
+  border: 1px solid rgba(20, 83, 45, 0.25) !important;
+}
+.card-rail .listing-card {
+  flex: 0 0 min(260px, 78vw) !important;
+  max-width: 260px !important;
+}
+

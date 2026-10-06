@@ -321,7 +321,7 @@ SNM.cardHtml = function (item) {
     '<button type="button" data-act="comment">Comment</button>' +
     '<button type="button" data-act="share">Share</button>' +
     '<button type="button" data-act="message">Message seller</button>' +
-    '<button type="button" class="btn secondary small" data-act="speak" aria-label="Read aloud"><i class="fa-solid fa-volume-high"></i></button>' +
+    '<button type="button" class="btn secondary small" data-act="speak" aria-label="Listen">Listen</button>' +
     (typeof SNM.cartButtonHtml === "function" ? SNM.cartButtonHtml(x) : "") + '' +
     (typeof SNM.isMerchantListing === "function" && SNM.isMerchantListing(x)
       ? '<button type="button" class="btn small" data-act="cart">Add to cart</button>'
@@ -1051,12 +1051,19 @@ SNM.stockLabel = function (raw) {
       '<button type="button" class="btn secondary small" data-act="detail">View</button>' +
       '<button type="button" class="btn secondary small" data-act="share">Share</button>' +
       '<button type="button" class="btn secondary small" data-act="message">Message</button>' +
-      '<button type="button" class="btn secondary small" data-act="speak" aria-label="Read aloud"><i class="fa-solid fa-volume-high"></i></button>';
-    if (isMerchant && x.available) {
+      '<button type="button" class="btn secondary small" data-act="speak" aria-label="Listen">Listen</button>';
+    if (isMerchant && x.available !== false) {
       actions +=
-        '<button type="button" class="btn small" data-act="cart" aria-label="Add to cart">+</button>';
+        '<button type="button" class="btn small" data-act="cart" aria-label="Add to cart">+ Cart</button>';
     }
     actions += "</div>";
+
+    var metaBits = [];
+    if (x.sellerName) metaBits.push(esc(x.sellerName));
+    if (phone) metaBits.push(esc(phone));
+    if (place) metaBits.push(esc(place));
+    if (dist) metaBits.push(esc(dist));
+    var metaLine = metaBits.join(" · ");
 
     return (
       '<article class="card listing-card" data-id="' +
@@ -1065,6 +1072,8 @@ SNM.stockLabel = function (raw) {
       esc(phone) +
       '" data-role="' +
       esc(role) +
+      '" data-seller-name="' +
+      esc(x.sellerName || "") +
       '">' +
       '<div class="card-top">' +
       '<span class="chip">' +
@@ -1077,14 +1086,9 @@ SNM.stockLabel = function (raw) {
       '<div class="title"><strong>' +
       esc(x.title) +
       "</strong></div>" +
-      '<p class="muted small">' +
-      esc(x.roleLabel || "Provider") +
-      ": " +
-      esc(x.sellerName) +
-      "</p>" +
-      (phone ? '<p class="muted small">Phone: ' + esc(phone) + "</p>" : "") +
-      (place ? '<p class="muted small">Location: ' + esc(place) + "</p>" : "") +
-      (dist ? '<p class="muted small">' + esc(dist) + "</p>" : "") +
+      (metaLine
+        ? '<p class="muted small card-meta-line">' + metaLine + "</p>"
+        : "") +
       actions +
       "</article>"
     );
