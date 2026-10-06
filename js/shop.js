@@ -1605,3 +1605,62 @@ SNM.wireMerchantPhotos = function () {
   };
 })();
 
+
+/* SHOP_UNBLOCK_CLICKS_V1 */
+SNM.unblockShopClicks = function () {
+  [
+    "listingDetail",
+    "profileSheet",
+    "userProfileSheet",
+    "snmShareSheet",
+    "menuSheet",
+    "callSheet"
+  ].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove("open");
+    el.classList.add("hidden");
+    el.style.display = "none";
+    el.setAttribute("aria-hidden", "true");
+    el.style.pointerEvents = "none";
+  });
+  var splash = document.getElementById("splash");
+  if (splash) {
+    splash.classList.add("hidden");
+    splash.style.display = "none";
+    splash.style.pointerEvents = "none";
+  }
+  var shop = document.getElementById("shop");
+  if (shop) {
+    shop.style.pointerEvents = "auto";
+    shop.style.zIndex = "10";
+  }
+  var cont = shop && shop.querySelector(".container");
+  if (cont) {
+    cont.style.pointerEvents = "auto";
+    cont.style.position = "relative";
+    cont.style.zIndex = "11";
+  }
+  var m = document.getElementById("shop-merchant");
+  if (m && !m.classList.contains("hidden")) {
+    m.style.pointerEvents = "auto";
+    m.style.position = "relative";
+    m.style.zIndex = "12";
+  }
+};
+
+(function () {
+  var prev = SNM.onShopEnter;
+  SNM.onShopEnter = function () {
+    if (typeof SNM.unblockShopClicks === "function") SNM.unblockShopClicks();
+    if (typeof prev === "function") prev.apply(this, arguments);
+    if (typeof SNM.unblockShopClicks === "function") SNM.unblockShopClicks();
+    // re-bind add + photos every enter
+    try {
+      SNM._shopBound = false;
+      if (typeof SNM.bindShop === "function") SNM.bindShop();
+    } catch (e) {}
+    if (typeof SNM.wireMerchantPhotos === "function") SNM.wireMerchantPhotos();
+  };
+})();
+

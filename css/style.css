@@ -1734,3 +1734,26 @@ input.hidden[type="file"] {
   opacity: 0;
   pointer-events: none;
 }
+
+/* SHOP_OVERLAY_SAFE_V1 */
+#listingDetail:not(.open),
+#profileSheet:not(.open),
+#userProfileSheet:not(.open),
+#menuSheet.hidden,
+#splash.hidden {
+  display: none !important;
+  pointer-events: none !important;
+}
+#shop.screen.active,
+#shop.screen.active > .container,
+#shop.screen.active .shop-panel:not(.hidden) {
+  pointer-events: auto !important;
+  position: relative;
+  z-index: 5;
+}
+#shop.screen.active .btn,
+#shop.screen.active button {
+  pointer-events: auto !important;
+  position: relative;
+  z-index: 6;
+}
