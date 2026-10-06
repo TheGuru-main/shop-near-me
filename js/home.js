@@ -694,11 +694,20 @@ SNM.bindCardActions = function (root) {
       if (
         card &&
         !e.target.closest(
-          "button,a,input,.comment-box,.comments-list,.card-owner-edit"
+          "button,a,input,img,.card-thumb,.comment-box,.comments-list,.card-owner-edit"
         )
       ) {
         var it = SNM._listingsById[card.getAttribute("data-listing-id")];
         if (it) SNM.openListingDetail(it);
+      }
+      /* plain img without data-act=zoom */
+      if (e.target.closest("img.card-thumb, img.shop-thumb")) {
+        var im = e.target.closest("img");
+        var src2 = im && (im.getAttribute("src") || "");
+        if (src2) {
+          if (typeof SNM.openImageLightbox === "function") SNM.openImageLightbox(src2);
+          else window.open(src2, "_blank");
+        }
       }
       return;
     }
@@ -734,6 +743,79 @@ SNM.bindCardActions = function (root) {
       } else prompt("Copy:", text);
       return;
     }
+
+    /* Resolve listing from button or parent card (Listen/Cart often have no data-id) */
+    if (!item) {
+      var cardEl = btn.closest("[data-listing-id], [data-id], .listing-card");
+      if (cardEl) {
+        var cid =
+          cardEl.getAttribute("data-listing-id") ||
+          cardEl.getAttribute("data-id") ||
+          "";
+        item = (cid && SNM._listingsById[cid]) || null;
+        if (!id) id = cid;
+        if (!phone) phone = cardEl.getAttribute("data-phone") || "";
+      }
+    }
+
+    if (act === "speak") {
+      var line = "";
+      if (typeof SNM.cardSpeakLine === "function" && item) {
+        line = SNM.cardSpeakLine(item);
+      } else if (item) {
+        line = [
+          item.name || item.title,
+          item.owner_name || item.sellerName,
+          item.phone || phone,
+          item.price != null ? (item.currency || "NGN") + " " + item.price : "",
+          item.primary_location || item.community || ""
+        ]
+          .filter(Boolean)
+          .join(". ");
+      } else {
+        var c2 = btn.closest(".listing-card, article.card");
+        if (c2) {
+          var titleEl = c2.querySelector(".title");
+          var metaEl = c2.querySelector(".meta, .card-meta-line");
+          line = [
+            titleEl ? titleEl.textContent : "",
+            metaEl ? metaEl.textContent : ""
+          ]
+            .filter(Boolean)
+            .join(". ");
+        }
+      }
+      line = String(line || "").replace(/\s+/g, " ").trim();
+      if (typeof SNM.speakText === "function") SNM.speakText(line || "No details");
+      else alert(line || "No details");
+      return;
+    }
+
+    if (act === "cart") {
+      if (!item) {
+        alert("Listing not found for cart");
+        return;
+      }
+      if (typeof SNM.addToCart === "function") SNM.addToCart(item);
+      else alert("Cart not available");
+      return;
+    }
+
+    if (act === "zoom") {
+      var src = btn.getAttribute("src") || (btn.querySelector && btn.querySelector("img") && btn.querySelector("img").src) || "";
+      if (!src && btn.tagName === "IMG") src = btn.getAttribute("src") || "";
+      if (typeof SNM.openImageLightbox === "function") SNM.openImageLightbox(src);
+      else if (src) {
+        var w = window.open("", "_blank");
+        if (w) {
+          w.document.write('<img src="' + src + '" style="max-width:100%"/>');
+        } else {
+          location.href = src;
+        }
+      }
+      return;
+    }
+
     if (act === "own-save" && id) {
       var wrap =
         btn.closest("[data-owner-edit]") ||
