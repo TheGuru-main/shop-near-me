@@ -100,10 +100,8 @@ SNM.api = async function (path, options) {
     err.status = res.status;
     err.data = data;
     if (res.status === 401) {
-      try {
-        if (typeof SNM.clearSession === "function") SNM.clearSession();
-      } catch (e401) {}
-      err.message = "Session expired — log in again";
+      /* Do not clearSession here — a failed message/search must not log the user out */
+      err.message = "Unauthorized (401). Try again or re-login from menu if it persists.";
     }
     throw err;
   }

@@ -363,22 +363,48 @@ SNM.cardHtml = function (item) {
       ? esc(Number(item.km).toFixed(1) + " km")
       : "";
 
-  var role = String(item.role || item.kind || item.business_type || "retail").toLowerCase();
-  var isDriver = /driver|logistic|keke|okada/.test(role);
+  var raw = item.raw || item || {};
+  var owner = raw.owner || raw.seller || raw.merchant || {};
+  var role = String(
+    item.role ||
+      owner.role ||
+      raw.role ||
+      item.kind ||
+      item.business_type ||
+      ""
+  ).toLowerCase();
+  var vehicle = String(
+    item.vehicle_type || raw.vehicle_type || owner.vehicle_type || ""
+  ).toLowerCase();
+  var titleBlob = String(item.name || item.title || "").toLowerCase();
+  var isDriver =
+    /driver|logistic/.test(role) ||
+    /keke|okada|tricycle|bike|bus|ride/.test(vehicle) ||
+    /keke|okada|driver|ride/.test(titleBlob);
   var isService = /service|hotel|salon|hospitality/.test(role);
   var isEmergency = /emergency/.test(role);
+  var isMerchant =
+    /merchant|retail|food|grocery/.test(role) ||
+    (!isDriver && !isService && !isEmergency && item.price != null && Number(item.price) > 0);
 
   var catClass = "cat-retail";
   if (/fairly/.test(role)) catClass = "cat-fairly_used";
   else if (/food|perish/.test(role)) catClass = "cat-food";
   else if (isService) catClass = "cat-service";
   else if (isDriver) catClass = "cat-driver";
-  else if (/merchant|retail/.test(role)) catClass = "cat-merchant";
+  else if (isMerchant) catClass = "cat-merchant";
 
-  /* Role chip always */
   var roleLabel =
     item.roleLabel ||
-    (isDriver ? "Driver" : isService ? "Service" : isEmergency ? "Emergency" : "Merchant");
+    (isDriver
+      ? "Driver"
+      : isService
+        ? "Service"
+        : isEmergency
+          ? "Emergency"
+          : isMerchant
+            ? "Merchant"
+            : role || "Listing");
 
   /* Stock for goods; Live/Offline for drivers/services/emergency */
   var statusChip;
@@ -418,7 +444,7 @@ SNM.cardHtml = function (item) {
     esc(phone) +
     '">Message</button>' +
     '<button type="button" class="btn small secondary" data-act="speak">Listen</button>';
-  if (!isDriver && !isService && !isEmergency && item.available !== false) {
+  if (isMerchant && item.available !== false) {
     actions +=
       '<button type="button" class="btn small" data-act="cart">+ Cart</button>';
   }
@@ -1860,3 +1886,20 @@ document.addEventListener(
   },
   true
 );
+
+
+/* ROLE_FROM_OWNER_V1 — do not invent merchant */
+(function () {
+  var prev = SNM.normalizeListing;
+  if (typeof prev !== "function") return;
+  SNM.normalizeListing = function (raw) {
+    var x = prev(raw) || {};
+    raw = raw || {};
+    var owner = raw.owner || raw.seller || raw.merchant || raw.author || {};
+    if (!x.role && owner.role) x.role = owner.role;
+    if (!x.role && raw.role) x.role = raw.role;
+    x.raw = raw;
+    return x;
+  };
+})();
+
