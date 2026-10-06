@@ -94,14 +94,17 @@ SNM.normalizeListing = function (raw) {
     raw.seller_phone ||
     "";
 
+  var p = raw.product || {};
   var img =
     raw.image_url ||
     raw.media_url ||
     raw.photo_url ||
+    p.image_url ||
+    p.media_url ||
     owner.image_url ||
     "";
   var refs = [];
-  var mr = raw.media_refs || raw.mediaRefs || "";
+  var mr = raw.media_refs || raw.mediaRefs || p.media_refs || p.mediaRefs || "";
   if (typeof mr === "string" && mr.trim()) {
     refs = mr.split(",").map(function (s) { return s.trim(); }).filter(Boolean);
   } else if (Array.isArray(mr)) {

@@ -128,6 +128,7 @@ SNM.renderShopList = function (items) {
           it.quantity != null ? it.quantity : it.qty != null ? it.qty : "";
         var avail = it.available !== false;
         var img = it.image_url || it.media_url || "";
+        if (img && typeof SNM.mediaDisplayUrl === "function") img = SNM.mediaDisplayUrl(img);
         var thumb = img
           ? '<div class="shop-card-media">' +
             '<img class="card-thumb shop-thumb" src="' +
@@ -400,10 +401,21 @@ SNM.addShopItem = async function () {
   try {
     var files = SNM._filesFromInputs("shop-item-image-cam", "shop-item-image-file");
     if (files.length) {
-      var up = await SNM.uploadMediaFiles(files, "product");
+      var up = { urls: [] };
+      try {
+        up = await SNM.uploadMediaFiles(files, "product");
+      } catch (upErr) {
+        console.warn("uploadMedia failed", upErr);
+      }
       if (up.urls && up.urls.length) {
         image_url = up.urls[0];
         media_refs = up.urls.join(",");
+      } else if (typeof SNM.compressImageFile === "function") {
+        /* MERCHANT_IMAGE_FALLBACK_V1 — same idea as fairly used */
+        var dataUrl = await SNM.compressImageFile(files[0], 320, 0.5);
+        if (dataUrl.length > 90000) dataUrl = await SNM.compressImageFile(files[0], 240, 0.4);
+        if (dataUrl.length > 90000) throw new Error("Photo too large");
+        image_url = dataUrl;
       }
     }
   } catch (imgErr) {
