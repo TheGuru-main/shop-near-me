@@ -321,6 +321,7 @@ SNM.cardHtml = function (item) {
     '<button type="button" data-act="comment">Comment</button>' +
     '<button type="button" data-act="share">Share</button>' +
     '<button type="button" data-act="message">Message seller</button>' +
+    '<button type="button" class="btn secondary small" data-act="speak" aria-label="Read aloud"><i class="fa-solid fa-volume-high"></i></button>' +
     (typeof SNM.cartButtonHtml === "function" ? SNM.cartButtonHtml(x) : "") + '' +
     (typeof SNM.isMerchantListing === "function" && SNM.isMerchantListing(x)
       ? '<button type="button" class="btn small" data-act="cart">Add to cart</button>'
@@ -1049,7 +1050,8 @@ SNM.stockLabel = function (raw) {
       '<div class="card-actions">' +
       '<button type="button" class="btn secondary small" data-act="detail">View</button>' +
       '<button type="button" class="btn secondary small" data-act="share">Share</button>' +
-      '<button type="button" class="btn secondary small" data-act="message">Message</button>';
+      '<button type="button" class="btn secondary small" data-act="message">Message</button>' +
+      '<button type="button" class="btn secondary small" data-act="speak" aria-label="Read aloud"><i class="fa-solid fa-volume-high"></i></button>';
     if (isMerchant && x.available) {
       actions +=
         '<button type="button" class="btn small" data-act="cart" aria-label="Add to cart">+</button>';
@@ -1087,5 +1089,64 @@ SNM.stockLabel = function (raw) {
       "</article>"
     );
   };
+})();
+
+
+/* CARD_SPEAK_V1 */
+SNM.speakText = function (text) {
+  text = String(text || "").trim();
+  if (!text || !window.speechSynthesis) {
+    alert("Voice not available on this device");
+    return;
+  }
+  window.speechSynthesis.cancel();
+  var u = new SpeechSynthesisUtterance(text);
+  u.lang = "en-NG";
+  u.rate = 0.95;
+  window.speechSynthesis.speak(u);
+};
+
+SNM.cardSpeakLine = function (x) {
+  x = x || {};
+  var bits = [
+    x.title || x.name,
+    x.roleLabel,
+    x.sellerName,
+    x.price != null ? (x.currency || "NGN") + " " + x.price : "",
+    x.available === false ? "Out of stock" : "",
+    typeof SNM.formatDistance === "function" ? SNM.formatDistance(x.km) : ""
+  ].filter(Boolean);
+  return bits.join(". ");
+};
+
+
+/* CARD_SPEAK_WIRE_V1 — runs after all bindCardActions overrides */
+(function () {
+  if (window._snmSpeakWired) return;
+  window._snmSpeakWired = true;
+  document.addEventListener(
+    "click",
+    function (e) {
+      var btn = e.target.closest('[data-act="speak"]');
+      if (!btn) return;
+      e.preventDefault();
+      e.stopPropagation();
+      var card = btn.closest(".listing-card, .card[data-id], article.card");
+      var listing = {};
+      if (card && typeof SNM._listingFromCard === "function") {
+        listing = SNM._listingFromCard(card) || {};
+      }
+      var id = card && card.getAttribute("data-id");
+      if (id && SNM._listingsById && SNM._listingsById[id]) {
+        listing = SNM._listingsById[id];
+      }
+      var line =
+        typeof SNM.cardSpeakLine === "function"
+          ? SNM.cardSpeakLine(listing)
+          : listing.title || listing.name || btn.getAttribute("aria-label") || "Listing";
+      if (typeof SNM.speakText === "function") SNM.speakText(line);
+    },
+    true
+  );
 })();
 
