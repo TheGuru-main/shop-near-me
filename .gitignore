@@ -15,3 +15,4 @@ backend/data/companion_train.jsonl
 # OS / editor
 .DS_Store
 
+snm_search_*.json
