@@ -1151,213 +1151,34 @@ SNM.cardSpeakLine = function (x) {
 })();
 
 
-/* CARD_COMPACT_V1 — last wins: short card, image, speak, cart, image zoom */
-SNM.cardHtml = function (item) {
-  var x =
-    typeof SNM.normalizeListing === "function"
-      ? SNM.normalizeListing(item)
-      : item || {};
-  if (x && x.id) {
-    SNM._listingsById = SNM._listingsById || {};
-    SNM._listingsById[String(x.id)] = x;
-  }
-
-  var esc = typeof SNM.esc === "function" ? SNM.esc : function (s) {
-    return String(s == null ? "" : s)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
-  };
-
-  var role = String(x.role || x.kind || x.business_type || "").toLowerCase();
-  var isDriver = role.indexOf("driver") >= 0 || role.indexOf("logistic") >= 0;
-  var isService = role.indexOf("service") >= 0;
-  var isEmergency = role.indexOf("emergency") >= 0;
-  var isMerchant =
-    typeof SNM.isMerchantListing === "function"
-      ? SNM.isMerchantListing(x)
-      : !isDriver && !isService && !isEmergency;
-
-  var statusChip = "";
-  if (isDriver || isService || isEmergency) {
-    statusChip =
-      typeof SNM.presenceLabel === "function"
-        ? SNM.presenceLabel(item)
-        : x.active
-          ? "Active"
-          : "Inactive";
-  } else {
-    statusChip =
-      typeof SNM.stockLabel === "function"
-        ? SNM.stockLabel(item)
-        : x.available === false
-          ? "Out of stock"
-          : "In stock";
-  }
-
-  var dist =
-    typeof SNM.formatDistance === "function"
-      ? SNM.formatDistance(x.km)
-      : x.km != null
-        ? x.km + " km"
-        : "";
-
-  var phone = x.phone || "";
-  var place = [x.primary, x.community, x.city].filter(Boolean).join(" · ");
-
-  var img =
-    x.image_url ||
-    (x.images && x.images[0]) ||
-    "";
-  if (img && typeof SNM.mediaDisplayUrl === "function") {
-    img = SNM.mediaDisplayUrl(img);
-  }
-
-  var media = "";
-  if (img) {
-    media =
-      '<div class="card-media-wrap">' +
-      '<img class="card-thumb shop-thumb" data-act="zoom" src="' +
-      esc(img) +
-      '" alt="" loading="lazy" />' +
-      "</div>";
-  }
-
-  var actions =
-    '<div class="card-actions">' +
-    '<button type="button" class="btn secondary small" data-act="detail">View</button>' +
-    '<button type="button" class="btn secondary small" data-act="message">Msg</button>' +
-    '<button type="button" class="btn secondary small" data-act="speak" title="Read aloud" aria-label="Read aloud">🔊</button>';
-
-  /* cart: merchant and available !== false (undefined counts as in stock) */
-  if (isMerchant && x.available !== false) {
-    actions +=
-      '<button type="button" class="btn small" data-act="cart" aria-label="Add to cart">+ Cart</button>';
-  }
-  actions += "</div>";
-
-  var priceLine = "";
-  if (x.price != null && x.price !== "" && !isDriver) {
-    priceLine =
-      '<span class="card-price">' +
-      esc(x.currency || "NGN") +
-      " " +
-      esc(String(x.price)) +
-      "</span>";
-  }
-
-  return (
-    '<article class="card listing-card card-compact" data-id="' +
-    esc(x.id) +
-    '" data-phone="' +
-    esc(phone) +
-    '" data-role="' +
-    esc(role) +
-    '">' +
-    media +
-    '<div class="card-body-compact">' +
-    '<div class="card-top">' +
-    '<span class="chip">' +
-    esc(statusChip) +
-    "</span> " +
-    '<span class="chip role-chip">' +
-    esc(x.roleLabel || role || "Listing") +
-    "</span> " +
-    priceLine +
-    "</div>" +
-    '<div class="title"><strong>' +
-    esc(x.title || x.name || "Listing") +
-    "</strong></div>" +
-    '<p class="muted small card-one-line">' +
-    esc(x.sellerName || "") +
-    (place ? " · " + esc(place) : "") +
-    (dist ? " · " + esc(dist) : "") +
-    "</p>" +
-    actions +
-    "</div></article>"
-  );
-};
-
-SNM.openImageLightbox = function (src) {
-  src = String(src || "").trim();
-  if (!src) return;
-  var id = "snmImageLightbox";
-  var el = document.getElementById(id);
-  if (!el) {
-    el = document.createElement("div");
-    el.id = id;
-    el.className = "snm-lightbox";
-    el.innerHTML =
-      '<button type="button" class="snm-lightbox-close" aria-label="Close">×</button>' +
-      '<img class="snm-lightbox-img" alt="" />';
-    document.body.appendChild(el);
-    el.addEventListener("click", function (e) {
-      if (
-        e.target === el ||
-        e.target.classList.contains("snm-lightbox-close")
-      ) {
-        el.classList.remove("open");
-        el.style.display = "none";
-      }
-    });
-  }
-  var im = el.querySelector(".snm-lightbox-img");
-  if (im) im.src = src;
-  el.classList.add("open");
-  el.style.display = "flex";
-};
-
+/* CARD_SPEAK_ACT_ONLY — does not replace cardHtml or bindCardActions */
 (function () {
-  if (window._snmCardUiWired) return;
-  window._snmCardUiWired = true;
+  if (window._snmSpeakActOnly) return;
+  window._snmSpeakActOnly = true;
   document.addEventListener(
     "click",
     function (e) {
-      /* image zoom only — do not open detail */
-      var zoomImg = e.target.closest("img[data-act='zoom'], .card-media-wrap img");
-      if (zoomImg && zoomImg.classList.contains("card-thumb")) {
-        e.preventDefault();
-        e.stopPropagation();
-        var src = zoomImg.getAttribute("src") || "";
-        if (typeof SNM.openImageLightbox === "function") SNM.openImageLightbox(src);
-        return;
-      }
-
-      var btn = e.target.closest("[data-act]");
+      var btn = e.target.closest('[data-act="speak"]');
       if (!btn) return;
-      var act = btn.getAttribute("data-act");
+      e.preventDefault();
+      e.stopPropagation();
       var card = btn.closest(".listing-card, .card[data-id], article.card");
-      if (!card) return;
-
-      var id = card.getAttribute("data-id") || "";
-      var listing =
-        (SNM._listingsById && SNM._listingsById[id]) ||
-        (typeof SNM._listingFromCard === "function"
-          ? SNM._listingFromCard(card)
-          : {}) ||
-        {};
-      listing.phone = listing.phone || card.getAttribute("data-phone") || "";
-
-      if (act === "speak") {
-        e.preventDefault();
-        e.stopPropagation();
-        var line =
-          typeof SNM.cardSpeakLine === "function"
-            ? SNM.cardSpeakLine(listing)
-            : listing.title || listing.name || "Listing";
-        if (typeof SNM.speakText === "function") SNM.speakText(line);
-        return;
+      var listing = {};
+      if (card) {
+        var id = card.getAttribute("data-id") || "";
+        if (id && SNM._listingsById && SNM._listingsById[id]) {
+          listing = SNM._listingsById[id];
+        } else if (typeof SNM._listingFromCard === "function") {
+          listing = SNM._listingFromCard(card) || {};
+        }
+        listing.phone = listing.phone || card.getAttribute("data-phone") || "";
       }
-      if (act === "cart") {
-        e.preventDefault();
-        e.stopPropagation();
-        if (typeof SNM.addToCart === "function") SNM.addToCart(listing);
-        else alert("Cart unavailable");
-        return;
-      }
+      var line =
+        typeof SNM.cardSpeakLine === "function"
+          ? SNM.cardSpeakLine(listing)
+          : listing.title || listing.name || "Listing";
+      if (typeof SNM.speakText === "function") SNM.speakText(line);
     },
     true
   );
 })();
-
