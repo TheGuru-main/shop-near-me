@@ -21,3 +21,24 @@ def heartbeat_score(hb_at: datetime | None, now: datetime | None = None) -> floa
 
 def pulse_now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+# Stale presence: no pulse within this window => not live
+LIVE_TTL_SEC = 90
+
+
+def is_presence_fresh(hb_at: datetime | None, now: datetime | None = None) -> bool:
+    if hb_at is None:
+        return False
+    now = now or datetime.now(timezone.utc)
+    if hb_at.tzinfo is None:
+        hb_at = hb_at.replace(tzinfo=timezone.utc)
+    return (now - hb_at).total_seconds() <= LIVE_TTL_SEC
+
+
+def effective_live(live: bool, hb_at: datetime | None, now: datetime | None = None) -> bool:
+    """live flag only counts while hb_at is fresh."""
+    if not live:
+        return False
+    return is_presence_fresh(hb_at, now)
+
