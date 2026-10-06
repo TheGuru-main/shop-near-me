@@ -1,4 +1,13 @@
 
+/* HOUSING_SYNONYMS_V1 */
+SNM.LOCAL_SYNONYMS = Object.assign(SNM.LOCAL_SYNONYMS || {}, {
+  room: ["bedroom", "bed room", "suite", "lodge", "hotel", "short-let", "self-contained", "apartment"],
+  bedroom: ["room", "bed", "furniture", "mattress", "suite"],
+  bed: ["bedroom", "mattress", "furniture"],
+  furniture: ["bed", "bedroom", "chair", "table", "sofa"]
+});
+
+
 /* QUICK_ACTION_SYNONYMS_V1 — keep in sync with home chips + backend seed */
 SNM.LOCAL_SYNONYMS = Object.assign(SNM.LOCAL_SYNONYMS || {}, {
   food: ["eatery", "restaurant", "rice", "beans", "meal", "kitchen", "buka", "catering"],
@@ -32,11 +41,14 @@ SNM.isHousingQuery = function (q) {
 
 SNM.listingSearchBlob = function (r) {
   r = r || {};
-  var o = r.owner || r.seller || r.merchant || {};
+  var p = r.product || {};
+  var o = r.owner || r.seller || r.merchant || r.author || {};
   return [
-    r.name, r.title, r.category, r.business_type, r.role, r.kind,
-    r.description, r.body, o.role, o.name, o.business_name,
-    r.vehicle_type, r.coverage
+    r.name, r.title, p.name, p.title, p.item,
+    r.category, p.category, r.business_type, p.business_type,
+    r.role, r.kind, r.description, p.description, r.body, p.body,
+    o.role, o.name, o.business_name,
+    r.vehicle_type, r.coverage, p.vehicle_type
   ].join(" ").toLowerCase();
 };
 
@@ -163,6 +175,9 @@ SNM.expandSearchTerms = async function (q) {
 };
 
 SNM.haystackListing = function (r) {
+  var _p = (arguments[0] && arguments[0].product) || {};
+  var _extra = [_p.name, _p.title, _p.description, _p.category].join(" ");
+
   r = r || {};
   var p = r.product || r || {};
   var s = r.seller || r.owner || {};
@@ -258,10 +273,8 @@ SNM.doSearch = async function () {
   try {
     var expanded = await SNM.expandSearchTerms(q);
 
+    /* SEARCH_Q_PRIMARY_V1 — do not OR-expand into API (pollutes keke/room) */
     var apiQ = q;
-    if (expanded.expanded && expanded.expanded.length) {
-      apiQ = [q].concat(expanded.expanded.slice(0, 6)).join(" ");
-    }
 
     var data = await SNM.api(
       "/search/products" +
@@ -308,20 +321,20 @@ SNM.doSearch = async function () {
     }
 
     strict.sort(function (a, b) {
-      var na =
-        typeof SNM.normalizeListing === "function"
-          ? SNM.normalizeListing(a)
-          : a;
-      var nb =
-        typeof SNM.normalizeListing === "function"
-          ? SNM.normalizeListing(b)
-          : b;
-      var ka =
-        na.km != null && !isNaN(Number(na.km)) ? Number(na.km) : 999999;
-      var kb =
-        nb.km != null && !isNaN(Number(nb.km)) ? Number(nb.km) : 999999;
+      var sa = SNM.scoreListingForQuery(a, q);
+      var sb = SNM.scoreListingForQuery(b, q);
+      if (sb !== sa) return sb - sa;
+      var na = typeof SNM.normalizeListing === "function" ? SNM.normalizeListing(a) : a;
+      var nb = typeof SNM.normalizeListing === "function" ? SNM.normalizeListing(b) : b;
+      var ka = na.km != null && !isNaN(Number(na.km)) ? Number(na.km) : 999999;
+      var kb = nb.km != null && !isNaN(Number(nb.km)) ? Number(nb.km) : 999999;
       return ka - kb;
     });
+    /* drop zero-score noise when user typed a real query */
+    if (q && q.length >= 2) {
+      var hit = strict.filter(function (r) { return SNM.scoreListingForQuery(r, q) > 0; });
+      if (hit.length) strict = hit;
+    }
 
     if (ai) ai.textContent = SNM.buildSearchAssist(q, strict);
 
@@ -496,3 +509,26 @@ SNM.mergeLiveDriversIntoSearch = async function (q, rows) {
   });
   return out;
 };
+
+
+/* SEARCH_RANK_TITLE_V1 */
+SNM.scoreListingForQuery = function (r, q) {
+  var p = (r && r.product) || r || {};
+  var title = String(p.name || p.title || r.name || r.title || "").toLowerCase();
+  var blob = typeof SNM.listingSearchBlob === "function" ? SNM.listingSearchBlob(r) : title;
+  q = String(q || "").toLowerCase().trim();
+  var tokens = q.split(/\s+/).filter(function (t) { return t.length >= 2; });
+  var score = 0;
+  tokens.forEach(function (t) {
+    if (title.indexOf(t) >= 0) score += 10;
+    else if (blob.indexOf(t) >= 0) score += 2;
+  });
+  // synonym hits weaker
+  (SNM.LOCAL_SYNONYMS[q] || []).forEach(function (s) {
+    s = String(s).toLowerCase();
+    if (title.indexOf(s) >= 0) score += 6;
+    else if (blob.indexOf(s) >= 0) score += 1;
+  });
+  return score;
+};
+
