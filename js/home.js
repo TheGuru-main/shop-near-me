@@ -2056,6 +2056,7 @@ SNM.openImageLightbox = function (src, title) {
     el.innerHTML =
       '<div class="snm-img-sheet-panel" role="dialog" aria-modal="true">' +
       '<header class="snm-img-sheet-head">' +
+      '<button type="button" class="snm-img-sheet-back" aria-label="Back">← Back</button>' +
       '<span class="snm-img-sheet-title"></span>' +
       '<button type="button" class="snm-img-sheet-close" aria-label="Close">×</button>' +
       "</header>" +
@@ -2069,7 +2070,8 @@ SNM.openImageLightbox = function (src, title) {
     el.addEventListener("click", function (e) {
       if (
         e.target === el ||
-        e.target.classList.contains("snm-img-sheet-close")
+        e.target.classList.contains("snm-img-sheet-close") ||
+        (e.target.closest && e.target.closest(".snm-img-sheet-back"))
       ) {
         el.classList.remove("open");
       }
