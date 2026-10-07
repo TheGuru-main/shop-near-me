@@ -2170,3 +2170,72 @@ body.theme-dark .header-active.is-live .header-active-label {
   color: #60a5fa !important;
 }
 
+
+
+.profile-card-head {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+}
+.profile-avatar-lg {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #e2e8f0;
+  flex-shrink: 0;
+  border: 2px solid rgba(20, 83, 45, 0.25);
+}
+.profile-avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 1.5rem;
+}
+.profile-bio-block {
+  margin-top: 0.35rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 10px;
+  background: rgba(20, 83, 45, 0.06);
+}
+.profile-bio-text {
+  margin: 0.2rem 0 0;
+  white-space: pre-wrap;
+  font-size: 0.9rem;
+}
+.card-seller-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.25rem 0 0.15rem;
+}
+.seller-avatar-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid rgba(20, 83, 45, 0.2);
+  border-radius: 50%;
+  overflow: hidden;
+  background: #ecfdf5;
+  flex-shrink: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.seller-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.seller-avatar-fallback {
+  color: #14532d;
+  font-size: 0.85rem;
+}
+.card-seller-row .card-meta-line {
+  flex: 1;
+  min-width: 0;
+}

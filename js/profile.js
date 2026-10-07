@@ -15,23 +15,50 @@ SNM.renderProfile = function () {
   var body = document.getElementById("profileBody");
   if (!body) return;
   var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+  var esc = SNM.esc;
+  var avatar = u.avatar_url || u.image_url || "";
+  if (avatar && typeof SNM.mediaDisplayUrl === "function") {
+    try {
+      avatar = SNM.mediaDisplayUrl(avatar);
+    } catch (e0) {}
+  }
+  var place = [u.primary_location, u.community, u.city, u.region, u.country]
+    .filter(Boolean)
+    .join(" · ");
+  var bio = (u.bio || "").trim();
+  var avHtml = avatar
+    ? '<img class="profile-avatar-lg" src="' +
+      esc(avatar) +
+      '" alt="" />'
+    : '<div class="profile-avatar-lg profile-avatar-placeholder"><i class="fa-solid fa-user"></i></div>';
   body.innerHTML =
+    '<div class="profile-card-head">' +
+    avHtml +
+    "<div>" +
     "<p><strong>" +
-    SNM.esc(u.name || "User") +
+    esc(u.name || "User") +
     "</strong></p>" +
     "<p class='muted'>" +
-    SNM.esc(u.role || "") +
+    esc(u.role || "") +
     "</p>" +
     "<p>" +
-    SNM.esc(u.phone || "") +
+    esc(u.phone || "") +
     "</p>" +
-    "<p class='muted small'>" +
-    SNM.esc(
-      [u.primary_location, u.community, u.city, u.region, u.country]
-        .filter(Boolean)
-        .join(" · ")
-    ) +
-    "</p>";
+    (place ? "<p class='muted small'>" + esc(place) + "</p>" : "") +
+    "</div></div>" +
+    (bio
+      ? '<div class="profile-bio-block"><p class="muted small">Bio</p><p class="profile-bio-text">' +
+        esc(bio) +
+        "</p></div>"
+      : '<p class="muted small">No bio yet — add one below.</p>');
+
+  var ta = document.getElementById("profileBioInput");
+  if (ta && document.activeElement !== ta) ta.value = bio;
+  var prevEl = document.getElementById("profile-image-preview");
+  if (prevEl && avatar) {
+    prevEl.classList.remove("hidden");
+    prevEl.innerHTML = '<img src="' + esc(avatar) + '" alt="" />';
+  }
 };
 
 SNM.closeProfile = function () {
@@ -106,9 +133,11 @@ SNM.bindProfile = function () {
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", function () {
     SNM.bindProfile();
+    if (typeof SNM.bindUserProfile === "function") SNM.bindUserProfile();
   });
 } else {
   SNM.bindProfile();
+  if (typeof SNM.bindUserProfile === "function") SNM.bindUserProfile();
 }
 
 SNM._profileTargetPhone = null;

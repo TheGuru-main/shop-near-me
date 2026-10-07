@@ -432,6 +432,40 @@ SNM.cardHtml = function (item) {
   var phone = item.phone || "";
   var meta = [seller, phone, place, dist].filter(Boolean).join(" · ");
 
+  var sellerAv = "";
+  (function () {
+    var av =
+      item.owner_avatar ||
+      item.avatar_url ||
+      (item.raw &&
+        item.raw.owner &&
+        (item.raw.owner.avatar_url || item.raw.owner.image_url)) ||
+      "";
+    if (av && typeof SNM.mediaDisplayUrl === "function") {
+      try {
+        av = SNM.mediaDisplayUrl(av);
+      } catch (e1) {}
+    }
+    var ph = phone || "";
+    if (av) {
+      sellerAv =
+        '<button type="button" class="seller-avatar-btn" data-act="seller-profile" data-phone="' +
+        esc(ph) +
+        '" title="View seller profile">' +
+        '<img class="seller-avatar" src="' +
+        esc(av) +
+        '" alt="" />' +
+        "</button>";
+    } else {
+      sellerAv =
+        '<button type="button" class="seller-avatar-btn seller-avatar-fallback" data-act="seller-profile" data-phone="' +
+        esc(ph) +
+        '" title="View seller profile">' +
+        '<i class="fa-solid fa-user"></i>' +
+        "</button>";
+    }
+  })();
+
   var actions =
     '<div class="card-actions">' +
     '<button type="button" class="btn small" data-act="detail" data-id="' +
@@ -478,7 +512,12 @@ SNM.cardHtml = function (item) {
     esc(item.name || item.title || "Listing") +
     (price ? " · " + price : "") +
     "</div>" +
-    (meta ? '<div class="meta card-meta-line">' + esc(meta) + "</div>" : "") +
+    '<div class="card-seller-row">' +
+    sellerAv +
+    (meta
+      ? '<div class="meta card-meta-line">' + esc(meta) + "</div>"
+      : "") +
+    "</div>" +
     actions +
     (typeof SNM.ownerEditHtml === "function" ? SNM.ownerEditHtml(item) : "") +
     "</article>"
@@ -724,6 +763,16 @@ SNM.bindCardActions = function (root) {
     }
     if (act === "message") {
       SNM.messageSeller(phone || (item && item.phone));
+      return;
+    }
+    if (act === "seller-profile") {
+      var p2 =
+        phone ||
+        btn.getAttribute("data-phone") ||
+        (item && item.phone) ||
+        "";
+      if (typeof SNM.openUserProfile === "function") SNM.openUserProfile(p2);
+      else alert("Profile: " + p2);
       return;
     }
     if (act === "share" && item) {
