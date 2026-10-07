@@ -308,3 +308,93 @@ SNM.activateOnAppEnter = async function () {
   };
 })();
 
+
+/* FORCE_ACTIVE_UI_EOF */
+SNM.toast = SNM.toast || function (msg) {
+  msg = String(msg || "");
+  var el = document.getElementById("snmToast");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "snmToast";
+    el.setAttribute(
+      "style",
+      "position:fixed;left:50%;bottom:88px;transform:translateX(-50%);" +
+        "z-index:6000;max-width:90%;padding:0.65rem 1rem;border-radius:12px;" +
+        "background:#14532d;color:#fff;font-weight:700;font-size:0.9rem;" +
+        "box-shadow:0 8px 24px rgba(0,0,0,.25);text-align:center"
+    );
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.display = "block";
+  clearTimeout(el._hide);
+  el._hide = setTimeout(function () {
+    el.style.display = "none";
+  }, 2200);
+};
+
+SNM.syncPresenceUI = function () {
+  var live = !!SNM._liveOn;
+  ["shop-open", "svc-open", "drv-active", "emg-active", "homeActiveToggle"].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el && el.type === "checkbox") {
+      el.checked = live;
+    }
+  });
+  document.querySelectorAll("[data-hb-marker]").forEach(function (el) {
+    el.classList.toggle("hb-live", live);
+    el.classList.toggle("hb-off", !live);
+    el.textContent = live ? "● Live" : "○ Offline";
+  });
+  var wrap = document.querySelector(".header-active");
+  if (wrap) {
+    wrap.classList.toggle("is-live", live);
+    wrap.classList.toggle("is-off", !live);
+  }
+  var lab = document.querySelector(".header-active-label");
+  if (lab) lab.textContent = live ? "Live" : "Off";
+  document.body.classList.toggle("snm-presence-live", live);
+};
+
+SNM.activateOnAppEnter = async function () {
+  var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+  var role = String(u.role || "").toLowerCase();
+  if (typeof SNM.roleNeedsHeartbeat === "function" && !SNM.roleNeedsHeartbeat(role)) {
+    return;
+  }
+  if (typeof SNM.getToken === "function" && !SNM.getToken()) return;
+
+  /* avoid spam every home tab re-entry within 20s */
+  if (SNM._lastAutoActiveAt && Date.now() - SNM._lastAutoActiveAt < 20000) {
+    SNM._liveOn = true;
+    SNM.syncPresenceUI();
+    return;
+  }
+
+  try {
+    var ok = await SNM.setPresence({
+      live: true,
+      active: true,
+      heartbeat: true,
+      available: true
+    });
+    SNM._liveOn = true;
+    SNM._hbLastOk = Date.now();
+    SNM._lastAutoActiveAt = Date.now();
+    SNM.syncPresenceUI();
+    /* checkbox may paint one frame late */
+    setTimeout(function () {
+      SNM._liveOn = true;
+      SNM.syncPresenceUI();
+      var el = document.getElementById("homeActiveToggle");
+      if (el) el.checked = true;
+    }, 50);
+    if (typeof SNM.paintOwnLiveOnCards === "function") SNM.paintOwnLiveOnCards();
+    if (ok !== false) {
+      SNM.toast("Active now");
+    }
+  } catch (e) {
+    console.warn("activateOnAppEnter", e);
+  }
+};
+

@@ -124,6 +124,9 @@ SNM.showScreen = function (id) {
     else if (typeof SNM.loadNews === "function") SNM.loadNews(SNM._newsCat || "business");
   }
   if (id === "checkout" && typeof SNM.onCheckoutEnter === "function") SNM.onCheckoutEnter();
+  if (id === "home") {
+    if (typeof SNM.onHomeEnter === "function") SNM.onHomeEnter();
+  }
   if (id === "rules" && typeof SNM.onRulesEnter === "function") SNM.onRulesEnter();
 
   if (id === "fairly-used") {
