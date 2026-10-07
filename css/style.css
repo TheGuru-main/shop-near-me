@@ -1920,3 +1920,81 @@ input.hidden[type="file"] {
   max-width: 260px !important;
 }
 
+
+/* Shop Near Me in-app image viewer */
+.snm-img-sheet {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  background: rgba(15, 23, 42, 0.72);
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.snm-img-sheet.open {
+  display: flex !important;
+}
+.snm-img-sheet-panel {
+  width: 100%;
+  max-width: 420px;
+  max-height: 92dvh;
+  background: linear-gradient(160deg, #f8fafc 0%, #ecfdf5 100%);
+  border: 1px solid rgba(20, 83, 45, 0.18);
+  border-radius: 16px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.snm-img-sheet-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  background: #14532d;
+  color: #fff;
+}
+.snm-img-sheet-title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.snm-img-sheet-close {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.snm-img-sheet-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem;
+  background: #0f172a;
+}
+.snm-img-sheet-img {
+  max-width: 100%;
+  max-height: 70dvh;
+  object-fit: contain;
+  border-radius: 8px;
+}
+.snm-img-sheet-foot {
+  margin: 0;
+  padding: 0.45rem 0.75rem 0.65rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: #166534;
+  font-weight: 600;
+}
+

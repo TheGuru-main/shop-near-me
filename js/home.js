@@ -787,7 +787,6 @@ SNM.bindCardActions = function (root) {
       }
       line = String(line || "").replace(/\s+/g, " ").trim();
       if (typeof SNM.speakText === "function") SNM.speakText(line || "No details");
-      else alert(line || "No details");
       return;
     }
 
@@ -1984,4 +1983,103 @@ document.addEventListener(
     return x;
   };
 })();
+
+
+/* In-app image viewer + Listen (TTS) — Shop Near Me chrome */
+SNM.speakText = function (text) {
+  text = String(text || "").replace(/\s+/g, " ").trim();
+  if (!text) return;
+
+  var synth = window.speechSynthesis;
+  if (!synth || typeof window.SpeechSynthesisUtterance === "undefined") {
+    if (typeof SNM.toast === "function") SNM.toast("Voice not supported on this device");
+    else console.warn("speechSynthesis missing");
+    return;
+  }
+
+  try {
+    synth.cancel();
+  } catch (e0) {}
+
+  var u = new SpeechSynthesisUtterance(text);
+  u.lang = "en-NG";
+  u.rate = 0.95;
+  u.pitch = 1;
+  u.onerror = function () {
+    if (typeof SNM.toast === "function") SNM.toast("Could not play voice");
+  };
+
+  /* Some mobile browsers need speak in the same tick as the tap */
+  try {
+    synth.speak(u);
+  } catch (e1) {
+    setTimeout(function () {
+      try {
+        synth.speak(u);
+      } catch (e2) {
+        if (typeof SNM.toast === "function") SNM.toast("Could not play voice");
+      }
+    }, 0);
+  }
+};
+
+SNM.cardSpeakLine = function (x) {
+  x = x || {};
+  var bits = [
+    x.name || x.title,
+    x.roleLabel || x.role,
+    x.owner_name || x.sellerName || x.seller_name,
+    x.phone,
+    x.price != null && x.price !== ""
+      ? String(x.currency || "NGN") + " " + x.price
+      : "",
+    x.available === false ? "Out of stock" : "",
+    [x.primary_location || x.primary, x.community, x.city].filter(Boolean).join(", "),
+    typeof SNM.formatDistance === "function" && x.km != null
+      ? SNM.formatDistance(x.km)
+      : ""
+  ].filter(Boolean);
+  return bits.join(". ");
+};
+
+SNM.openImageLightbox = function (src, title) {
+  src = String(src || "").trim();
+  if (!src) return;
+  title = String(title || "Photo").trim();
+
+  var id = "snmImageSheet";
+  var el = document.getElementById(id);
+  if (!el) {
+    el = document.createElement("div");
+    el.id = id;
+    el.className = "snm-img-sheet";
+    el.innerHTML =
+      '<div class="snm-img-sheet-panel" role="dialog" aria-modal="true">' +
+      '<header class="snm-img-sheet-head">' +
+      '<span class="snm-img-sheet-title"></span>' +
+      '<button type="button" class="snm-img-sheet-close" aria-label="Close">×</button>' +
+      "</header>" +
+      '<div class="snm-img-sheet-body">' +
+      '<img class="snm-img-sheet-img" alt="" />' +
+      "</div>" +
+      '<p class="snm-img-sheet-foot">Shop Near Me</p>' +
+      "</div>";
+    document.body.appendChild(el);
+
+    el.addEventListener("click", function (e) {
+      if (
+        e.target === el ||
+        e.target.classList.contains("snm-img-sheet-close")
+      ) {
+        el.classList.remove("open");
+      }
+    });
+  }
+
+  var img = el.querySelector(".snm-img-sheet-img");
+  var ttl = el.querySelector(".snm-img-sheet-title");
+  if (img) img.src = src;
+  if (ttl) ttl.textContent = title;
+  el.classList.add("open");
+};
 
