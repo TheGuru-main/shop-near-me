@@ -629,3 +629,20 @@ SNM.scoreListingForQuery = function (r, q) {
   });
   return score;
 };
+
+
+(function () {
+  var prev = SNM.doSearch;
+  if (typeof prev !== "function") return;
+  SNM.doSearch = async function () {
+    var r = await prev.apply(this, arguments);
+    try {
+      if (SNM._listingsById) {
+        SNM._lastSearchRows = Object.keys(SNM._listingsById).map(function (k) {
+          return SNM._listingsById[k];
+        });
+      }
+    } catch (e) {}
+    return r;
+  };
+})();

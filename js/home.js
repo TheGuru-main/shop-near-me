@@ -2134,3 +2134,21 @@ SNM.openImageLightbox = function (src, title) {
   el.classList.add("open");
 };
 
+
+
+(function () {
+  var prev = SNM.loadFeed;
+  if (typeof prev !== "function") return;
+  SNM.loadFeed = async function () {
+    var r = await prev.apply(this, arguments);
+    try {
+      /* best-effort: capture whatever was last painted into _listingsById */
+      if (SNM._listingsById) {
+        SNM._lastFeedRows = Object.keys(SNM._listingsById).map(function (k) {
+          return SNM._listingsById[k];
+        });
+      }
+    } catch (e) {}
+    return r;
+  };
+})();

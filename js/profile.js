@@ -360,35 +360,113 @@ SNM.openUserProfile = async function (phone) {
   if (list) {
     list.innerHTML = "<p class='muted'>Loading listings…</p>";
     try {
+      function digits(p) {
+        return String(p || "").replace(/\D/g, "");
+      }
+      function phoneMatch(a, b) {
+        var da = digits(a);
+        var db = digits(b);
+        if (!da || !db) return false;
+        if (da === db) return true;
+        /* last 10 digits (NG local) */
+        if (da.length >= 10 && db.length >= 10) {
+          return da.slice(-10) === db.slice(-10);
+        }
+        return da.indexOf(db) >= 0 || db.indexOf(da) >= 0;
+      }
+      function rowPhone(r) {
+        r = r || {};
+        var o = r.owner || r.seller || r.merchant || r.author || {};
+        return (
+          o.phone ||
+          r.phone ||
+          r.owner_phone ||
+          r.seller_phone ||
+          (r.raw && (r.raw.phone || (r.raw.owner && r.raw.owner.phone))) ||
+          ""
+        );
+      }
+      function isThisSeller(r) {
+        var ph = rowPhone(r);
+        return phoneMatch(ph, phone) || phoneMatch(ph, user.phone);
+      }
+
       var me = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
-      var data = await SNM.api(
-        "/search/products" +
-          SNM.qs({
-            q: "",
-            max_km: 500,
-            limit: 50,
-            lat: me.lat || SNM._lastLat,
-            lng: me.lng || SNM._lastLng,
-            community: me.community || "",
-            city: me.city || "",
-            region: me.region || "",
-            country: me.country || "Nigeria"
-          })
-      );
-      var rows = data.results || data.items || [];
-      rows = rows.filter(function (r) {
-        var o = r.owner || r.seller || r.merchant || {};
-        var ph = String(o.phone || r.phone || r.owner_phone || "");
-        return ph === String(phone) || ph === String(user.phone || "");
-      });
+      var rows = [];
+      var seen = {};
+
+      function addRows(arr) {
+        (arr || []).forEach(function (r) {
+          if (!r || !isThisSeller(r)) return;
+          var id = String(r.id || r.product_id || rowPhone(r) + (r.name || r.title || ""));
+          if (seen[id]) return;
+          seen[id] = 1;
+          rows.push(r);
+        });
+      }
+
+      /* 1) Already-loaded feed / search cards */
+      if (SNM._listingsById) {
+        Object.keys(SNM._listingsById).forEach(function (k) {
+          addRows([SNM._listingsById[k]]);
+        });
+      }
+      if (Array.isArray(SNM._lastFeedRows)) addRows(SNM._lastFeedRows);
+      if (Array.isArray(SNM._lastSearchRows)) addRows(SNM._lastSearchRows);
+
+      /* 2) Own profile → /products/me */
+      var myDigits = digits(me.phone);
+      if (myDigits && phoneMatch(me.phone, phone)) {
+        try {
+          var mine = await SNM.api("/products/me");
+          addRows(mine.items || mine.products || mine.results || (Array.isArray(mine) ? mine : []));
+        } catch (eMe) {}
+      }
+
+      /* 3) Search API — phone digits + empty q, wide radius */
+      var geoLat = me.lat != null ? me.lat : SNM._lastLat;
+      var geoLng = me.lng != null ? me.lng : SNM._lastLng;
+      var qPhone = digits(user.phone || phone);
+      var tries = [qPhone, (user.name || "").trim(), ""];
+      for (var ti = 0; ti < tries.length; ti++) {
+        try {
+          var data = await SNM.api(
+            "/search/products" +
+              SNM.qs({
+                q: tries[ti] || undefined,
+                max_km: 2000,
+                limit: 80,
+                lat: geoLat,
+                lng: geoLng,
+                community: me.community || "",
+                city: me.city || "",
+                region: me.region || "",
+                country: me.country || "Nigeria"
+              })
+          );
+          addRows(data.results || data.items || []);
+          if (rows.length) break;
+        } catch (eSearch) {}
+      }
+
       if (!rows.length) {
-        list.innerHTML = "<p class='muted'>No listings found for this user.</p>";
+        list.innerHTML =
+          "<p class='muted'>No listings found for this seller yet. If they just posted, open Home/Search once so listings cache, then reopen profile.</p>";
       } else if (typeof SNM.cardHtml === "function") {
-        list.innerHTML = rows.map(function (r) { return SNM.cardHtml(r); }).join("");
+        list.innerHTML = rows
+          .map(function (r) {
+            return SNM.cardHtml(r);
+          })
+          .join("");
         if (typeof SNM.bindCardActions === "function") SNM.bindCardActions(list);
+      } else {
+        list.innerHTML = "<p class='muted'>" + rows.length + " listing(s)</p>";
       }
     } catch (err) {
-      list.innerHTML = "<p class='muted'>Listings unavailable.</p>";
+      list.innerHTML =
+        "<p class='muted'>Listings unavailable. " +
+        SNM.esc((err && err.message) || "") +
+        "</p>";
     }
   }
 };
