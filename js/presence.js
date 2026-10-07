@@ -103,7 +103,7 @@ SNM.startHeartbeatLoop = function (on) {
 
 SNM.syncPresenceUI = function () {
   var live = !!SNM._liveOn;
-  ["shop-open", "svc-open", "drv-active", "emg-active"].forEach(function (id) {
+  ["shop-open", "svc-open", "drv-active", "emg-active", "homeActiveToggle"].forEach(function (id) {
     var el = document.getElementById(id);
     if (el && el.type === "checkbox") el.checked = live;
   });
@@ -112,6 +112,14 @@ SNM.syncPresenceUI = function () {
     el.classList.toggle("hb-off", !live);
     el.textContent = live ? "● Live" : "○ Offline";
   });
+  var wrap = document.querySelector(".header-active");
+  if (wrap) {
+    wrap.classList.toggle("is-live", live);
+    wrap.classList.toggle("is-off", !live);
+  }
+  var lab = document.querySelector(".header-active-label");
+  if (lab) lab.textContent = live ? "Live" : "Off";
+  document.body.classList.toggle("snm-presence-live", live);
 };
 
 SNM.roleNeedsHeartbeat = function (role) {
@@ -224,3 +232,44 @@ SNM._checkHbDecay = function () {
   }, 15000);
 })();
 
+(function () {
+  if (window._homeActiveWired) return;
+  window._homeActiveWired = true;
+  function wire() {
+    var el = document.getElementById("homeActiveToggle");
+    if (!el || el._snmWired) return;
+    el._snmWired = true;
+    el.addEventListener("change", function () {
+      var on = !!el.checked;
+      var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+      var role = String(u.role || "").toLowerCase();
+      if (role === "buyer" || !role) {
+        el.checked = false;
+        if (typeof SNM.toast === "function") SNM.toast("Live is for merchants, services, drivers");
+        else alert("Live is for merchants, services, and drivers");
+        return;
+      }
+      if (typeof SNM.setPresence === "function") {
+        SNM.setPresence({ live: on, active: on, heartbeat: on });
+      } else if (typeof SNM.setLive === "function") {
+        SNM.setLive(on).then(function () {
+          if (on && typeof SNM.startHeartbeatLoop === "function") SNM.startHeartbeatLoop(true);
+          if (!on && typeof SNM.startHeartbeatLoop === "function") SNM.startHeartbeatLoop(false);
+          if (typeof SNM.syncPresenceUI === "function") SNM.syncPresenceUI();
+        });
+      }
+    });
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", wire);
+  } else {
+    wire();
+  }
+  /* re-sync when entering home */
+  var prev = SNM.onHomeEnter;
+  SNM.onHomeEnter = function () {
+    if (typeof prev === "function") prev.apply(this, arguments);
+    if (typeof SNM.initPresenceForRole === "function") SNM.initPresenceForRole();
+    if (typeof SNM.syncPresenceUI === "function") SNM.syncPresenceUI();
+  };
+})();
