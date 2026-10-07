@@ -993,7 +993,7 @@
     </section>
 
     <!-- ========== PROFILE SHEET ========== -->
-    <section id="checkout" class="screen" data-screen="checkout">
+        <section id="checkout" class="screen" data-screen="checkout">
       <header class="top-bar">
         <button type="button" class="icon-btn" data-back="home" aria-label="Back">
           <i class="fa-solid fa-arrow-left"></i>
@@ -1004,7 +1004,20 @@
       <div class="container stack">
         <div id="cartList" class="feed-list"></div>
         <p id="cartTotal" class="card"><strong>Total:</strong> —</p>
-        <button type="button" class="btn block" id="btnCartClear">Clear cart</button>
+        <label>Fulfillment
+          <select id="cartFulfillment">
+            <option value="walk_in">Walk-in / pickup</option>
+            <option value="pod">Pay on delivery (PoD)</option>
+            <option value="delivery">Delivery / carrier</option>
+          </select>
+        </label>
+        <div id="checkoutAssistCard" class="card hidden">
+          <p id="checkoutAssistText" class="muted small"></p>
+          <div id="checkoutDrivers" class="feed-list"></div>
+        </div>
+        <button type="button" class="btn block" id="btnCheckoutAssist">Check delivery / drivers</button>
+        <button type="button" class="btn block" id="btnCheckoutMessageSellers">Message seller(s)</button>
+        <button type="button" class="btn secondary block" id="btnCartClear">Clear cart</button>
         <p class="muted small">Escrow hold / OTP release comes next. Cart is saved on this device.</p>
       </div>
     </section>

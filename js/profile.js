@@ -598,3 +598,85 @@ SNM.reactToUser = function (kind) {
   } catch (e) {}
   alert("Recorded: " + kind);
 };
+
+/* PROFILE_REACTIONS_EOF */
+SNM.reactToUser = function (kind) {
+  var phone = SNM._profileTargetPhone;
+  if (!phone) {
+    alert("Open a seller profile first");
+    return;
+  }
+  kind = String(kind || "").toLowerCase();
+  var key = "snm_react_" + String(phone).replace(/\D/g, "");
+  var o = {};
+  try { o = JSON.parse(localStorage.getItem(key) || "{}"); } catch (e) { o = {}; }
+
+  if (kind === "follow") {
+    o.follow = !o.follow;
+  } else if (kind === "up") {
+    o.up = (o.up || 0) + 1;
+  } else if (kind === "down") {
+    o.down = (o.down || 0) + 1;
+  } else if (kind === "rate") {
+    var n = prompt("Rate this seller 1–5", o.rate != null ? String(o.rate) : "5");
+    if (n == null) return;
+    n = parseInt(n, 10);
+    if (isNaN(n) || n < 1 || n > 5) {
+      alert("Enter a number from 1 to 5");
+      return;
+    }
+    o.rate = n;
+  } else {
+    o[kind] = (o[kind] || 0) + 1;
+  }
+  try { localStorage.setItem(key, JSON.stringify(o)); } catch (e2) {}
+
+  if (typeof SNM.api === "function") {
+    SNM.api("/ratings", {
+      method: "POST",
+      body: {
+        target_phone: phone,
+        kind: kind,
+        value: kind === "rate" ? o.rate : 1,
+        follow: !!o.follow
+      }
+    }).catch(function () {});
+  }
+  SNM.paintProfileReactions(phone);
+};
+
+SNM.paintProfileReactions = function (phone) {
+  phone = phone || SNM._profileTargetPhone;
+  if (!phone) return;
+  var key = "snm_react_" + String(phone).replace(/\D/g, "");
+  var o = {};
+  try { o = JSON.parse(localStorage.getItem(key) || "{}"); } catch (e) { o = {}; }
+  var row = document.getElementById("userProfileReact");
+  if (!row) return;
+  row.querySelectorAll("[data-react]").forEach(function (b) {
+    var k = (b.getAttribute("data-react") || "").toLowerCase();
+    if (k === "follow") {
+      b.textContent = o.follow ? "Following" : "Follow";
+      b.classList.toggle("active", !!o.follow);
+    } else if (k === "up") {
+      b.textContent = "👍 " + (o.up || 0);
+    } else if (k === "down") {
+      b.textContent = "👎 " + (o.down || 0);
+    } else if (k === "rate") {
+      b.textContent = o.rate != null ? "Rate " + o.rate + "/5" : "Rate";
+    }
+  });
+};
+
+(function () {
+  var prev = SNM.openUserProfile;
+  if (typeof prev !== "function") return;
+  SNM.openUserProfile = async function (phone) {
+    var r = await prev.apply(this, arguments);
+    if (typeof SNM.paintProfileReactions === "function") {
+      SNM.paintProfileReactions(phone || SNM._profileTargetPhone);
+    }
+    return r;
+  };
+})();
+

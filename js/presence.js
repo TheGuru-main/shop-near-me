@@ -273,3 +273,38 @@ SNM._checkHbDecay = function () {
     if (typeof SNM.syncPresenceUI === "function") SNM.syncPresenceUI();
   };
 })();
+
+/* AUTO_ACTIVE_ON_ENTER_EOF */
+SNM.activateOnAppEnter = async function () {
+  var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+  var role = String(u.role || "").toLowerCase();
+  if (typeof SNM.roleNeedsHeartbeat === "function" && !SNM.roleNeedsHeartbeat(role)) return;
+  if (typeof SNM.getToken === "function" && !SNM.getToken()) return;
+  try {
+    var ok = await SNM.setPresence({
+      live: true,
+      active: true,
+      heartbeat: true,
+      available: true
+    });
+    if (ok) {
+      SNM._liveOn = true;
+      SNM._hbLastOk = Date.now();
+      if (typeof SNM.syncPresenceUI === "function") SNM.syncPresenceUI();
+      if (typeof SNM.paintOwnLiveOnCards === "function") SNM.paintOwnLiveOnCards();
+      if (typeof SNM.toast === "function") SNM.toast("Active now");
+      else alert("Active now");
+    }
+  } catch (e) {}
+};
+
+(function () {
+  var prev = SNM.onHomeEnter;
+  SNM.onHomeEnter = function () {
+    if (typeof prev === "function") prev.apply(this, arguments);
+    if (typeof SNM.initPresenceForRole === "function") SNM.initPresenceForRole();
+    if (typeof SNM.wireHomeActiveToggle === "function") SNM.wireHomeActiveToggle();
+    if (typeof SNM.activateOnAppEnter === "function") SNM.activateOnAppEnter();
+  };
+})();
+

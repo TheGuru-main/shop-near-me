@@ -2152,3 +2152,167 @@ SNM.openImageLightbox = function (src, title) {
     return r;
   };
 })();
+
+/* CHECKOUT_CART_EOF */
+SNM.renderCart = function () {
+  var list = document.getElementById("cartList");
+  var totalEl = document.getElementById("cartTotal");
+  var cart = typeof SNM.getCart === "function" ? SNM.getCart() : [];
+  if (!list) return;
+  var esc = typeof SNM.esc === "function" ? SNM.esc : function (s) {
+    return String(s == null ? "" : s);
+  };
+  if (!cart.length) {
+    list.innerHTML = "<p class='muted'>Cart is empty. Add merchant items from the feed.</p>";
+    if (totalEl) totalEl.innerHTML = "<strong>Total:</strong> —";
+    return;
+  }
+  var sum = 0;
+  list.innerHTML = cart.map(function (it, idx) {
+    var qty = Number(it.qty) || 1;
+    var line = (Number(it.price) || 0) * qty;
+    sum += line;
+    return (
+      "<article class='card'>" +
+      "<strong>" + esc(it.title || it.name || "Item") + "</strong>" +
+      "<p class='muted small'>" + esc(it.seller_name || "") +
+      (it.seller_phone ? " · " + esc(it.seller_phone) : "") + "</p>" +
+      "<p class='muted small'>" + esc(it.currency || "NGN") + " " + line + "</p>" +
+      "<div style='display:flex;gap:8px;flex-wrap:wrap;align-items:center'>" +
+      "<button type='button' class='btn small secondary' data-cart-act='dec' data-i='" + idx + "'>−</button>" +
+      "<span>Qty " + qty + "</span>" +
+      "<button type='button' class='btn small secondary' data-cart-act='inc' data-i='" + idx + "'>+</button>" +
+      "<button type='button' class='btn small' data-cart-act='msg' data-i='" + idx + "'><i class='fa-solid fa-comment'></i></button>" +
+      "<button type='button' class='btn small secondary' data-cart-act='rm' data-i='" + idx + "'><i class='fa-solid fa-trash'></i></button>" +
+      "</div></article>"
+    );
+  }).join("");
+  if (totalEl) totalEl.innerHTML = "<strong>Total:</strong> NGN " + sum;
+};
+
+SNM.runCheckoutAssist = async function () {
+  var cart = SNM.getCart() || [];
+  var box = document.getElementById("checkoutAssistCard");
+  var text = document.getElementById("checkoutAssistText");
+  var driversEl = document.getElementById("checkoutDrivers");
+  if (!cart.length) { alert("Cart is empty"); return; }
+  var it = cart[0];
+  var me = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+  var fulfillment = ((document.getElementById("cartFulfillment") || {}).value || "walk_in");
+  if (box) box.classList.remove("hidden");
+  if (text) text.textContent = "Checking delivery options…";
+  if (driversEl) driversEl.innerHTML = "";
+  try {
+    var data = await SNM.api("/checkout/assist", {
+      method: "POST",
+      body: {
+        item_title: it.title || it.name || "",
+        category: it.category || null,
+        fulfillment: fulfillment,
+        require_pod: fulfillment === "pod",
+        seller_phone: it.seller_phone || it.phone || null,
+        seller_lat: it.lat != null ? Number(it.lat) : null,
+        seller_lng: it.lng != null ? Number(it.lng) : null,
+        buyer_lat: me.lat != null ? Number(me.lat) : SNM._lastLat,
+        buyer_lng: me.lng != null ? Number(me.lng) : SNM._lastLng,
+        context: "product"
+      }
+    });
+    if (text) {
+      text.textContent = data.needs_carrier
+        ? ((data.driver_prompt || "Carrier suggested.") +
+          (data.km_buyer_seller != null ? " Distance \~" + data.km_buyer_seller + " km." : ""))
+        : "No carrier required for this choice — walk-in or light item is fine.";
+    }
+    var drivers = data.nearby_drivers || [];
+    if (driversEl) {
+      driversEl.innerHTML = !drivers.length
+        ? "<p class='muted small'>No live drivers nearby.</p>"
+        : drivers.map(function (d) {
+            return "<article class='card'><strong>" + SNM.esc(d.name || "Driver") +
+              "</strong><p class='muted small'>" + (d.km != null ? d.km + " km · " : "") +
+              (d.live ? "● Live" : "○ Off") + "</p>" +
+              "<button type='button' class='btn small' data-driver-msg='" +
+              SNM.esc(d.uid || "") + "'>Message driver</button></article>";
+          }).join("");
+    }
+  } catch (e) {
+    if (text) text.textContent = (e && e.message) || "Assist failed";
+  }
+};
+
+SNM.bindCart = function () {
+  if (SNM._cartBound2) return;
+  SNM._cartBound2 = true;
+  var list = document.getElementById("cartList");
+  if (list && !list._snmCartClick) {
+    list._snmCartClick = true;
+    list.addEventListener("click", function (e) {
+      var btn = e.target.closest("[data-cart-act]");
+      if (!btn) return;
+      e.preventDefault();
+      var act = btn.getAttribute("data-cart-act");
+      var i = parseInt(btn.getAttribute("data-i"), 10);
+      var cart = SNM.getCart() || [];
+      if (isNaN(i) || !cart[i]) return;
+      if (act === "inc") cart[i].qty = (Number(cart[i].qty) || 1) + 1;
+      else if (act === "dec") cart[i].qty = Math.max(1, (Number(cart[i].qty) || 1) - 1);
+      else if (act === "rm") cart.splice(i, 1);
+      else if (act === "msg") {
+        var ph = cart[i].seller_phone || cart[i].phone || "";
+        if (typeof SNM.messageSeller === "function") SNM.messageSeller(ph);
+        else if (typeof SNM.startDmFromInput === "function") SNM.startDmFromInput(ph);
+        return;
+      }
+      SNM.setCart(cart);
+      SNM.renderCart();
+    });
+  }
+  var driversEl = document.getElementById("checkoutDrivers");
+  if (driversEl && !driversEl._snmDrvClick) {
+    driversEl._snmDrvClick = true;
+    driversEl.addEventListener("click", function (e) {
+      var b = e.target.closest("[data-driver-msg]");
+      if (!b) return;
+      var ph = b.getAttribute("data-driver-msg") || "";
+      if (typeof SNM.messageSeller === "function") SNM.messageSeller(ph);
+      else if (typeof SNM.startDmFromInput === "function") SNM.startDmFromInput(ph);
+    });
+  }
+  var assist = document.getElementById("btnCheckoutAssist");
+  if (assist && !assist._snmWired2) {
+    assist._snmWired2 = true;
+    assist.onclick = function () { SNM.runCheckoutAssist(); };
+  }
+  var msgAll = document.getElementById("btnCheckoutMessageSellers");
+  if (msgAll && !msgAll._snmWired2) {
+    msgAll._snmWired2 = true;
+    msgAll.onclick = function () {
+      var cart = SNM.getCart() || [];
+      var phones = [];
+      cart.forEach(function (it) {
+        var p = (it.seller_phone || it.phone || "").trim();
+        if (p && phones.indexOf(p) < 0) phones.push(p);
+      });
+      if (!phones.length) { alert("No seller phones in cart"); return; }
+      if (typeof SNM.messageSeller === "function") SNM.messageSeller(phones[0]);
+      else if (typeof SNM.startDmFromInput === "function") SNM.startDmFromInput(phones[0]);
+    };
+  }
+  var clr = document.getElementById("btnCartClear");
+  if (clr && !clr._snmWired2) {
+    clr._snmWired2 = true;
+    clr.onclick = function () {
+      SNM.setCart([]);
+      SNM.renderCart();
+      var box = document.getElementById("checkoutAssistCard");
+      if (box) box.classList.add("hidden");
+    };
+  }
+};
+
+SNM.onCheckoutEnter = function () {
+  SNM.bindCart();
+  SNM.renderCart();
+};
+
