@@ -92,6 +92,53 @@ SNM.LOCAL_SYNONYMS.bike = ["okada", "ride", "driver", "motorcycle"];
 SNM.LOCAL_SYNONYMS.bus = ["ride", "driver", "transport", "logistics"];
 SNM.LOCAL_SYNONYMS.okada = ["bike", "ride", "driver"];
 
+SNM.LOCAL_SYNONYMS = SNM.LOCAL_SYNONYMS || {};
+Object.assign(SNM.LOCAL_SYNONYMS, {
+  barber: ["barb", "barbing", "haircut", "salon", "fade", "service"],
+  barbing: ["barber", "haircut", "salon"],
+  salon: ["barber", "hair", "beauty", "spa"],
+  plumber: ["plumbing", "pipe", "service"],
+  electrician: ["wiring", "electrical", "service"],
+  hotel: ["lodge", "guest house", "short-let", "hospitality"],
+  merchant: ["shop", "store", "seller", "retail"],
+  service: ["provider", "artisan", "workman"]
+});
+
+/** Word-by-word: every typed token (len>=2) must appear in haystack (order-free). */
+SNM.wordByWordMatch = function (haystack, q) {
+  haystack = String(haystack || "").toLowerCase();
+  var tokens = String(q || "")
+    .toLowerCase()
+    .split(/[^a-z0-9+]+/)
+    .filter(function (t) {
+      return t.length >= 2;
+    });
+  if (!tokens.length) return true;
+  return tokens.every(function (t) {
+    return haystack.indexOf(t) >= 0;
+  });
+};
+
+/** Service / role intent from query (barber, hotel, …). */
+SNM.serviceQueryType = function (q) {
+  q = String(q || "").toLowerCase();
+  var map = [
+    ["barber", /barb|haircut|fade/],
+    ["salon", /salon|beauty|spa|nail/],
+    ["hotel", /hotel|lodge|short.?let|guest\s*house/],
+    ["plumber", /plumb/],
+    ["electrician", /electric/],
+    ["mechanic", /mechanic|vulcanizer/],
+    ["merchant", /merchant|retail|shop\b|store\b/],
+    ["driver", /driver|keke|okada|ride/]
+  ];
+  for (var i = 0; i < map.length; i++) {
+    if (map[i][1].test(q)) return map[i][0];
+  }
+  return "";
+};
+
+
 window.SNM = window.SNM || {};
 
 /* Local fallback when API dictionary is empty */
@@ -294,12 +341,63 @@ SNM.doSearch = async function () {
     var rows = data.results || data.items || [];
     if (!Array.isArray(rows)) rows = [];
 
+    /* Also pull category/role matches (barber, hotel, merchant, …) */
+    try {
+      var svc = typeof SNM.serviceQueryType === "function" ? SNM.serviceQueryType(q) : "";
+      if (svc) {
+        var data2 = await SNM.api(
+          "/search/products" +
+            SNM.qs({
+              q: svc,
+              lat: geo.lat != null ? geo.lat : u.lat,
+              lng: geo.lng != null ? geo.lng : u.lng,
+              community: u.community || "",
+              city: u.city || "",
+              region: u.region || "",
+              country: u.country || "",
+              max_km: SNM.MAX_KM || 80,
+              limit: 40,
+              role: svc === "driver" ? "driver" : svc === "merchant" ? "merchant" : "service",
+              category: svc
+            })
+        );
+        var rows2 = data2.results || data2.items || [];
+        if (Array.isArray(rows2) && rows2.length) {
+          var seen = {};
+          rows.forEach(function (r) {
+            var id = String((r && (r.id || r.product_id)) || "");
+            if (id) seen[id] = 1;
+          });
+          rows2.forEach(function (r) {
+            var id = String((r && (r.id || r.product_id)) || Math.random());
+            if (!seen[id]) {
+              seen[id] = 1;
+              rows.push(r);
+            }
+          });
+        }
+      }
+    } catch (eRole) {}
+
     var terms = expanded.all || [];
     var strict = rows;
 
     if (expanded.tokens && expanded.tokens.length) {
       strict = rows.filter(function (r) {
         var h = SNM.haystackListing(r);
+        var o = (r && (r.owner || r.seller || r.merchant)) || {};
+        h =
+          h +
+          " " +
+          String(o.role || r.role || "") +
+          " " +
+          String(o.service_type || r.service_type || o.category || "") +
+          " " +
+          String(r.category || r.business_type || "");
+        /* word-by-word on typed query */
+        if (typeof SNM.wordByWordMatch === "function" && SNM.wordByWordMatch(h, q)) {
+          return true;
+        }
         var typedOk = expanded.tokens.every(function (t) {
           return SNM.termHits(h, t);
         });

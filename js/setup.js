@@ -267,3 +267,20 @@ SNM.initSetupScreens = function () {
 SNM.bindSetup = function () {
   SNM.initSetupScreens();
 };
+
+/* Persist service dropdown onto user profile (local + API payload already has service_type) */
+(function () {
+  var prev = SNM.finishSetup;
+  if (typeof prev !== "function") return;
+  SNM.finishSetup = async function () {
+    var payload = typeof SNM.collectSetupPayload === "function" ? SNM.collectSetupPayload() : {};
+    var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+    if (payload && payload.service_type) {
+      u.service_type = payload.service_type;
+      u.category = payload.service_type;
+    }
+    if (payload && payload.role) u.role = payload.role;
+    if (typeof SNM.setUser === "function") SNM.setUser(u);
+    return prev.apply(this, arguments);
+  };
+})();

@@ -2013,3 +2013,53 @@ input.hidden[type="file"] {
   flex-shrink: 0;
 }
 
+
+.reg-notice {
+  margin: 0 0 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  color: #92400e;
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+body.theme-dark .reg-notice {
+  background: #422006;
+  border-color: #d97706;
+  color: #fde68a;
+}
+
+/* Dark mode: readable fields (no white-on-white) */
+body.theme-dark input,
+body.theme-dark textarea,
+body.theme-dark select {
+  background: #0f172a !important;
+  color: #e2e8f0 !important;
+  border-color: rgba(148, 163, 184, 0.35) !important;
+  caret-color: #e2e8f0;
+}
+body.theme-dark input::placeholder,
+body.theme-dark textarea::placeholder {
+  color: #94a3b8 !important;
+  opacity: 1;
+}
+body.theme-dark input:focus,
+body.theme-dark textarea:focus,
+body.theme-dark select:focus {
+  border-color: #22c55e !important;
+  outline: none;
+}
+body.theme-dark .muted {
+  color: #94a3b8 !important;
+}
+body.theme-dark .dial-chip {
+  background: #334155;
+  color: #e2e8f0;
+}
+body.theme-dark .card-actions .btn,
+body.theme-dark .card-actions button {
+  color: #e2e8f0;
+}
+

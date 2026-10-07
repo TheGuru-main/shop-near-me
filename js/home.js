@@ -436,17 +436,17 @@ SNM.cardHtml = function (item) {
     '<div class="card-actions">' +
     '<button type="button" class="btn small" data-act="detail" data-id="' +
     esc(item.id) +
-    '">View</button>' +
+    '" title="View"><i class="fa-solid fa-eye"></i></button>' +
     '<button type="button" class="btn small secondary" data-act="share" data-id="' +
     esc(item.id) +
-    '">Share</button>' +
+    '" title="Share"><i class="fa-solid fa-share-nodes"></i></button>' +
     '<button type="button" class="btn small" data-act="message" data-phone="' +
     esc(phone) +
-    '">Message</button>' +
-    '<button type="button" class="btn small secondary" data-act="speak">Listen</button>';
+    '" title="Message"><i class="fa-solid fa-comment"></i></button>' +
+    '<button type="button" class="btn small secondary" data-act="speak" title="Listen"><i class="fa-solid fa-volume-high"></i></button>';
   if (isMerchant && item.available !== false) {
     actions +=
-      '<button type="button" class="btn small" data-act="cart">+ Cart</button>';
+      '<button type="button" class="btn small" data-act="cart" title="Add to cart"><i class="fa-solid fa-cart-plus"></i></button>';
   }
   actions += "</div>";
 
