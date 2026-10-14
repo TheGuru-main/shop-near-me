@@ -2660,3 +2660,55 @@ body.theme-dark .home-quick-grid .quick-nav-btn span {
 #home .qn-self,
 #home .qn-apt       { background-image: url("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1000&q=80") !important; }
 
+
+/* AD_FADE_NO_SCROLL_EOF */
+#home #mapPromoCarousel,
+#home .home-ad-carousel {
+  overflow: hidden !important;
+  height: 132px;
+  border-radius: 14px;
+  margin-bottom: 0.75rem;
+}
+#home #mapPromoCarousel .map-promo-track {
+  display: block !important;
+  position: relative !important;
+  width: 100% !important;
+  height: 132px !important;
+  overflow: hidden !important;
+  overflow-x: hidden !important;
+  scroll-snap-type: none !important;
+  transform: none !important;
+}
+#home #mapPromoCarousel .map-promo-slide,
+#home #mapPromoCarousel .ad-slide {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  flex: none !important;
+  max-width: none !important;
+  background-size: cover !important;
+  background-position: center !important;
+}
+/* marketplace (street / stall) — high specificity */
+#home #mapPromoCarousel .ad-about,
+#home #mapPromoCarousel .promo-banner {
+  background-image: url("https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=1200&q=80") !important;
+}
+#home #mapPromoCarousel .ad-join,
+#home #mapPromoCarousel .promo-join {
+  background-image: url("https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80") !important;
+}
+#home #mapPromoCarousel .ad-shop,
+#home #mapPromoCarousel .promo-shop {
+  background-image: url("https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&q=80") !important;
+}
+#home #mapPromoCarousel .ad-biz,
+#home #mapPromoCarousel .promo-biz {
+  background-image: url("https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&w=1200&q=80") !important;
+}
+#home #mapPromoCarousel .ad-admin,
+#home #mapPromoCarousel .promo-admin {
+  background-image: url("https://images.unsplash.com/photo-1556740749-887f6717d7e4?auto=format&fit=crop&w=1200&q=80") !important;
+}
+

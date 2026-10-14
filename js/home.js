@@ -1351,54 +1351,107 @@ SNM.crowFlyMeta = function (fromLat, fromLng, toLat, toLng) {
 SNM._mapPromoTimer = null;
 
 SNM.startMapPromoCarousel = function () {
-  var track = document.querySelector("#mapPromoCarousel .map-promo-track");
-  if (!track || track._snmPromo) return;
-  track._snmPromo = true;
+  var root = document.getElementById("mapPromoCarousel");
+  if (!root) return;
+  var track = root.querySelector(".map-promo-track");
+  if (!track) return;
+
+  /* Always rebind so we kill old scroll-based timers */
+  if (SNM._mapPromoTimer) {
+    clearInterval(SNM._mapPromoTimer);
+    SNM._mapPromoTimer = null;
+  }
+
   var slides = track.querySelectorAll(".map-promo-slide");
   if (!slides.length) return;
-  var i = 0;
-  /* scroll ONLY the track — never page scrollIntoView */
-  function go(n) {
-    i = ((n % slides.length) + slides.length) % slides.length;
-    var slide = slides[i];
-    if (!slide) return;
-    var left = slide.offsetLeft;
-    try {
-      track.scrollTo({ left: left, behavior: i === 0 ? "auto" : "smooth" });
-    } catch (e) {
-      track.scrollLeft = left;
+
+  /* Force marketplace backgrounds (wins over stale CSS cache) */
+  var bg = {
+    about: "https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=1200&q=80",
+    join: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80",
+    shop: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&q=80",
+    business: "https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&w=1200&q=80",
+    admin: "https://images.unsplash.com/photo-1556740749-887f6717d7e4?auto=format&fit=crop&w=1200&q=80"
+  };
+  slides.forEach(function (s) {
+    var act = s.getAttribute("data-promo") || "";
+    var url = bg[act];
+    if (url) {
+      s.style.backgroundImage = 'url("' + url + '")';
+      s.style.backgroundSize = "cover";
+      s.style.backgroundPosition = "center";
     }
+  });
+
+  /* Layout: stacked fade — NO horizontal scroll */
+  root.style.overflow = "hidden";
+  track.style.display = "block";
+  track.style.position = "relative";
+  track.style.width = "100%";
+  track.style.height = "132px";
+  track.style.overflow = "hidden";
+  track.style.transform = "none";
+  track.scrollLeft = 0;
+
+  slides.forEach(function (s, idx) {
+    s.style.position = "absolute";
+    s.style.inset = "0";
+    s.style.width = "100%";
+    s.style.height = "100%";
+    s.style.margin = "0";
+    s.style.flex = "none";
+    s.style.opacity = idx === 0 ? "1" : "0";
+    s.style.zIndex = idx === 0 ? "2" : "1";
+    s.style.transition = "opacity 0.5s ease";
+    s.style.pointerEvents = idx === 0 ? "auto" : "none";
+  });
+
+  var i = 0;
+  function go(n) {
+    slides[i].style.opacity = "0";
+    slides[i].style.zIndex = "1";
+    slides[i].style.pointerEvents = "none";
+    i = ((n % slides.length) + slides.length) % slides.length;
+    slides[i].style.opacity = "1";
+    slides[i].style.zIndex = "2";
+    slides[i].style.pointerEvents = "auto";
+    /* never touch window/document scroll */
   }
-  if (SNM._mapPromoTimer) clearInterval(SNM._mapPromoTimer);
+
   SNM._mapPromoTimer = setInterval(function () {
     go(i + 1);
-  }, 4000);
-  track.addEventListener(
-    "click",
-    function (e) {
-      var b = e.target.closest("[data-promo]");
-      if (!b) return;
-      e.preventDefault();
-      var act = b.getAttribute("data-promo");
-      if (act === "about") {
-      if (typeof SNM.showScreen === "function") SNM.showScreen("about");
-      return;
-    }
-    if (act === "join" || act === "shop" || act === "business") {
-        if (typeof SNM.showScreen === "function") SNM.showScreen("premium");
-        return;
-      }
-      if (act === "admin") {
-        if (typeof SNM.showScreen === "function") SNM.showScreen("rules");
-        setTimeout(function () {
-          var ta = document.getElementById("admin-msg-body");
-          if (ta) ta.focus();
-        }, 200);
-      }
-    },
-    false
-  );
+  }, 4500);
+
+  if (!track._snmPromoClick) {
+    track._snmPromoClick = true;
+    track.addEventListener(
+      "click",
+      function (e) {
+        var b = e.target.closest("[data-promo]");
+        if (!b) return;
+        e.preventDefault();
+        var act = b.getAttribute("data-promo");
+        if (act === "about" && typeof SNM.showScreen === "function") {
+          SNM.showScreen("about");
+          return;
+        }
+        if ((act === "join" || act === "shop" || act === "business") && typeof SNM.showScreen === "function") {
+          SNM.showScreen("premium");
+          return;
+        }
+        if (act === "admin" && typeof SNM.showScreen === "function") {
+          SNM.showScreen("rules");
+          setTimeout(function () {
+            var ta = document.getElementById("admin-msg-body");
+            if (ta) ta.focus();
+          }, 200);
+        }
+      },
+      false
+    );
+  }
 };
+
 
 (function () {
   var _bh = SNM.bindHome;
