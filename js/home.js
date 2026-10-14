@@ -2518,3 +2518,105 @@ SNM.loadHomeNewsStrip = async function () {
     return r;
   };
 })();
+
+
+/* ESCROW_OTP_EOF */
+SNM._escrowOrderId = null;
+
+SNM.placeOrderEscrow = async function () {
+  var cart = typeof SNM.getCart === "function" ? SNM.getCart() : [];
+  if (!cart.length) {
+    alert("Cart is empty");
+    return;
+  }
+  var total = 0;
+  cart.forEach(function (it) {
+    total += (Number(it.price) || 0) * (Number(it.qty) || 1);
+  });
+  var fulfillment =
+    ((document.getElementById("cartFulfillment") || {}).value || "walk_in");
+  try {
+    var data = await SNM.api("/checkout/orders", {
+      method: "POST",
+      body: {
+        items: cart,
+        fulfillment: fulfillment,
+        total: total,
+        currency: "NGN"
+      }
+    });
+    SNM._escrowOrderId = data.order_id;
+    try {
+      sessionStorage.setItem("snm_escrow_order", data.order_id || "");
+    } catch (e) {}
+    var box = document.getElementById("escrowBox");
+    var msg = document.getElementById("escrowMsg");
+    if (box) box.classList.remove("hidden");
+    if (msg) {
+      msg.textContent =
+        (data.message || "Held in escrow.") +
+        (data.otp_dev ? "  Dev OTP: " + data.otp_dev : "");
+    }
+    if (typeof SNM.toast === "function") SNM.toast("Order held in escrow");
+  } catch (e) {
+    alert((e && e.message) || "Place order failed");
+  }
+};
+
+SNM.releaseEscrow = async function () {
+  var oid = SNM._escrowOrderId || "";
+  try {
+    if (!oid) oid = sessionStorage.getItem("snm_escrow_order") || "";
+  } catch (e) {}
+  if (!oid) {
+    alert("No held order. Place order first.");
+    return;
+  }
+  var otp = ((document.getElementById("escrowOtp") || {}).value || "").trim();
+  if (!otp) {
+    alert("Enter the release OTP");
+    return;
+  }
+  try {
+    var data = await SNM.api(
+      "/checkout/orders/" + encodeURIComponent(oid) + "/release",
+      { method: "POST", body: { otp: otp } }
+    );
+    if (typeof SNM.toast === "function") SNM.toast(data.message || "Released");
+    else alert(data.message || "Escrow released");
+    if (typeof SNM.setCart === "function") SNM.setCart([]);
+    if (typeof SNM.renderCart === "function") SNM.renderCart();
+    SNM._escrowOrderId = null;
+    try {
+      sessionStorage.removeItem("snm_escrow_order");
+    } catch (e2) {}
+    var box = document.getElementById("escrowBox");
+    if (box) box.classList.add("hidden");
+    var inp = document.getElementById("escrowOtp");
+    if (inp) inp.value = "";
+  } catch (e) {
+    alert((e && e.message) || "Release failed");
+  }
+};
+
+(function () {
+  var prev = SNM.bindCart;
+  SNM.bindCart = function () {
+    if (typeof prev === "function") prev.apply(this, arguments);
+    var po = document.getElementById("btnPlaceOrder");
+    if (po && !po._snmEscrow) {
+      po._snmEscrow = true;
+      po.onclick = function () {
+        SNM.placeOrderEscrow();
+      };
+    }
+    var rel = document.getElementById("btnReleaseEscrow");
+    if (rel && !rel._snmEscrow) {
+      rel._snmEscrow = true;
+      rel.onclick = function () {
+        SNM.releaseEscrow();
+      };
+    }
+  };
+})();
+

@@ -30,3 +30,9 @@ __all__ = [
     "Rating",
     "DeliveryManifest",
 ]
+
+try:
+    from app.models.escrow import EscrowOrder
+except Exception:
+    EscrowOrder = None  # type: ignore
+

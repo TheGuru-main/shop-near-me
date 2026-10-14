@@ -136,3 +136,110 @@ async def checkout_assist(
             "note": "Traffic ETA provider later; fee uses km estimate",
         },
     }
+
+
+# --- ESCROW_ORDERS_NEON ---
+import secrets
+import uuid
+from datetime import datetime, timezone
+
+from fastapi import HTTPException
+
+from app.models.escrow import EscrowOrder
+
+
+class PlaceOrderBody(BaseModel):
+    items: list[dict] = Field(default_factory=list)
+    fulfillment: str = "walk_in"
+    total: float = 0
+    currency: str = "NGN"
+    note: str | None = None
+
+
+class ReleaseOrderBody(BaseModel):
+    otp: str = Field(min_length=4, max_length=8)
+
+
+@router.post("/orders")
+@limiter.limit("20/minute")
+async def place_order(
+    request: Request,
+    body: PlaceOrderBody,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not body.items:
+        raise HTTPException(status_code=400, detail="Cart empty")
+    otp = f"{secrets.randbelow(1_000_000):06d}"
+    order = EscrowOrder(
+        id=uuid.uuid4(),
+        buyer_id=user.id,
+        buyer_phone=user.phone,
+        items=list(body.items),
+        fulfillment=body.fulfillment or "walk_in",
+        total=float(body.total or 0),
+        currency=body.currency or "NGN",
+        note=body.note,
+        status="held",
+        otp=otp,
+    )
+    db.add(order)
+    db.commit()
+    db.refresh(order)
+    return {
+        "order_id": str(order.id),
+        "status": order.status,
+        "message": "Amount held in escrow. Share the release OTP only after you accept the goods.",
+        "otp_dev": otp,
+        "total": order.total,
+        "currency": order.currency,
+    }
+
+
+@router.post("/orders/{order_id}/release")
+@limiter.limit("20/minute")
+async def release_order(
+    request: Request,
+    order_id: uuid.UUID,
+    body: ReleaseOrderBody,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    order = db.get(EscrowOrder, order_id)
+    if not order or order.buyer_id != user.id:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if order.status != "held":
+        raise HTTPException(status_code=400, detail="Order is not in escrow hold")
+    if str(body.otp).strip() != str(order.otp):
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+    order.status = "released"
+    order.released_at = datetime.now(timezone.utc)
+    db.add(order)
+    db.commit()
+    return {
+        "order_id": str(order.id),
+        "status": "released",
+        "message": "Escrow released. Thank you.",
+    }
+
+
+@router.get("/orders/{order_id}")
+@limiter.limit("30/minute")
+async def get_order(
+    request: Request,
+    order_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    order = db.get(EscrowOrder, order_id)
+    if not order or order.buyer_id != user.id:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return {
+        "order_id": str(order.id),
+        "status": order.status,
+        "total": order.total,
+        "currency": order.currency,
+        "fulfillment": order.fulfillment,
+        "item_count": len(order.items or []),
+    }
+

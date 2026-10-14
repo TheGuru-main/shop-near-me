@@ -1049,6 +1049,16 @@
         </div>
         <button type="button" class="btn block" id="btnCheckoutAssist">Check delivery / drivers</button>
         <button type="button" class="btn block" id="btnCheckoutMessageSellers">Message seller(s)</button>
+        
+        <button type="button" class="btn block" id="btnPlaceOrder">Place order (escrow hold)</button>
+        <div id="escrowBox" class="card hidden" style="margin-top:0.65rem">
+          <p class="muted small" id="escrowMsg">After hold, enter the release OTP only when goods are accepted.</p>
+          <label>Release OTP
+            <input id="escrowOtp" inputmode="numeric" maxlength="6" placeholder="6-digit code" autocomplete="one-time-code" />
+          </label>
+          <button type="button" class="btn block" id="btnReleaseEscrow">Release escrow</button>
+          <p class="muted small">Do not release until you have inspected the items.</p>
+        </div>
         <button type="button" class="btn secondary block" id="btnCartClear">Clear cart</button>
         <p class="muted small">Escrow hold / OTP release comes next. Cart is saved on this device.</p>
       </div>
