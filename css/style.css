@@ -2712,3 +2712,98 @@ body.theme-dark .home-quick-grid .quick-nav-btn span {
   background-image: url("https://images.unsplash.com/photo-1556740749-887f6717d7e4?auto=format&fit=crop&w=1200&q=80") !important;
 }
 
+
+/* QUICK_MARKET_PHOTOS_V2_EOF */
+
+/* Every quick tile gets a photo underlay */
+#home #homeChips .quick-nav-btn,
+#home .home-quick-grid .quick-nav-btn {
+  background-size: cover !important;
+  background-position: center !important;
+  background-color: #14532d;
+  /* default open-market crowd — if a specific class is missing */
+  background-image: url("https://images.unsplash.com/photo-1556740749-887f6717d7e4?auto=format&fit=crop&w=1000&q=80") !important;
+}
+
+/* Fairly used — handshake / fair exchange */
+#home .qn-fairly {
+  background-image: url("https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=1000&q=80") !important;
+}
+
+/* Banqueue — busy road / line */
+#home .qn-banqueue {
+  background-image: url("https://images.unsplash.com/photo-1464219789935-c2d9d9aba644?auto=format&fit=crop&w=1000&q=80") !important;
+}
+
+/* Food — cooked market food */
+#home .qn-food {
+  background-image: url("https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1000&q=80") !important;
+}
+
+/* Breakfast */
+#home .qn-breakfast {
+  background-image: url("https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=1000&q=80") !important;
+}
+
+/* Hotel — clear guest room (not generic building) */
+#home .qn-hotel {
+  background-image: url("https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=1000&q=80") !important;
+}
+
+/* Bus */
+#home .qn-bus {
+  background-image: url("https://images.unsplash.com/photo-1544620341-11bb3f6b3c1a?auto=format&fit=crop&w=1000&q=80") !important;
+}
+
+/* Keke / tricycle (three-wheeler), NOT sport bike */
+#home .qn-keke,
+#home .qn-tricycle,
+#home .qn-ride {
+  background-image: url("https://images.unsplash.com/photo-1598971860715-619b6f4b1b1b?auto=format&fit=crop&w=1000&q=80") !important;
+}
+
+/* Fashion — market / shop clothing */
+#home .qn-fashion {
+  background-image: url("https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?auto=format&fit=crop&w=1000&q=80") !important;
+}
+
+/* Repair / tools */
+#home .qn-repair {
+  background-image: url("https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&w=1000&q=80") !important;
+}
+
+/* Emergency */
+#home .qn-emergency {
+  background-image: url("https://images.unsplash.com/photo-1587740908075-9e245070dfaa?auto=format&fit=crop&w=1000&q=80") !important;
+}
+
+/* Self-contained / apartment */
+#home .qn-self,
+#home .qn-apt {
+  background-image: url("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1000&q=80") !important;
+}
+
+/* Market / groceries / shop tiles — market women & men, stalls */
+#home .qn-market,
+#home .qn-groceries,
+#home .qn-shop {
+  background-image: url("https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=1000&q=80") !important;
+}
+
+/* Produce / fresh market */
+#home .qn-produce,
+#home .qn-fresh {
+  background-image: url("https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1000&q=80") !important;
+}
+
+/* Pharmacy */
+#home .qn-pharmacy {
+  background-image: url("https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=1000&q=80") !important;
+}
+
+/* Electronics */
+#home .qn-electronics,
+#home .qn-phone {
+  background-image: url("https://images.unsplash.com/photo-1491933382434-500287f9b54b?auto=format&fit=crop&w=1000&q=80") !important;
+}
+
