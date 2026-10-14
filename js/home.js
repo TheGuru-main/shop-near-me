@@ -1350,13 +1350,28 @@ SNM.crowFlyMeta = function (fromLat, fromLng, toLat, toLng) {
 
 SNM._mapPromoTimer = null;
 
+SNM._lockHomeScroll = function () {
+  var body = document.querySelector("#home.screen.active .home-body") ||
+    document.querySelector("#home .home-body");
+  if (body) {
+    return { el: body, top: body.scrollTop, win: window.scrollY || 0 };
+  }
+  return { el: null, top: 0, win: window.scrollY || 0 };
+};
+SNM._unlockHomeScroll = function (snap) {
+  if (!snap) return;
+  if (snap.el) snap.el.scrollTop = snap.top;
+  try {
+    window.scrollTo(0, snap.win);
+  } catch (e) {}
+};
+
 SNM.startMapPromoCarousel = function () {
   var root = document.getElementById("mapPromoCarousel");
   if (!root) return;
   var track = root.querySelector(".map-promo-track");
   if (!track) return;
 
-  /* Always rebind so we kill old scroll-based timers */
   if (SNM._mapPromoTimer) {
     clearInterval(SNM._mapPromoTimer);
     SNM._mapPromoTimer = null;
@@ -1365,7 +1380,6 @@ SNM.startMapPromoCarousel = function () {
   var slides = track.querySelectorAll(".map-promo-slide");
   if (!slides.length) return;
 
-  /* Force marketplace backgrounds (wins over stale CSS cache) */
   var bg = {
     about: "https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=1200&q=80",
     join: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80",
@@ -1375,39 +1389,38 @@ SNM.startMapPromoCarousel = function () {
   };
   slides.forEach(function (s) {
     var act = s.getAttribute("data-promo") || "";
-    var url = bg[act];
-    if (url) {
-      s.style.backgroundImage = 'url("' + url + '")';
+    if (bg[act]) {
+      s.style.backgroundImage = 'url("' + bg[act] + '")';
       s.style.backgroundSize = "cover";
       s.style.backgroundPosition = "center";
     }
+    s.setAttribute("tabindex", "-1");
   });
 
-  /* Layout: stacked fade — NO horizontal scroll */
   root.style.overflow = "hidden";
-  track.style.display = "block";
-  track.style.position = "relative";
-  track.style.width = "100%";
-  track.style.height = "132px";
-  track.style.overflow = "hidden";
-  track.style.transform = "none";
-  track.scrollLeft = 0;
+  root.style.height = "132px";
+  track.style.cssText =
+    "display:block;position:relative;width:100%;height:132px;overflow:hidden;transform:none;";
 
   slides.forEach(function (s, idx) {
-    s.style.position = "absolute";
-    s.style.inset = "0";
-    s.style.width = "100%";
-    s.style.height = "100%";
-    s.style.margin = "0";
-    s.style.flex = "none";
-    s.style.opacity = idx === 0 ? "1" : "0";
-    s.style.zIndex = idx === 0 ? "2" : "1";
-    s.style.transition = "opacity 0.5s ease";
-    s.style.pointerEvents = idx === 0 ? "auto" : "none";
+    s.style.cssText =
+      "position:absolute;inset:0;width:100%;height:100%;margin:0;border:0;" +
+      "opacity:" + (idx === 0 ? "1" : "0") + ";z-index:" + (idx === 0 ? "2" : "1") +
+      ";transition:opacity 0.45s ease;pointer-events:" + (idx === 0 ? "auto" : "none") +
+      ";background-size:cover;background-position:center;";
+    var act = s.getAttribute("data-promo") || "";
+    if (bg[act]) s.style.backgroundImage = 'url("' + bg[act] + '")';
   });
 
   var i = 0;
   function go(n) {
+    var snap = SNM._lockHomeScroll();
+    /* blur so browser does not scroll-to-focus hidden/shown buttons */
+    try {
+      if (document.activeElement && root.contains(document.activeElement)) {
+        document.activeElement.blur();
+      }
+    } catch (e) {}
     slides[i].style.opacity = "0";
     slides[i].style.zIndex = "1";
     slides[i].style.pointerEvents = "none";
@@ -1415,7 +1428,11 @@ SNM.startMapPromoCarousel = function () {
     slides[i].style.opacity = "1";
     slides[i].style.zIndex = "2";
     slides[i].style.pointerEvents = "auto";
-    /* never touch window/document scroll */
+    /* restore twice: now + after paint */
+    SNM._unlockHomeScroll(snap);
+    requestAnimationFrame(function () {
+      SNM._unlockHomeScroll(snap);
+    });
   }
 
   SNM._mapPromoTimer = setInterval(function () {
@@ -1424,33 +1441,25 @@ SNM.startMapPromoCarousel = function () {
 
   if (!track._snmPromoClick) {
     track._snmPromoClick = true;
-    track.addEventListener(
-      "click",
-      function (e) {
-        var b = e.target.closest("[data-promo]");
-        if (!b) return;
-        e.preventDefault();
-        var act = b.getAttribute("data-promo");
-        if (act === "about" && typeof SNM.showScreen === "function") {
-          SNM.showScreen("about");
-          return;
-        }
-        if ((act === "join" || act === "shop" || act === "business") && typeof SNM.showScreen === "function") {
-          SNM.showScreen("premium");
-          return;
-        }
-        if (act === "admin" && typeof SNM.showScreen === "function") {
-          SNM.showScreen("rules");
-          setTimeout(function () {
-            var ta = document.getElementById("admin-msg-body");
-            if (ta) ta.focus();
-          }, 200);
-        }
-      },
-      false
-    );
+    track.addEventListener("click", function (e) {
+      var b = e.target.closest("[data-promo]");
+      if (!b) return;
+      e.preventDefault();
+      var act = b.getAttribute("data-promo");
+      if (act === "about" && SNM.showScreen) SNM.showScreen("about");
+      else if ((act === "join" || act === "shop" || act === "business") && SNM.showScreen)
+        SNM.showScreen("premium");
+      else if (act === "admin" && SNM.showScreen) {
+        SNM.showScreen("rules");
+        setTimeout(function () {
+          var ta = document.getElementById("admin-msg-body");
+          if (ta) ta.focus();
+        }, 200);
+      }
+    }, false);
   }
 };
+
 
 
 (function () {
@@ -2444,9 +2453,14 @@ SNM.loadHomeNewsStrip = async function () {
   SNM._homeNewsTimer = setInterval(function () {
     var list = track.querySelectorAll(".home-news-slide");
     if (!list.length) return;
+    var snap = typeof SNM._lockHomeScroll === "function" ? SNM._lockHomeScroll() : null;
     list[SNM._homeNewsIdx].classList.remove("active");
     SNM._homeNewsIdx = (SNM._homeNewsIdx + 1) % list.length;
     list[SNM._homeNewsIdx].classList.add("active");
+    if (typeof SNM._unlockHomeScroll === "function") {
+      SNM._unlockHomeScroll(snap);
+      requestAnimationFrame(function () { SNM._unlockHomeScroll(snap); });
+    }
     if (dots) {
       var ds = dots.querySelectorAll("span");
       ds.forEach(function (d, i) { d.classList.toggle("on", i === SNM._homeNewsIdx); });
@@ -2485,3 +2499,22 @@ SNM.loadHomeNewsStrip = async function () {
   };
 })();
 
+
+
+/* invalidateSize_SCROLL_LOCK */
+(function () {
+  if (typeof L === "undefined" || !L.Map || L.Map.prototype._snmInvLock) return;
+  L.Map.prototype._snmInvLock = true;
+  var prev = L.Map.prototype.invalidateSize;
+  L.Map.prototype.invalidateSize = function () {
+    var snap = typeof SNM._lockHomeScroll === "function" ? SNM._lockHomeScroll() : null;
+    var r = prev.apply(this, arguments);
+    if (typeof SNM._unlockHomeScroll === "function") {
+      SNM._unlockHomeScroll(snap);
+      requestAnimationFrame(function () {
+        SNM._unlockHomeScroll(snap);
+      });
+    }
+    return r;
+  };
+})();
