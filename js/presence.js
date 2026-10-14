@@ -190,7 +190,7 @@ SNM.renderNotifications = function () {
 
 /* HB_DECAY_V1 — miss 2 intervals (\~90s) => offline locally + API */
 SNM._hbLastOk = 0;
-SNM._hbDecayMs = 90000;
+SNM._hbDecayMs = 3600000;
 
 (function () {
   var _hb = SNM.heartbeat;
@@ -216,7 +216,7 @@ SNM._hbDecayMs = 90000;
 SNM._checkHbDecay = function () {
   if (!SNM._liveOn) return;
   if (!SNM._hbLastOk) SNM._hbLastOk = Date.now();
-  if (Date.now() - SNM._hbLastOk < (SNM._hbDecayMs || 90000)) return;
+  if (Date.now() - SNM._hbLastOk < (SNM._hbDecayMs || 3600000)) return;
   SNM._liveOn = false;
   SNM.startHeartbeatLoop(false);
   SNM.syncPresenceUI();
@@ -397,4 +397,128 @@ SNM.activateOnAppEnter = async function () {
     console.warn("activateOnAppEnter", e);
   }
 };
+
+
+/* LIVE_1H_AND_CHIPS_EOF */
+SNM._hbDecayMs = 3600000;
+
+SNM.toast = SNM.toast || function (msg) {
+  msg = String(msg || "");
+  var el = document.getElementById("snmToast");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "snmToast";
+    el.style.cssText =
+      "position:fixed;left:50%;bottom:88px;transform:translateX(-50%);z-index:6000;" +
+      "max-width:90%;padding:0.65rem 1rem;border-radius:12px;background:#14532d;" +
+      "color:#fff;font-weight:700;font-size:0.9rem;box-shadow:0 8px 24px rgba(0,0,0,.25);" +
+      "text-align:center;display:none";
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.display = "block";
+  clearTimeout(el._hide);
+  el._hide = setTimeout(function () { el.style.display = "none"; }, 2200);
+};
+
+SNM.syncPresenceUI = function () {
+  var live = !!SNM._liveOn;
+  ["shop-open", "svc-open", "drv-active", "emg-active", "homeActiveToggle"].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el && el.type === "checkbox") el.checked = live;
+  });
+  document.querySelectorAll("[data-hb-marker]").forEach(function (el) {
+    el.classList.toggle("hb-live", live);
+    el.classList.toggle("hb-off", !live);
+    el.textContent = live ? "● Live" : "○ Offline";
+  });
+  var wrap = document.querySelector(".header-active");
+  if (wrap) {
+    wrap.classList.toggle("is-live", live);
+    wrap.classList.toggle("is-off", !live);
+  }
+  var lab = document.querySelector(".header-active-label");
+  if (lab) lab.textContent = live ? "Live" : "Off";
+  document.body.classList.toggle("snm-presence-live", live);
+};
+
+SNM.paintLiveChipOnCard = function (card, live) {
+  if (!card) return;
+  var chip = card.querySelector(".badge-live");
+  if (!chip) return;
+  chip.classList.toggle("hb-off", !live);
+  chip.textContent = live ? "● Live" : "○ Offline";
+};
+
+SNM.paintOwnLiveOnCards = function () {
+  var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+  var my = String(u.phone || "").replace(/\D/g, "");
+  if (!my) return;
+  var live = !!SNM._liveOn;
+  document.querySelectorAll(".listing-card[data-phone]").forEach(function (card) {
+    var ph = String(card.getAttribute("data-phone") || "").replace(/\D/g, "");
+    if (!ph) return;
+    if (ph !== my && ph.slice(-10) !== my.slice(-10)) return;
+    SNM.paintLiveChipOnCard(card, live);
+    var id = card.getAttribute("data-listing-id") || card.getAttribute("data-id");
+    if (id && SNM._listingsById && SNM._listingsById[id]) {
+      SNM._listingsById[id].live = live;
+      SNM._listingsById[id].seller_live = live;
+      SNM._listingsById[id].active = live;
+    }
+  });
+};
+
+SNM.refreshFeedLiveChips = function () {
+  var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+  var my = String(u.phone || "").replace(/\D/g, "");
+  document.querySelectorAll(".listing-card").forEach(function (card) {
+    var id = card.getAttribute("data-listing-id") || card.getAttribute("data-id");
+    var item = id && SNM._listingsById ? SNM._listingsById[id] : null;
+    var live = !!(item && (item.live || item.seller_live || item.active));
+    var ph = String(card.getAttribute("data-phone") || "").replace(/\D/g, "");
+    if (my && ph && (ph === my || ph.slice(-10) === my.slice(-10))) {
+      live = !!SNM._liveOn;
+    }
+    SNM.paintLiveChipOnCard(card, live);
+  });
+};
+
+SNM.activateOnAppEnter = async function () {
+  var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+  var role = String(u.role || "").toLowerCase();
+  if (typeof SNM.roleNeedsHeartbeat === "function" && !SNM.roleNeedsHeartbeat(role)) return;
+  if (typeof SNM.getToken === "function" && !SNM.getToken()) return;
+  if (SNM._lastAutoActiveAt && Date.now() - SNM._lastAutoActiveAt < 15000) {
+    SNM._liveOn = true;
+    SNM.syncPresenceUI();
+    SNM.paintOwnLiveOnCards();
+    return;
+  }
+  try {
+    await SNM.setPresence({ live: true, active: true, heartbeat: true, available: true });
+    SNM._liveOn = true;
+    SNM._hbLastOk = Date.now();
+    SNM._lastAutoActiveAt = Date.now();
+    SNM.syncPresenceUI();
+    SNM.paintOwnLiveOnCards();
+    setTimeout(function () {
+      SNM._liveOn = true;
+      SNM.syncPresenceUI();
+      var el = document.getElementById("homeActiveToggle");
+      if (el) el.checked = true;
+    }, 80);
+    SNM.toast("Active now");
+  } catch (e) {
+    console.warn("activateOnAppEnter", e);
+  }
+};
+
+if (!window._snmChipRefresh) {
+  window._snmChipRefresh = setInterval(function () {
+    if (typeof SNM.getToken === "function" && !SNM.getToken()) return;
+    if (typeof SNM._checkHbDecay === "function") SNM._checkHbDecay();
+    if (typeof SNM.refreshFeedLiveChips === "function") SNM.refreshFeedLiveChips();
+  }, 30000);
+}
 

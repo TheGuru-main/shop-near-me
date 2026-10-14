@@ -2316,3 +2316,111 @@ SNM.onCheckoutEnter = function () {
   SNM.renderCart();
 };
 
+
+/* HOME_NEWS_AND_LIVE_EOF */
+SNM.HOME_NEWS_CATS = [
+  "business", "fintech", "logistics", "agriculture", "retail",
+  "fashion", "clothing", "production", "local", "news"
+];
+
+SNM._homeNewsIdx = 0;
+SNM._homeNewsTimer = null;
+
+SNM.loadHomeNewsStrip = async function () {
+  var track = document.getElementById("homeNewsTrack");
+  var dots = document.getElementById("homeNewsDots");
+  if (!track) return;
+  track.innerHTML = "<div class='home-news-slide active'><p class='home-news-title'>Loading news…</p></div>";
+  if (dots) dots.innerHTML = "";
+  var slides = [];
+  var esc = typeof SNM.esc === "function" ? SNM.esc : function (s) { return String(s == null ? "" : s); };
+
+  for (var i = 0; i < SNM.HOME_NEWS_CATS.length; i++) {
+    var cat = SNM.HOME_NEWS_CATS[i];
+    try {
+      var data = await SNM.api("/news" + SNM.qs({ category: cat, q: cat }));
+      var items = data.articles || data.items || data.results || [];
+      var a = items[0] || {};
+      var title = a.title || a.name || a.headline || (cat + " updates");
+      var brief = a.description || a.summary || "";
+      if (brief.length > 110) brief = brief.slice(0, 107) + "…";
+      var img = a.image || a.image_url || a.urlToImage || a.thumbnail || "";
+      var url = a.url || a.link || "#";
+      slides.push({ cat: cat, title: title, brief: brief, img: img, url: url });
+    } catch (e) {
+      slides.push({
+        cat: cat,
+        title: cat.charAt(0).toUpperCase() + cat.slice(1) + " desk",
+        brief: "Tap News for the full briefing.",
+        img: "",
+        url: "#"
+      });
+    }
+  }
+
+  track.innerHTML = slides.map(function (s, idx) {
+    var bg = s.img
+      ? "background-image:url('" + String(s.img).replace(/'/g, "%27") + "')"
+      : "background-image:linear-gradient(135deg,#14532d,#0f172a)";
+    return (
+      '<a class="home-news-slide' + (idx === 0 ? " active" : "") +
+      '" href="' + esc(s.url) + '" target="_blank" rel="noopener" style="' + bg + '">' +
+      '<span class="home-news-cat">' + esc(s.cat) + "</span>" +
+      '<p class="home-news-title">' + esc(s.title) + "</p>" +
+      (s.brief ? '<p class="home-news-brief">' + esc(s.brief) + "</p>" : "") +
+      "</a>"
+    );
+  }).join("");
+
+  if (dots) {
+    dots.innerHTML = slides.map(function (_, idx) {
+      return "<span class='" + (idx === 0 ? "on" : "") + "'></span>";
+    }).join("");
+  }
+
+  SNM._homeNewsIdx = 0;
+  if (SNM._homeNewsTimer) clearInterval(SNM._homeNewsTimer);
+  SNM._homeNewsTimer = setInterval(function () {
+    var list = track.querySelectorAll(".home-news-slide");
+    if (!list.length) return;
+    list[SNM._homeNewsIdx].classList.remove("active");
+    SNM._homeNewsIdx = (SNM._homeNewsIdx + 1) % list.length;
+    list[SNM._homeNewsIdx].classList.add("active");
+    if (dots) {
+      var ds = dots.querySelectorAll("span");
+      ds.forEach(function (d, i) { d.classList.toggle("on", i === SNM._homeNewsIdx); });
+    }
+  }, 5500);
+};
+
+(function () {
+  var prevEnter = SNM.onHomeEnter;
+  SNM.onHomeEnter = function () {
+    if (typeof prevEnter === "function") prevEnter.apply(this, arguments);
+    if (typeof SNM.loadHomeNewsStrip === "function") SNM.loadHomeNewsStrip();
+    if (typeof SNM.startMapPromoCarousel === "function") SNM.startMapPromoCarousel();
+    if (typeof SNM.activateOnAppEnter === "function") SNM.activateOnAppEnter();
+    if (typeof SNM.refreshFeedLiveChips === "function") {
+      setTimeout(function () { SNM.refreshFeedLiveChips(); }, 400);
+    }
+  };
+})();
+
+(function () {
+  var prev = SNM.loadFeed;
+  if (typeof prev !== "function") return;
+  SNM.loadFeed = async function () {
+    var r = await prev.apply(this, arguments);
+    try {
+      if (SNM._listingsById) {
+        SNM._lastFeedRows = Object.keys(SNM._listingsById).map(function (k) {
+          return SNM._listingsById[k];
+        });
+      }
+      if (typeof SNM.refreshFeedLiveChips === "function") SNM.refreshFeedLiveChips();
+      if (typeof SNM.paintOwnLiveOnCards === "function") SNM.paintOwnLiveOnCards();
+    } catch (e) {}
+    return r;
+  };
+})();
+
