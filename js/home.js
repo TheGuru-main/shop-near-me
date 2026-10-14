@@ -1357,9 +1357,17 @@ SNM.startMapPromoCarousel = function () {
   var slides = track.querySelectorAll(".map-promo-slide");
   if (!slides.length) return;
   var i = 0;
+  /* scroll ONLY the track — never page scrollIntoView */
   function go(n) {
     i = ((n % slides.length) + slides.length) % slides.length;
-    slides[i].scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    var slide = slides[i];
+    if (!slide) return;
+    var left = slide.offsetLeft;
+    try {
+      track.scrollTo({ left: left, behavior: i === 0 ? "auto" : "smooth" });
+    } catch (e) {
+      track.scrollLeft = left;
+    }
   }
   if (SNM._mapPromoTimer) clearInterval(SNM._mapPromoTimer);
   SNM._mapPromoTimer = setInterval(function () {

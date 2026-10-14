@@ -2605,3 +2605,58 @@ body.theme-dark .home-quick-grid .quick-nav-btn span {
   background-image: url("https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&w=1200&q=80") !important;
 }
 
+
+/* MARKETPLACE_ADS_QUICK_EOF */
+
+/* Ad track: horizontal only — never pull page scroll */
+#home #mapPromoCarousel .map-promo-track,
+#home .home-ad-carousel .map-promo-track {
+  display: flex !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: none;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+}
+#home #mapPromoCarousel .map-promo-slide,
+#home .home-ad-carousel .ad-slide {
+  scroll-snap-align: start;
+  flex: 0 0 100% !important;
+  max-width: 100%;
+}
+
+/* Marketplace ads (street / stall / open market — not corporate) */
+#home .ad-about {
+  background-image: url("https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=1200&q=80") !important;
+}
+#home .ad-join {
+  background-image: url("https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80") !important;
+}
+#home .ad-shop {
+  background-image: url("https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&q=80") !important;
+}
+#home .ad-biz {
+  background-image: url("https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&w=1200&q=80") !important;
+}
+#home .ad-admin {
+  background-image: url("https://images.unsplash.com/photo-1556740749-887f6717d7e4?auto=format&fit=crop&w=1200&q=80") !important;
+}
+
+/* Quick tiles — open market / street trade vibe */
+#home .qn-fairly    { background-image: url("https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&w=1000&q=80") !important; }
+#home .qn-banqueue  { background-image: url("https://images.unsplash.com/photo-1464219789935-c2d9d9aba644?auto=format&fit=crop&w=1000&q=80") !important; }
+#home .qn-food      { background-image: url("https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1000&q=80") !important; }
+#home .qn-breakfast { background-image: url("https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=1000&q=80") !important; }
+#home .qn-hotel     { background-image: url("https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=1000&q=80") !important; }
+#home .qn-bus       { background-image: url("https://images.unsplash.com/photo-1544620341-11bb3f6b3c1a?auto=format&fit=crop&w=1000&q=80") !important; }
+#home .qn-keke,
+#home .qn-ride      { background-image: url("https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=1000&q=80") !important; }
+#home .qn-fashion   { background-image: url("https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?auto=format&fit=crop&w=1000&q=80") !important; }
+#home .qn-repair    { background-image: url("https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&w=1000&q=80") !important; }
+#home .qn-emergency { background-image: url("https://images.unsplash.com/photo-1587740908075-9e245070dfaa?auto=format&fit=crop&w=1000&q=80") !important; }
+#home .qn-self,
+#home .qn-apt       { background-image: url("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1000&q=80") !important; }
+
