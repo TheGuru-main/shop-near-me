@@ -2876,3 +2876,48 @@ body.theme-dark .home-quick-grid .quick-nav-btn span {
   background-image: url("https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=1000&q=80") !important;
 }
 
+
+/* QUICK_TRANSPORT_BANK_EMERGENCY_EOF */
+
+/* Banqueue — bank hall / service counters / people waiting (not road) */
+#home #homeChips .quick-nav-btn.qn-banqueue,
+#home .home-quick-grid .quick-nav-btn.qn-banqueue {
+  background-image: url("https://images.unsplash.com/photo-1556742502-ec7c0e9f3410?auto=format&fit=crop&w=1000&q=80") !important;
+  background-position: center 40% !important;
+}
+
+/* Bus — coach / transit bus */
+#home #homeChips .quick-nav-btn.qn-bus,
+#home .home-quick-grid .quick-nav-btn.qn-bus {
+  background-image: url("https://images.unsplash.com/photo-1544620341-11bb3f6b3c1a?auto=format&fit=crop&w=1000&q=80") !important;
+  background-position: center !important;
+}
+
+/* Keke — tuk-tuk / three-wheeler (not sport bike) */
+#home #homeChips .quick-nav-btn.qn-keke,
+#home .home-quick-grid .quick-nav-btn.qn-keke {
+  background-image: url("https://images.unsplash.com/photo-1598971860715-619b6f4b1b1b?auto=format&fit=crop&w=1000&q=80") !important;
+  background-position: center !important;
+}
+
+/* Car — sedan / taxi street */
+#home #homeChips .quick-nav-btn.qn-car,
+#home .home-quick-grid .quick-nav-btn.qn-car {
+  background-image: url("https://images.unsplash.com/photo-1449965403121-adca7498bf0b?auto=format&fit=crop&w=1000&q=80") !important;
+  background-position: center !important;
+}
+
+/* Dispatch — courier / delivery bike with parcel vibe */
+#home #homeChips .quick-nav-btn.qn-dispatch,
+#home .home-quick-grid .quick-nav-btn.qn-dispatch {
+  background-image: url("https://images.unsplash.com/photo-1621976498727-9e5c6420f2c8?auto=format&fit=crop&w=1000&q=80") !important;
+  background-position: center !important;
+}
+
+/* Emergency — ambulance / first response (not food) */
+#home #homeChips .quick-nav-btn.qn-emergency,
+#home .home-quick-grid .quick-nav-btn.qn-emergency {
+  background-image: url("https://images.unsplash.com/photo-1516574187841-cb5d6b690d8f?auto=format&fit=crop&w=1000&q=80") !important;
+  background-position: center !important;
+}
+
