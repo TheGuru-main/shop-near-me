@@ -1450,3 +1450,192 @@ body.theme-dark #home .map-wrap {
   background: linear-gradient(160deg, #0f172a 0%, #1e293b 50%, #334155 100%);
 }
 
+
+/* ========== HOME_FEED_NEWS_QUICK_FIX ========== */
+
+/* Listing cards: vertical stack (not one horizontal line) */
+#home #homeFeed,
+#home #homeFeed.feed-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.65rem !important;
+  overflow-x: visible !important;
+}
+#home #homeFeed .card-rail {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.65rem !important;
+  overflow-x: visible !important;
+  overflow-y: visible !important;
+  scroll-snap-type: none !important;
+  width: 100% !important;
+  padding: 0 !important;
+}
+#home #homeFeed .card-rail .listing-card,
+#home #homeFeed .listing-card,
+#home #homeFeed article.card {
+  flex: none !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+/* Quick tiles: photo tiles (not icon-only) */
+#home #homeChips.home-quick-grid,
+#home .home-quick-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  overflow: visible !important;
+}
+#home #homeChips .quick-nav-btn,
+#home .home-quick-grid .quick-nav-btn {
+  min-height: 88px !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  flex: none !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-color: #14532d !important;
+  color: #fff !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  position: relative;
+  overflow: hidden;
+}
+#home #homeChips .quick-nav-btn.qn-bus {
+  background-image: url("https://images.unsplash.com/photo-1544620341-11bb3f6b3c1a?auto=format&fit=crop&w=800&q=80") !important;
+}
+#home #homeChips .quick-nav-btn.qn-keke {
+  background-image: url("https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=800&q=80") !important;
+}
+#home #homeChips .quick-nav-btn.qn-car {
+  background-image: url("https://images.unsplash.com/photo-1449965403121-adca7498bf0b?auto=format&fit=crop&w=800&q=80") !important;
+}
+#home #homeChips .quick-nav-btn.qn-dispatch {
+  background-image: url("https://images.unsplash.com/photo-1558981403-c5f9899a91ea?auto=format&fit=crop&w=800&q=80") !important;
+}
+#home #homeChips .quick-nav-btn.qn-banqueue {
+  background-image: url("https://images.unsplash.com/photo-1556742502-ec7c0e9f3410?auto=format&fit=crop&w=800&q=80") !important;
+}
+#home #homeChips .quick-nav-btn.qn-emergency {
+  background-image: url("https://images.unsplash.com/photo-1516574187841-cb5d6b690d8f?auto=format&fit=crop&w=800&q=80") !important;
+}
+#home #homeChips .quick-nav-btn.qn-food {
+  background-image: url("https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80") !important;
+}
+#home #homeChips .quick-nav-btn.qn-fairly {
+  background-image: url("https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=800&q=80") !important;
+}
+#home #homeChips .quick-nav-btn.qn-hotel {
+  background-image: url("https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=800&q=80") !important;
+}
+#home #homeChips .quick-nav-btn.qn-fashion {
+  background-image: url("https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?auto=format&fit=crop&w=800&q=80") !important;
+}
+#home #homeChips .quick-nav-btn.qn-repair {
+  background-image: url("https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&w=800&q=80") !important;
+}
+#home #homeChips .quick-nav-btn.qn-breakfast {
+  background-image: url("https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=800&q=80") !important;
+}
+#home #homeChips .quick-nav-btn.qn-self,
+#home #homeChips .quick-nav-btn.qn-apt {
+  background-image: url("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=80") !important;
+}
+
+/* News: no underline; text band at bottom (not mid-overlay) */
+#home .home-news-sticky,
+#home #homeNewsSticky {
+  position: relative;
+  min-height: 140px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(20, 83, 45, 0.22);
+}
+#home .home-news-track {
+  position: relative;
+  min-height: 140px;
+}
+#home a.home-news-slide,
+#home .home-news-slide {
+  display: none;
+  position: absolute;
+  inset: 0;
+  text-decoration: none !important;
+  color: #fff !important;
+  background-size: cover;
+  background-position: center;
+  box-sizing: border-box;
+  /* push copy to bottom */
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0 !important;
+}
+#home a.home-news-slide.active,
+#home .home-news-slide.active {
+  display: flex !important;
+}
+#home .home-news-slide::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 55%;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.82), transparent);
+  pointer-events: none;
+  z-index: 0;
+}
+#home .home-news-cat,
+#home .home-news-title,
+#home .home-news-brief {
+  position: relative;
+  z-index: 1;
+  text-decoration: none !important;
+  margin: 0;
+  padding: 0 0.75rem;
+  color: #fff !important;
+}
+#home .home-news-cat {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.9;
+  padding-top: 0.5rem;
+}
+#home .home-news-title {
+  font-size: 0.92rem;
+  font-weight: 800;
+  line-height: 1.25;
+  padding-top: 0.2rem;
+}
+#home .home-news-brief {
+  font-size: 0.78rem;
+  opacity: 0.92;
+  padding-bottom: 0.65rem;
+  padding-top: 0.15rem;
+}
+#home .home-news-slide * {
+  text-decoration: none !important;
+}
+#home .home-news-dots {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 2;
+  display: flex;
+  gap: 4px;
+}
+#home .home-news-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.45);
+}
+#home .home-news-dots span.on {
+  background: #fff;
+}
+
