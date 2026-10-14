@@ -2716,13 +2716,11 @@ body.theme-dark .home-quick-grid .quick-nav-btn span {
 /* QUICK_MARKET_PHOTOS_V2_EOF */
 
 /* Every quick tile gets a photo underlay */
-#home #homeChips .quick-nav-btn,
+/* neutralized: default was overriding all qn-* photos */
 #home .home-quick-grid .quick-nav-btn {
   background-size: cover !important;
   background-position: center !important;
   background-color: #14532d;
-  /* default open-market crowd — if a specific class is missing */
-  background-image: url("https://images.unsplash.com/photo-1556740749-887f6717d7e4?auto=format&fit=crop&w=1000&q=80") !important;
 }
 
 /* Fairly used — handshake / fair exchange */
@@ -2805,5 +2803,76 @@ body.theme-dark .home-quick-grid .quick-nav-btn span {
 #home .qn-electronics,
 #home .qn-phone {
   background-image: url("https://images.unsplash.com/photo-1491933382434-500287f9b54b?auto=format&fit=crop&w=1000&q=80") !important;
+}
+
+
+/* QUICK_PHOTOS_SPECIFICITY_FIX_EOF */
+
+/* Default only when no qn-* photo class wins — lower path: single id */
+#home .home-quick-grid .quick-nav-btn {
+  background-size: cover !important;
+  background-position: center !important;
+  background-color: #14532d;
+  background-image: url("https://images.unsplash.com/photo-1556740749-887f6717d7e4?auto=format&fit=crop&w=1000&q=80") !important;
+}
+
+/* Each tile: MUST match or beat default specificity */
+#home #homeChips .quick-nav-btn.qn-fairly,
+#home .home-quick-grid .quick-nav-btn.qn-fairly {
+  background-image: url("https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=1000&q=80") !important;
+}
+#home #homeChips .quick-nav-btn.qn-banqueue,
+#home .home-quick-grid .quick-nav-btn.qn-banqueue {
+  background-image: url("https://images.unsplash.com/photo-1464219789935-c2d9d9aba644?auto=format&fit=crop&w=1000&q=80") !important;
+}
+#home #homeChips .quick-nav-btn.qn-food,
+#home .home-quick-grid .quick-nav-btn.qn-food {
+  background-image: url("https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1000&q=80") !important;
+}
+#home #homeChips .quick-nav-btn.qn-breakfast,
+#home .home-quick-grid .quick-nav-btn.qn-breakfast {
+  background-image: url("https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=1000&q=80") !important;
+}
+#home #homeChips .quick-nav-btn.qn-hotel,
+#home .home-quick-grid .quick-nav-btn.qn-hotel {
+  background-image: url("https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=1000&q=80") !important;
+}
+#home #homeChips .quick-nav-btn.qn-bus,
+#home .home-quick-grid .quick-nav-btn.qn-bus {
+  background-image: url("https://images.unsplash.com/photo-1544620341-11bb3f6b3c1a?auto=format&fit=crop&w=1000&q=80") !important;
+}
+#home #homeChips .quick-nav-btn.qn-keke,
+#home #homeChips .quick-nav-btn.qn-tricycle,
+#home #homeChips .quick-nav-btn.qn-ride,
+#home .home-quick-grid .quick-nav-btn.qn-keke,
+#home .home-quick-grid .quick-nav-btn.qn-tricycle,
+#home .home-quick-grid .quick-nav-btn.qn-ride {
+  background-image: url("https://images.unsplash.com/photo-1598971860715-619b6f4b1b1b?auto=format&fit=crop&w=1000&q=80") !important;
+}
+#home #homeChips .quick-nav-btn.qn-fashion,
+#home .home-quick-grid .quick-nav-btn.qn-fashion {
+  background-image: url("https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?auto=format&fit=crop&w=1000&q=80") !important;
+}
+#home #homeChips .quick-nav-btn.qn-repair,
+#home .home-quick-grid .quick-nav-btn.qn-repair {
+  background-image: url("https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&w=1000&q=80") !important;
+}
+#home #homeChips .quick-nav-btn.qn-emergency,
+#home .home-quick-grid .quick-nav-btn.qn-emergency {
+  background-image: url("https://images.unsplash.com/photo-1587740908075-9e245070dfaa?auto=format&fit=crop&w=1000&q=80") !important;
+}
+#home #homeChips .quick-nav-btn.qn-self,
+#home #homeChips .quick-nav-btn.qn-apt,
+#home .home-quick-grid .quick-nav-btn.qn-self,
+#home .home-quick-grid .quick-nav-btn.qn-apt {
+  background-image: url("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1000&q=80") !important;
+}
+#home #homeChips .quick-nav-btn.qn-market,
+#home #homeChips .quick-nav-btn.qn-groceries,
+#home #homeChips .quick-nav-btn.qn-shop,
+#home .home-quick-grid .quick-nav-btn.qn-market,
+#home .home-quick-grid .quick-nav-btn.qn-groceries,
+#home .home-quick-grid .quick-nav-btn.qn-shop {
+  background-image: url("https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=1000&q=80") !important;
 }
 
