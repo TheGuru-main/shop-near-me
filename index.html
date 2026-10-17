@@ -474,10 +474,12 @@
     <span class="screen-title">News</span>
     <span class="spacer"></span>
   </header>
-  <div class="container stack">
-    <div id="newsCats" class="chip-row"></div>
-    <div id="newsAssistant" class="ai-card muted"></div>
-    <div id="newsList" class="feed-list"></div>
+  <div class="container stack news-layout">
+    <aside id="newsCats" class="news-sidebar" aria-label="News categories"></aside>
+    <div class="news-main">
+      <div id="newsAssistant" class="ai-card muted"></div>
+      <div id="newsList" class="feed-list"></div>
+    </div>
   </div>
   <nav class="bottom-nav" id="bottomNavNews"></nav>
 </section>

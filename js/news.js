@@ -31,7 +31,7 @@ SNM.loadNews = async function (category) {
   if (cats) {
     cats.innerHTML = SNM.NEWS_CATS.map(function (c) {
       return (
-        '<button type="button" class="chip-btn' +
+        '<button type="button" class="news-side-btn chip-btn' +
         (c === category ? " active" : "") +
         '" data-news-cat="' +
         esc(c) +
@@ -57,7 +57,7 @@ SNM.loadNews = async function (category) {
 
   try {
     var data = await SNM.api(
-      "/news" + SNM.qs({ category: category, q: category })
+      "/news" + SNM.qs({ category: category, q: category, limit: 30 })
     );
 
     if (ai && data.assistant) {
@@ -183,7 +183,7 @@ SNM.loadNews = async function (category, opts) {
     cats.innerHTML = (SNM.NEWS_CATS || [])
       .map(function (c) {
         return (
-          '<button type="button" class="chip-btn' +
+          '<button type="button" class="news-side-btn chip-btn' +
           (c === category ? " active" : "") +
           '" data-news-cat="' +
           esc(c) +
