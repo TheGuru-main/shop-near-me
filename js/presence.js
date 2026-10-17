@@ -111,9 +111,6 @@ SNM.setPresence = async function (flags) {
     return true;
   } catch (e) {
     console.warn("setPresence", e);
-    if (typeof SNM.toast === "function") {
-      SNM.toast("Status update failed");
-    }
     return false;
   }
 };
@@ -135,23 +132,9 @@ SNM.startHeartbeatLoop = function (on) {
 
 SNM.syncPresenceUI = function () {
   var live = !!SNM._liveOn;
-  [
-    "shop-open",
-    "svc-open",
-    "drv-active",
-    "emg-active",
-    "homeActiveToggle",
-    "toggleActive",
-    "toggleAvailable",
-    "shop-active"
-  ].forEach(function (id) {
+  ["shop-open", "svc-open", "drv-active", "emg-active", "homeActiveToggle"].forEach(function (id) {
     var el = document.getElementById(id);
     if (el && el.type === "checkbox") el.checked = live;
-  });
-  document.querySelectorAll("[data-hb-marker]").forEach(function (el) {
-    el.classList.toggle("hb-live", live);
-    el.classList.toggle("hb-off", !live);
-    el.textContent = live ? "● Live" : "○ Offline";
   });
   var wrap = document.querySelector(".header-active");
   if (wrap) {
@@ -160,7 +143,6 @@ SNM.syncPresenceUI = function () {
   }
   var lab = document.querySelector(".header-active-label");
   if (lab) lab.textContent = live ? "Live" : "Off";
-  document.body.classList.toggle("snm-presence-live", live);
   if (typeof SNM.paintOwnLiveOnCards === "function") SNM.paintOwnLiveOnCards();
 };
 
@@ -170,9 +152,7 @@ SNM.paintLiveChipOnCard = function (card, live) {
   if (!chip) {
     chip = document.createElement("span");
     chip.className = "badge-live";
-    var title = card.querySelector(".title, strong, h3");
-    if (title && title.parentNode) title.parentNode.insertBefore(chip, title.nextSibling);
-    else card.insertBefore(chip, card.firstChild);
+    card.insertBefore(chip, card.firstChild);
   }
   chip.classList.toggle("hb-off", !live);
   chip.textContent = live ? "● Live" : "○ Offline";
@@ -197,50 +177,37 @@ SNM.refreshFeedLiveChips = function () {
   document.querySelectorAll(".listing-card, article.card[data-id]").forEach(function (card) {
     var id = card.getAttribute("data-listing-id") || card.getAttribute("data-id");
     var item = id && SNM._listingsById ? SNM._listingsById[id] : null;
-    var live = !!(item && (item.live || item.seller_live || item.active || item.open));
+    var live = !!(item && (item.live || item.seller_live || item.active));
     var ph = String(card.getAttribute("data-phone") || "").replace(/\D/g, "");
-    if (my && ph && (ph === my || ph.slice(-10) === my.slice(-10))) {
-      live = !!SNM._liveOn;
-    }
+    if (my && ph && (ph === my || ph.slice(-10) === my.slice(-10))) live = !!SNM._liveOn;
     SNM.paintLiveChipOnCard(card, live);
   });
 };
 
-/** Auto ON for merchant / service / driver / emergency when entering app or home */
 SNM.activateOnAppEnter = async function () {
   var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
   var role = String(u.role || "").toLowerCase();
   if (!SNM.roleNeedsHeartbeat(role)) return;
   if (typeof SNM.getToken === "function" && !SNM.getToken()) return;
-
   if (SNM._lastAutoActiveAt && Date.now() - SNM._lastAutoActiveAt < 8000) {
     SNM._liveOn = true;
     SNM.syncPresenceUI();
     return;
   }
-
-  var flags = {
-    live: true,
-    active: true,
-    heartbeat: true,
-    available: true
-  };
+  var flags = { live: true, active: true, heartbeat: true, available: true };
   if (role === "merchant" || role === "service") flags.shop_open = true;
-
   var ok = await SNM.setPresence(flags);
   if (ok) {
     SNM._liveOn = true;
     SNM._hbLastOk = Date.now();
     SNM._lastAutoActiveAt = Date.now();
     SNM.syncPresenceUI();
-    if (typeof SNM.toast === "function") SNM.toast("You're live");
   }
 };
 
 SNM.initPresenceForRole = function () {
   var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
-  var role = u.role || "";
-  if (!SNM.roleNeedsHeartbeat(role)) return;
+  if (!SNM.roleNeedsHeartbeat(u.role || "")) return;
   SNM.api("/presence/me")
     .then(function (res) {
       if (res && res.live != null) SNM._liveOn = !!res.live;
@@ -253,47 +220,28 @@ SNM.initPresenceForRole = function () {
     });
 };
 
-SNM._checkHbDecay = function () {
-  if (!SNM._liveOn) return;
-  if (!SNM._hbLastOk) SNM._hbLastOk = Date.now();
-  if (Date.now() - SNM._hbLastOk < (SNM._hbDecayMs || 3600000)) return;
-  SNM._liveOn = false;
-  SNM.startHeartbeatLoop(false);
-  SNM.syncPresenceUI();
-};
-
-/* wire header + shop/driver toggles once */
-(function wirePresenceToggles() {
+(function () {
   if (window._snmPresenceToggles) return;
   window._snmPresenceToggles = true;
-  function onToggle(el) {
+  function wire(id) {
+    var el = document.getElementById(id);
     if (!el || el._snmWired) return;
     el._snmWired = true;
     el.addEventListener("change", function () {
       var on = !!el.checked;
       var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
       var role = String(u.role || "").toLowerCase();
-      if (el.id === "homeActiveToggle" && (role === "buyer" || !role)) {
-        el.checked = false;
-        if (typeof SNM.toast === "function") SNM.toast("Live is for merchants, services, drivers");
-        return;
-      }
       var flags = { live: on, active: on, heartbeat: on, available: on };
       if (role === "merchant" || role === "service") flags.shop_open = on;
       SNM.setPresence(flags);
     });
   }
-  function scan() {
-    ["homeActiveToggle", "shop-open", "svc-open", "drv-active", "emg-active"].forEach(function (id) {
-      onToggle(document.getElementById(id));
-    });
-  }
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", scan);
-  else scan();
-  setInterval(scan, 2000);
+  setInterval(function () {
+    ["homeActiveToggle", "shop-open", "svc-open", "drv-active", "emg-active"].forEach(wire);
+  }, 1500);
 })();
 
-(function wrapHomeEnter() {
+(function () {
   var prev = SNM.onHomeEnter;
   SNM.onHomeEnter = function () {
     if (typeof prev === "function") prev.apply(this, arguments);
@@ -301,16 +249,7 @@ SNM._checkHbDecay = function () {
     SNM.activateOnAppEnter();
     setTimeout(function () {
       if (typeof SNM.refreshFeedLiveChips === "function") SNM.refreshFeedLiveChips();
-      if (typeof SNM.paintOwnLiveOnCards === "function") SNM.paintOwnLiveOnCards();
-    }, 300);
+    }, 400);
   };
 })();
-
-if (!window._snmChipRefresh) {
-  window._snmChipRefresh = setInterval(function () {
-    if (typeof SNM.getToken === "function" && !SNM.getToken()) return;
-    if (typeof SNM._checkHbDecay === "function") SNM._checkHbDecay();
-    if (typeof SNM.refreshFeedLiveChips === "function") SNM.refreshFeedLiveChips();
-  }, 15000);
-}
 
