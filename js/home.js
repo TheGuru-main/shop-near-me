@@ -2172,6 +2172,8 @@ SNM.openImageLightbox = function (src, title) {
     el = document.createElement("div");
     el.id = id;
     el.className = "snm-img-sheet";
+    el.setAttribute("aria-hidden", "true");
+    el.style.display = "none";
     el.innerHTML =
       '<div class="snm-img-sheet-panel" role="dialog" aria-modal="true">' +
       '<header class="snm-img-sheet-head">' +
@@ -2193,6 +2195,10 @@ SNM.openImageLightbox = function (src, title) {
         (e.target.closest && e.target.closest(".snm-img-sheet-back"))
       ) {
         el.classList.remove("open");
+        el.style.display = "none";
+        el.setAttribute("aria-hidden", "true");
+        var im = el.querySelector(".snm-img-sheet-img");
+        if (im) im.removeAttribute("src");
       }
     });
   }
@@ -2201,8 +2207,21 @@ SNM.openImageLightbox = function (src, title) {
   var ttl = el.querySelector(".snm-img-sheet-title");
   if (img) img.src = src;
   if (ttl) ttl.textContent = title;
+  el.style.display = "flex";
+  el.setAttribute("aria-hidden", "false");
   el.classList.add("open");
 };
+
+SNM.closeImageLightbox = function () {
+  var el = document.getElementById("snmImageSheet");
+  if (!el) return;
+  el.classList.remove("open");
+  el.style.display = "none";
+  el.setAttribute("aria-hidden", "true");
+  var im = el.querySelector(".snm-img-sheet-img");
+  if (im) im.removeAttribute("src");
+};
+
 
 
 
@@ -2651,6 +2670,22 @@ SNM.applyQuickTilePhotos = function () {
     });
   } else {
     SNM.applyQuickTilePhotos();
+  }
+})();
+
+/* BOOT_HIDE_IMG_SHEET */
+(function () {
+  function hide() {
+    var el = document.getElementById("snmImageSheet");
+    if (!el) return;
+    el.classList.remove("open");
+    el.style.display = "none";
+    el.setAttribute("aria-hidden", "true");
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", hide);
+  } else {
+    hide();
   }
 })();
 
