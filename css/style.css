@@ -1890,3 +1890,58 @@ body.theme-dark #home .map-wrap {
   color: #b91c1c;
 }
 
+
+/* ========== FIX_TILES_FOOTER_LIVE_EOF ========== */
+
+/* Transport tiles — solid photo stack (no broken Unsplash-only) */
+#home #homeChips .quick-nav-btn.qn-bus,
+#home #homeChips .quick-nav-btn.qn-keke,
+#home #homeChips .quick-nav-btn.qn-car,
+#home #homeChips .quick-nav-btn.qn-dispatch {
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-color: #0f172a !important;
+  color: #fff !important;
+}
+#home #homeChips .quick-nav-btn.qn-bus {
+  background-image:
+    linear-gradient(180deg, rgba(0,0,0,.15) 0%, rgba(0,0,0,.55) 100%),
+    url("https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Transjakarta_Corridor_1_bus.jpg/640px-Transjakarta_Corridor_1_bus.jpg") !important;
+}
+#home #homeChips .quick-nav-btn.qn-keke {
+  background-image:
+    linear-gradient(180deg, rgba(0,0,0,.15) 0%, rgba(0,0,0,.55) 100%),
+    url("https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Auto_Rickshaw_in_India.jpg/640px-Auto_Rickshaw_in_India.jpg") !important;
+}
+#home #homeChips .quick-nav-btn.qn-car {
+  background-image:
+    linear-gradient(180deg, rgba(0,0,0,.15) 0%, rgba(0,0,0,.55) 100%),
+    url("https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Yellow_Taxi_in_NYC.jpg/640px-Yellow_Taxi_in_NYC.jpg") !important;
+}
+#home #homeChips .quick-nav-btn.qn-dispatch {
+  background-image:
+    linear-gradient(180deg, rgba(0,0,0,.15) 0%, rgba(0,0,0,.55) 100%),
+    url("https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Delivery_motorcycle.jpg/640px-Delivery_motorcycle.jpg") !important;
+}
+
+/* Ghost panel under feed / workspace — hide global footer while in app */
+body.has-nav .app-footer {
+  display: none !important;
+  height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  border: 0 !important;
+}
+body.has-nav .screen.active > .container,
+body.has-nav .screen.active > .home-body {
+  padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 1.25rem) !important;
+}
+/* stop extra blank flex tail */
+.screen.active > .container::after,
+.screen.active > .home-body::after {
+  content: none !important;
+  display: none !important;
+}
+

@@ -1977,8 +1977,8 @@ SNM._readFeedCache = function () {
     if (!raw) return null;
     var o = JSON.parse(raw);
     if (!o || !Array.isArray(o.items)) return null;
-    // optional TTL 10 min — still show cache, mark stale
-    o.stale = !o.ts || Date.now() - o.ts > 10 * 60 * 1000;
+    /* live status goes stale fast — force network refresh soon */
+    o.stale = !o.ts || Date.now() - o.ts > 45 * 1000;
     return o;
   } catch (e) {
     return null;
@@ -2604,5 +2604,53 @@ SNM.releaseEscrow = async function () {
       };
     }
   };
+})();
+
+/* PAINT_FEED_LIVE_EOF */
+(function () {
+  var prev = SNM._paintFeed;
+  if (typeof prev !== "function") return;
+  SNM._paintFeed = function (items) {
+    prev.apply(this, arguments);
+    try {
+      if (typeof SNM.refreshFeedLiveChips === "function") SNM.refreshFeedLiveChips();
+      if (typeof SNM.paintOwnLiveOnCards === "function") SNM.paintOwnLiveOnCards();
+    } catch (e) {}
+  };
+})();
+
+/* QUICK_TILE_PHOTOS_EOF */
+SNM.applyQuickTilePhotos = function () {
+  var map = {
+    "qn-bus": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Transjakarta_Corridor_1_bus.jpg/640px-Transjakarta_Corridor_1_bus.jpg",
+    "qn-keke": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Auto_Rickshaw_in_India.jpg/640px-Auto_Rickshaw_in_India.jpg",
+    "qn-car": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Yellow_Taxi_in_NYC.jpg/640px-Yellow_Taxi_in_NYC.jpg",
+    "qn-dispatch": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Delivery_motorcycle.jpg/640px-Delivery_motorcycle.jpg"
+  };
+  var root = document.getElementById("homeChips");
+  if (!root) return;
+  Object.keys(map).forEach(function (cls) {
+    var el = root.querySelector("." + cls);
+    if (!el) return;
+    el.style.backgroundImage =
+      "linear-gradient(180deg, rgba(0,0,0,.2), rgba(0,0,0,.55)), url('" + map[cls] + "')";
+    el.style.backgroundSize = "cover";
+    el.style.backgroundPosition = "center";
+    el.style.color = "#fff";
+  });
+};
+(function () {
+  var prev = SNM.onHomeEnter;
+  SNM.onHomeEnter = function () {
+    if (typeof prev === "function") prev.apply(this, arguments);
+    SNM.applyQuickTilePhotos();
+  };
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function () {
+      SNM.applyQuickTilePhotos();
+    });
+  } else {
+    SNM.applyQuickTilePhotos();
+  }
 })();
 

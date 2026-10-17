@@ -362,24 +362,39 @@ SNM.activateOnAppEnter = async function () {
   var role = String(u.role || "").toLowerCase();
   if (typeof SNM.roleNeedsHeartbeat === "function" && !SNM.roleNeedsHeartbeat(role)) return;
   if (typeof SNM.getToken === "function" && !SNM.getToken()) return;
-  if (SNM._lastAutoActiveAt && Date.now() - SNM._lastAutoActiveAt < 15000) {
+  if (SNM._lastAutoActiveAt && Date.now() - SNM._lastAutoActiveAt < 12000) {
     SNM._liveOn = true;
-    SNM.syncPresenceUI();
+    if (typeof SNM.syncPresenceUI === "function") SNM.syncPresenceUI();
     return;
   }
   try {
-    await SNM.setPresence({ live: true, active: true, heartbeat: true, available: true });
+    var flags = {
+      live: true,
+      active: true,
+      heartbeat: true,
+      available: true
+    };
+    /* merchants / services: open shop with live */
+    if (role === "merchant" || role === "service") {
+      flags.shop_open = true;
+    }
+    await SNM.setPresence(flags);
     SNM._liveOn = true;
     SNM._hbLastOk = Date.now();
     SNM._lastAutoActiveAt = Date.now();
-    SNM.syncPresenceUI();
+    if (typeof SNM.startHeartbeatLoop === "function") SNM.startHeartbeatLoop(true);
+    if (typeof SNM.syncPresenceUI === "function") SNM.syncPresenceUI();
     var el = document.getElementById("homeActiveToggle");
     if (el) el.checked = true;
-    SNM.toast("Active now");
+    var shopOpen = document.getElementById("shop-open") || document.getElementById("svc-open");
+    if (shopOpen && shopOpen.type === "checkbox") shopOpen.checked = true;
+    if (typeof SNM.paintOwnLiveOnCards === "function") SNM.paintOwnLiveOnCards();
+    if (typeof SNM.toast === "function") SNM.toast("You're live");
   } catch (e) {
     console.warn("activateOnAppEnter", e);
   }
 };
+
 
 (function () {
   var prev = SNM.onHomeEnter;
