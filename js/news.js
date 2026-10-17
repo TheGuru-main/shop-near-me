@@ -57,7 +57,7 @@ SNM.loadNews = async function (category) {
 
   try {
     var data = await SNM.api(
-      "/news" + SNM.qs({ category: category, q: category, limit: 30 })
+      "/news" + SNM.qs({ category: category, q: category, limit: 30, limit: 30 })
     );
 
     if (ai && data.assistant) {
