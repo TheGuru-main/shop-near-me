@@ -6,26 +6,20 @@ SNM.openCallSheet = function (mode, peerLabel) {
   var status = document.getElementById("callStatus");
   var phone = SNM._threadPeer || "";
   if (peer) peer.textContent = peerLabel || phone || "Peer";
-  if (status) {
-    status.textContent =
-      (mode === "video" ? "Video call" : "Voice call") +
-      " — connecting…";
-  }
   if (sheet) {
     sheet.classList.add("open");
     sheet.setAttribute("aria-hidden", "false");
     sheet.style.display = "block";
   }
-  /* Native dial fallback until WebRTC signaling is live */
-  if (mode === "voice" && phone && phone.charAt(0) === "+") {
-    if (status) status.textContent = "Opening phone dialer for " + phone;
+  if (mode === "voice" && phone && String(phone).charAt(0) === "+") {
+    if (status) status.textContent = "Opening dialer for " + phone;
     try {
       window.location.href = "tel:" + phone;
     } catch (e) {}
   } else if (status) {
     status.textContent =
       (mode === "video" ? "Video" : "Voice") +
-      " signaling is in progress. Peer: " +
+      " — sheet ready; full WebRTC signaling next. Peer: " +
       (phone || "—");
   }
 };
@@ -47,7 +41,7 @@ SNM.closeCallSheet = function () {
     if (v && !v._snmWired) {
       v._snmWired = true;
       v.onclick = function () {
-        if (!SNM._threadPeer && !SNM._validThreadId(SNM._threadId)) {
+        if (!SNM._threadPeer && !(SNM._validThreadId && SNM._validThreadId(SNM._threadId))) {
           alert("Open a chat first");
           return;
         }
@@ -57,7 +51,7 @@ SNM.closeCallSheet = function () {
     if (vid && !vid._snmWired) {
       vid._snmWired = true;
       vid.onclick = function () {
-        if (!SNM._threadPeer && !SNM._validThreadId(SNM._threadId)) {
+        if (!SNM._threadPeer && !(SNM._validThreadId && SNM._validThreadId(SNM._threadId))) {
           alert("Open a chat first");
           return;
         }
@@ -73,5 +67,7 @@ SNM.closeCallSheet = function () {
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", wire);
-  } else wire();
+  } else {
+    wire();
+  }
 })();

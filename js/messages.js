@@ -224,9 +224,14 @@ SNM.dropMessagePayload = async function (payload) {
     throw new Error("Open a chat first");
   }
 
+  var body = {
+    body: text,
+    msg_type: payload.msg_type || "text",
+    media_url: payload.media_url || null
+  };
   return SNM.api(
     "/messages/threads/" + encodeURIComponent(String(SNM._threadId)),
-    { method: "POST", body: { body: text } }
+    { method: "POST", body: body }
   );
 };
 
