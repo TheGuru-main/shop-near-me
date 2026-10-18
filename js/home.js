@@ -2551,6 +2551,8 @@ SNM.placeOrderEscrow = async function () {
       }
     });
     SNM._escrowOrderId = data.order_id;
+    var otpBlock = document.getElementById("escrowOtpBlock");
+    if (otpBlock) otpBlock.classList.remove("hidden");
     try {
       sessionStorage.setItem("snm_escrow_order", data.order_id || "");
     } catch (e) {}

@@ -73,6 +73,8 @@ SNM.openProfile = function () {
   var sheet = document.getElementById("profileSheet");
   if (sheet) {
     sheet.classList.add("open");
+    sheet.classList.add("user-profile-full");
+    sheet.style.display = "flex";
     sheet.setAttribute("aria-hidden", "false");
   }
 };
@@ -148,6 +150,7 @@ SNM.closeUserProfile = function () {
   sheet.classList.remove("open");
   sheet.setAttribute("aria-hidden", "true");
   sheet.style.display = "none";
+    sheet.classList.remove("user-profile-full");
 };
 
 SNM.openUserProfile = async function (phone) {
@@ -292,6 +295,7 @@ SNM.closeUserProfile = function () {
   sheet.classList.remove("open");
   sheet.setAttribute("aria-hidden", "true");
   sheet.style.display = "none";
+    sheet.classList.remove("user-profile-full");
 };
 
 SNM.openUserProfile = async function (phone) {
@@ -688,6 +692,7 @@ SNM.closeUserProfile = function () {
   sheet.classList.remove("open");
   sheet.setAttribute("aria-hidden", "true");
   sheet.style.display = "none";
+    sheet.classList.remove("user-profile-full");
 };
 
 SNM.openUserProfile = async function (phone) {

@@ -755,3 +755,349 @@ SNM.onMessagesEnter = function () {
 })();
 
 /* MSG_MEDIA_HANDLERS_EOF — run after bindMessages */
+
+
+/* MSG_UX_COMPOSER_EOF */
+SNM._showMsgListPhase = function () {
+  document.body.classList.remove("thread-open");
+  var msg = document.getElementById("messages");
+  if (msg) msg.classList.remove("thread-open");
+  var list = document.getElementById("msgListPhase");
+  var tv = document.getElementById("threadView");
+  if (list) list.style.display = "";
+  if (tv) {
+    tv.classList.add("hidden");
+    tv.style.display = "none";
+  }
+};
+
+SNM._showThreadPhase = function () {
+  var msg = document.getElementById("messages");
+  if (msg) msg.classList.add("thread-open");
+  document.body.classList.add("thread-open");
+  var list = document.getElementById("msgListPhase");
+  var tv = document.getElementById("threadView");
+  if (list) list.style.display = "none";
+  if (tv) {
+    tv.classList.remove("hidden");
+    tv.style.display = "flex";
+  }
+};
+
+/* patch closeThread */
+(function () {
+  var prev = SNM.closeThread;
+  SNM.closeThread = function () {
+    if (typeof prev === "function") prev.apply(this, arguments);
+    SNM._showMsgListPhase();
+    SNM._resetVoiceUi();
+    SNM._resetImageUi();
+  };
+})();
+
+SNM._resetImageUi = function () {
+  var box = document.getElementById("msgImageComposer");
+  var img = document.getElementById("msgImagePreview");
+  var cap = document.getElementById("msgImageCaption");
+  var inp = document.getElementById("msg-image");
+  if (box) box.classList.add("hidden");
+  if (img) img.removeAttribute("src");
+  if (cap) cap.value = "";
+  if (inp) inp.value = "";
+  SNM._pendingImageDataUrl = null;
+};
+
+SNM._resetVoiceUi = function () {
+  var box = document.getElementById("msgVoiceComposer");
+  if (box) box.classList.add("hidden");
+  var send = document.getElementById("btnMsgVoiceSend");
+  if (send) send.disabled = true;
+  var st = document.getElementById("msgVoiceStatus");
+  if (st) st.textContent = "Recording…";
+  var meter = document.querySelector("#msgVoiceMeter span");
+  if (meter) meter.style.width = "10%";
+  var tim = document.getElementById("msgVoiceTimer");
+  if (tim) tim.textContent = "0:00";
+  if (SNM._voiceTimer) {
+    clearInterval(SNM._voiceTimer);
+    SNM._voiceTimer = null;
+  }
+  SNM._voicePaused = false;
+  SNM._voiceSeconds = 0;
+  SNM._pendingVoiceDataUrl = null;
+};
+
+SNM._formatVoiceTime = function (s) {
+  s = Math.max(0, s | 0);
+  var m = Math.floor(s / 60);
+  var r = s % 60;
+  return m + ":" + (r < 10 ? "0" : "") + r;
+};
+
+SNM._wireMsgMediaComposers = function () {
+  if (SNM._msgMediaWired) return;
+  SNM._msgMediaWired = true;
+
+  var imgBtn = document.getElementById("btnMsgImage");
+  var fileInp = document.getElementById("msg-image");
+  if (imgBtn && fileInp) {
+    imgBtn.onclick = function () {
+      SNM._resetVoiceUi();
+      fileInp.click();
+    };
+    fileInp.onchange = async function () {
+      var file = fileInp.files && fileInp.files[0];
+      if (!file) return;
+      try {
+        var dataUrl =
+          typeof SNM.compressImageFile === "function"
+            ? await SNM.compressImageFile(file, 640, 0.6)
+            : await new Promise(function (res, rej) {
+                var r = new FileReader();
+                r.onload = function () {
+                  res(r.result);
+                };
+                r.onerror = rej;
+                r.readAsDataURL(file);
+              });
+        if (dataUrl.length > 180000) {
+          dataUrl =
+            typeof SNM.compressImageFile === "function"
+              ? await SNM.compressImageFile(file, 400, 0.45)
+              : dataUrl;
+        }
+        if (dataUrl.length > 180000) {
+          alert("Photo still too large. Pick a smaller image.");
+          return;
+        }
+        SNM._pendingImageDataUrl = dataUrl;
+        var prev = document.getElementById("msgImagePreview");
+        var box = document.getElementById("msgImageComposer");
+        if (prev) prev.src = dataUrl;
+        if (box) box.classList.remove("hidden");
+      } catch (e) {
+        alert("Could not load image");
+      }
+      fileInp.value = "";
+    };
+  }
+
+  var imgSend = document.getElementById("btnMsgImageSend");
+  if (imgSend) {
+    imgSend.onclick = async function () {
+      if (!SNM._pendingImageDataUrl) return;
+      var cap = ((document.getElementById("msgImageCaption") || {}).value || "").trim();
+      try {
+        await SNM.dropMessagePayload({
+          body: cap || "📷 Photo",
+          msg_type: "image",
+          media_url: SNM._pendingImageDataUrl
+        });
+        SNM._resetImageUi();
+        await SNM.reloadOpenThread();
+      } catch (e) {
+        alert((typeof SNM._msgErr === "function" && SNM._msgErr(e)) || e.message || "Send failed");
+      }
+    };
+  }
+  var imgCancel = document.getElementById("btnMsgImageCancel");
+  if (imgCancel) {
+    imgCancel.onclick = function () {
+      SNM._resetImageUi();
+    };
+  }
+
+  var voiceBtn = document.getElementById("btnMsgVoice");
+  if (voiceBtn) {
+    voiceBtn.onclick = async function () {
+      SNM._resetImageUi();
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("Voice not supported on this device");
+        return;
+      }
+      if (SNM._voiceRec && SNM._voiceRec.state === "recording") {
+        return; /* use pause/send */
+      }
+      try {
+        var stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        SNM._voiceChunks = [];
+        SNM._voiceSeconds = 0;
+        SNM._voicePaused = false;
+        var rec = new MediaRecorder(stream);
+        SNM._voiceRec = rec;
+        SNM._voiceStream = stream;
+        rec.ondataavailable = function (ev) {
+          if (ev.data && ev.data.size) SNM._voiceChunks.push(ev.data);
+        };
+        rec.onstop = async function () {
+          try {
+            stream.getTracks().forEach(function (tr) {
+              tr.stop();
+            });
+          } catch (e0) {}
+          if (SNM._voiceTimer) {
+            clearInterval(SNM._voiceTimer);
+            SNM._voiceTimer = null;
+          }
+          var blob = new Blob(SNM._voiceChunks, { type: "audio/webm" });
+          var dataUrl = await new Promise(function (resolve, reject) {
+            var fr = new FileReader();
+            fr.onload = function () {
+              resolve(fr.result);
+            };
+            fr.onerror = reject;
+            fr.readAsDataURL(blob);
+          });
+          SNM._pendingVoiceDataUrl = dataUrl;
+          var st = document.getElementById("msgVoiceStatus");
+          if (st) st.textContent = "Ready to send";
+          var send = document.getElementById("btnMsgVoiceSend");
+          if (send) send.disabled = false;
+        };
+        rec.start(200);
+        var box = document.getElementById("msgVoiceComposer");
+        if (box) box.classList.remove("hidden");
+        var st = document.getElementById("msgVoiceStatus");
+        if (st) st.textContent = "Recording…";
+        var send = document.getElementById("btnMsgVoiceSend");
+        if (send) send.disabled = true;
+        SNM._voiceTimer = setInterval(function () {
+          if (SNM._voicePaused) return;
+          SNM._voiceSeconds = (SNM._voiceSeconds || 0) + 1;
+          var tim = document.getElementById("msgVoiceTimer");
+          if (tim) tim.textContent = SNM._formatVoiceTime(SNM._voiceSeconds);
+          var meter = document.querySelector("#msgVoiceMeter span");
+          if (meter) {
+            var w = 15 + (SNM._voiceSeconds % 10) * 8 + Math.random() * 20;
+            meter.style.width = Math.min(95, w) + "%";
+          }
+          if (SNM._voiceSeconds >= 15 && SNM._voiceRec && SNM._voiceRec.state === "recording") {
+            try {
+              SNM._voiceRec.stop();
+            } catch (e1) {}
+          }
+        }, 1000);
+      } catch (e) {
+        alert("Mic permission needed");
+      }
+    };
+  }
+
+  var pauseBtn = document.getElementById("btnMsgVoicePause");
+  if (pauseBtn) {
+    pauseBtn.onclick = function () {
+      if (!SNM._voiceRec) return;
+      try {
+        if (SNM._voiceRec.state === "recording") {
+          SNM._voiceRec.pause();
+          SNM._voicePaused = true;
+          pauseBtn.textContent = "Resume";
+          var st = document.getElementById("msgVoiceStatus");
+          if (st) st.textContent = "Paused";
+        } else if (SNM._voiceRec.state === "paused") {
+          SNM._voiceRec.resume();
+          SNM._voicePaused = false;
+          pauseBtn.textContent = "Pause";
+          var st2 = document.getElementById("msgVoiceStatus");
+          if (st2) st2.textContent = "Recording…";
+        }
+      } catch (e) {
+        /* some browsers lack pause — stop instead */
+        try {
+          SNM._voiceRec.stop();
+        } catch (e2) {}
+      }
+    };
+  }
+
+  var delBtn = document.getElementById("btnMsgVoiceDelete");
+  if (delBtn) {
+    delBtn.onclick = function () {
+      try {
+        if (SNM._voiceRec && SNM._voiceRec.state !== "inactive") SNM._voiceRec.stop();
+      } catch (e) {}
+      if (SNM._voiceStream) {
+        try {
+          SNM._voiceStream.getTracks().forEach(function (tr) {
+            tr.stop();
+          });
+        } catch (e2) {}
+      }
+      SNM._voiceChunks = [];
+      SNM._pendingVoiceDataUrl = null;
+      SNM._resetVoiceUi();
+    };
+  }
+
+  var vSend = document.getElementById("btnMsgVoiceSend");
+  if (vSend) {
+    vSend.onclick = async function () {
+      try {
+        if (SNM._voiceRec && SNM._voiceRec.state === "recording") {
+          await new Promise(function (resolve) {
+            SNM._voiceRec.onstop = async function () {
+              /* onstop already builds dataUrl in handler — wait tick */
+              setTimeout(resolve, 50);
+            };
+            SNM._voiceRec.stop();
+          });
+        }
+        /* ensure blob ready */
+        if (!SNM._pendingVoiceDataUrl && SNM._voiceChunks && SNM._voiceChunks.length) {
+          var blob = new Blob(SNM._voiceChunks, { type: "audio/webm" });
+          SNM._pendingVoiceDataUrl = await new Promise(function (resolve, reject) {
+            var fr = new FileReader();
+            fr.onload = function () {
+              resolve(fr.result);
+            };
+            fr.onerror = reject;
+            fr.readAsDataURL(blob);
+          });
+        }
+        if (!SNM._pendingVoiceDataUrl) {
+          alert("Record a voice note first");
+          return;
+        }
+        if (SNM._pendingVoiceDataUrl.length > 220000) {
+          alert("Voice note too long");
+          return;
+        }
+        await SNM.dropMessagePayload({
+          body: "🎤 Voice note",
+          msg_type: "voice",
+          media_url: SNM._pendingVoiceDataUrl
+        });
+        SNM._resetVoiceUi();
+        await SNM.reloadOpenThread();
+      } catch (e) {
+        alert((typeof SNM._msgErr === "function" && SNM._msgErr(e)) || e.message || "Send failed");
+      }
+    };
+  }
+
+  var back = document.getElementById("btnThreadBack");
+  if (back && !back._snmPhase) {
+    back._snmPhase = true;
+    back.onclick = function () {
+      SNM.closeThread();
+      if (typeof SNM.loadInbox === "function") SNM.loadInbox({ closeThread: true });
+    };
+  }
+};
+
+/* ensure show thread phase when opening */
+(function () {
+  var prevOpen = SNM.openThread;
+  if (typeof prevOpen === "function") {
+    SNM.openThread = async function () {
+      SNM._showThreadPhase();
+      return prevOpen.apply(this, arguments);
+    };
+  }
+  var prevBind = SNM.bindMessages;
+  SNM.bindMessages = function () {
+    if (typeof prevBind === "function") prevBind.apply(this, arguments);
+    SNM._wireMsgMediaComposers();
+  };
+})();
+
