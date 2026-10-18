@@ -1,27 +1,27 @@
 window.SNM = window.SNM || {};
 
-SNM.openCallSheet = function (mode, peerLabel) {
-  var sheet = document.getElementById("call-sheet");
-  var peer = document.getElementById("callPeer");
-  var status = document.getElementById("callStatus");
-  var phone = SNM._threadPeer || "";
-  if (peer) peer.textContent = peerLabel || phone || "Peer";
-  if (sheet) {
-    sheet.classList.add("open");
-    sheet.setAttribute("aria-hidden", "false");
-    sheet.style.display = "block";
+SNM._callNotify = function (msg, isErr) {
+  msg = String(msg || "");
+  SNM._setCallStatus(msg);
+  if (typeof SNM.toast === "function") {
+    try { SNM.toast(msg); return; } catch (e) {}
   }
-  if (mode === "voice" && phone && String(phone).charAt(0) === "+") {
-    if (status) status.textContent = "Opening dialer for " + phone;
-    try {
-      window.location.href = "tel:" + phone;
-    } catch (e) {}
-  } else if (status) {
-    status.textContent =
-      (mode === "video" ? "Video" : "Voice") +
-      " — sheet ready; full WebRTC signaling next. Peer: " +
-      (phone || "—");
+  if (isErr) {
+    try { alert(msg); } catch (e2) {}
   }
+};
+
+
+SNM._callId = null;
+SNM._pc = null;
+SNM._localStream = null;
+SNM._callPoll = null;
+SNM._signalCursor = 0;
+SNM._callMode = "voice";
+SNM._isCaller = false;
+
+SNM._iceServers = function () {
+  return [{ urls: "stun:stun.l.google.com:19302" }];
 };
 
 SNM.closeCallSheet = function () {
@@ -33,6 +33,286 @@ SNM.closeCallSheet = function () {
   }
 };
 
+SNM._setCallStatus = function (t) {
+  var status = document.getElementById("callStatus");
+  if (status) status.textContent = t || "";
+};
+
+SNM._stopCallMedia = function () {
+  if (SNM._callPoll) {
+    clearInterval(SNM._callPoll);
+    SNM._callPoll = null;
+  }
+  try {
+    if (SNM._pc) SNM._pc.close();
+  } catch (e) {}
+  SNM._pc = null;
+  if (SNM._localStream) {
+    SNM._localStream.getTracks().forEach(function (tr) {
+      try {
+        tr.stop();
+      } catch (e2) {}
+    });
+  }
+  SNM._localStream = null;
+  SNM._callId = null;
+  SNM._signalCursor = 0;
+};
+
+SNM.hangupCall = async function () {
+  var id = SNM._callId;
+  if (id && typeof SNM.api === "function") {
+    try {
+      await SNM.api("/calls/signal", {
+        method: "POST",
+        body: { call_id: id, kind: "hangup" }
+      });
+    } catch (e) {}
+  }
+  SNM._stopCallMedia();
+  SNM.closeCallSheet();
+  SNM._setCallStatus("Ended");
+};
+
+SNM._ensurePc = function () {
+  if (SNM._pc) return SNM._pc;
+  var pc = new RTCPeerConnection({ iceServers: SNM._iceServers() });
+  SNM._pc = pc;
+  pc.onicecandidate = function (ev) {
+    if (!ev.candidate || !SNM._callId) return;
+    SNM.api("/calls/signal", {
+      method: "POST",
+      body: {
+        call_id: SNM._callId,
+        kind: "ice",
+        ice: ev.candidate.toJSON()
+      }
+    }).catch(function () {});
+  };
+  pc.onconnectionstatechange = function () {
+    var st = pc.connectionState || "";
+    if (st === "connected") SNM._callNotify("Connected");
+    else if (st === "connecting") SNM._callNotify("Connecting media…");
+    else if (st === "disconnected") SNM._callNotify("Connection unstable…");
+    else if (st === "failed") SNM._callNotify("Connection failed — network or peer offline", true);
+    else if (st === "closed") SNM._callNotify("Call closed");
+    else SNM._setCallStatus("Connection: " + st);
+  };
+  pc.ontrack = function (ev) {
+    var remote = document.getElementById("callRemoteVideo");
+    if (remote && ev.streams && ev.streams[0]) {
+      remote.srcObject = ev.streams[0];
+      remote.play && remote.play().catch(function () {});
+    }
+  };
+  return pc;
+};
+
+SNM._attachLocal = async function (mode) {
+  var video = mode === "video";
+  var stream = await navigator.mediaDevices.getUserMedia({
+    audio: true,
+    video: video
+  });
+  SNM._localStream = stream;
+  var local = document.getElementById("callLocalVideo");
+  if (local) {
+    local.srcObject = stream;
+    local.muted = true;
+    local.play && local.play().catch(function () {});
+  }
+  var pc = SNM._ensurePc();
+  stream.getTracks().forEach(function (tr) {
+    pc.addTrack(tr, stream);
+  });
+  return stream;
+};
+
+SNM._handleSignal = async function (entry) {
+  if (!entry || !entry.kind) return;
+  var me = ((typeof SNM.getUser === "function" && SNM.getUser()) || {}).phone || "";
+  me = String(me);
+  if (entry.from_uid && me && entry.from_uid === me) return;
+
+  var pc = SNM._ensurePc();
+  try {
+    if (entry.kind === "offer" && entry.sdp) {
+      await pc.setRemoteDescription({ type: "offer", sdp: entry.sdp });
+      await SNM._attachLocal(SNM._callMode);
+      var answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      await SNM.api("/calls/signal", {
+        method: "POST",
+        body: {
+          call_id: SNM._callId,
+          kind: "answer",
+          sdp: answer.sdp
+        }
+      });
+      SNM._callNotify("Answered — connecting…");
+    } else if (entry.kind === "answer" && entry.sdp) {
+      await pc.setRemoteDescription({ type: "answer", sdp: entry.sdp });
+      SNM._callNotify("In call");
+    } else if (entry.kind === "ice" && entry.ice) {
+      await pc.addIceCandidate(entry.ice);
+    } else if (entry.kind === "hangup") {
+      SNM._callNotify("Peer hung up");
+      SNM._stopCallMedia();
+      SNM.closeCallSheet();
+    }
+  } catch (e) {
+    console.warn("signal", e);
+  }
+};
+
+SNM._pollCall = function () {
+  if (!SNM._callId) return;
+  SNM.api(
+    "/calls/" +
+      encodeURIComponent(SNM._callId) +
+      "?after=" +
+      encodeURIComponent(String(SNM._signalCursor || 0))
+  )
+    .then(function (data) {
+      var list = (data && data.signals) || [];
+      list.forEach(function (s) {
+        SNM._handleSignal(s);
+      });
+      if (data && data.signal_total != null) {
+        SNM._signalCursor = data.signal_total;
+      } else {
+        SNM._signalCursor = (SNM._signalCursor || 0) + list.length;
+      }
+      if (data && data.status === "ended") {
+        SNM._setCallStatus("Ended");
+        SNM._stopCallMedia();
+      }
+    })
+    .catch(function () {});
+};
+
+SNM.startCall = async function (mode, peerPhone, peerLabel) {
+  mode = mode === "video" ? "video" : "voice";
+  peerPhone = String(peerPhone || SNM._threadPeer || "").trim();
+  if (!peerPhone) {
+    alert("Open a chat first");
+    return;
+  }
+  SNM._callMode = mode;
+  SNM._isCaller = true;
+  SNM._signalCursor = 0;
+
+  var sheet = document.getElementById("call-sheet");
+  var peer = document.getElementById("callPeer");
+  if (peer) peer.textContent = peerLabel || peerPhone;
+  if (sheet) {
+    sheet.classList.add("open");
+    sheet.setAttribute("aria-hidden", "false");
+    sheet.style.display = "block";
+  }
+  SNM._setCallStatus("Starting " + mode + "…");
+
+  try {
+    SNM._callNotify("Connecting…");
+    var rec = await SNM.api("/calls/start", {
+      method: "POST",
+      body: { to_uid: peerPhone, mode: mode }
+    });
+    SNM._callId = rec.call_id;
+    try {
+      await SNM._attachLocal(mode);
+    } catch (mediaErr) {
+      SNM._callNotify(
+        "Mic/camera blocked or unavailable. Allow permission and retry.",
+        true
+      );
+      SNM._stopCallMedia();
+      return;
+    }
+    var pc = SNM._ensurePc();
+    var offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    await SNM.api("/calls/signal", {
+      method: "POST",
+      body: {
+        call_id: SNM._callId,
+        kind: "offer",
+        sdp: offer.sdp
+      }
+    });
+    SNM._callNotify("Ringing… waiting for answer");
+    if (SNM._callPoll) clearInterval(SNM._callPoll);
+    SNM._callPoll = setInterval(SNM._pollCall, 1200);
+    /* no answer timeout */
+    setTimeout(function () {
+      if (!SNM._callId) return;
+      if (SNM._pc && SNM._pc.connectionState === "connected") return;
+      var st = (SNM._pc && SNM._pc.connectionState) || "";
+      if (st !== "connected" && st !== "connecting") {
+        SNM._callNotify("No answer / user may be offline", true);
+      }
+    }, 45000);
+  } catch (e) {
+    var msg = (e && e.message) || "Call failed";
+    var status = e && e.status;
+    if (status === 404 || /not found|callee/i.test(msg)) {
+      msg = "User offline or not registered on Shop Near Me";
+    } else if (status === 401 || status === 403) {
+      msg = "Session expired — log in again";
+    } else if (/failed to fetch|network|load failed|offline/i.test(msg)) {
+      msg = "Network error — check connection and retry";
+    }
+    SNM._callNotify(msg, true);
+    if (mode === "voice" && peerPhone.charAt(0) === "+") {
+      var useTel = confirm(msg + "\n\nDial with phone app instead?");
+      if (useTel) {
+        try { window.location.href = "tel:" + peerPhone; } catch (e2) {}
+      }
+    }
+  }
+};
+
+SNM.joinCall = async function (callId, mode) {
+  SNM._callId = callId;
+  SNM._callMode = mode === "video" ? "video" : "voice";
+  SNM._isCaller = false;
+  SNM._signalCursor = 0;
+  var sheet = document.getElementById("call-sheet");
+  if (sheet) {
+    sheet.classList.add("open");
+    sheet.setAttribute("aria-hidden", "false");
+    sheet.style.display = "block";
+  }
+  SNM._callNotify("Incoming call — joining…");
+  if (SNM._callPoll) clearInterval(SNM._callPoll);
+  SNM._callPoll = setInterval(SNM._pollCall, 1000);
+  SNM._pollCall();
+};
+
+SNM.openCallSheet = function (mode, peerLabel) {
+  SNM.startCall(mode, SNM._threadPeer, peerLabel);
+};
+
+SNM.pollIncomingCalls = async function () {
+  if (typeof SNM.api !== "function" || !SNM.getToken || !SNM.getToken()) return;
+  try {
+    var data = await SNM.api("/calls/pending");
+    var items = (data && data.items) || [];
+    if (!items.length) return;
+    var ring = items[0];
+    if (!ring || !ring.call_id) return;
+    if (SNM._callId) return;
+    var fromName =
+      (ring.from && (ring.from.name || ring.from.uid)) || "Incoming";
+    var mode = ring.mode || "voice";
+    if (confirm(fromName + " is calling (" + mode + "). Accept?")) {
+      var peer = document.getElementById("callPeer");
+      if (peer) peer.textContent = fromName;
+      await SNM.joinCall(ring.call_id, mode);
+    }
+  } catch (e) {}
+};
+
 (function () {
   function wire() {
     var v = document.getElementById("btnCallVoice");
@@ -41,28 +321,25 @@ SNM.closeCallSheet = function () {
     if (v && !v._snmWired) {
       v._snmWired = true;
       v.onclick = function () {
-        if (!SNM._threadPeer && !(SNM._validThreadId && SNM._validThreadId(SNM._threadId))) {
-          alert("Open a chat first");
-          return;
-        }
-        SNM.openCallSheet("voice");
+        SNM.startCall("voice");
       };
     }
     if (vid && !vid._snmWired) {
       vid._snmWired = true;
       vid.onclick = function () {
-        if (!SNM._threadPeer && !(SNM._validThreadId && SNM._validThreadId(SNM._threadId))) {
-          alert("Open a chat first");
-          return;
-        }
-        SNM.openCallSheet("video");
+        SNM.startCall("video");
       };
     }
     if (end && !end._snmWired) {
       end._snmWired = true;
       end.onclick = function () {
-        SNM.closeCallSheet();
+        SNM.hangupCall();
       };
+    }
+    if (!window._snmCallPendingTimer) {
+      window._snmCallPendingTimer = setInterval(function () {
+        SNM.pollIncomingCalls();
+      }, 4000);
     }
   }
   if (document.readyState === "loading") {
