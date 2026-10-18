@@ -1,8 +1,9 @@
 """
-Call / video signaling. Media = WebRTC client + TURN/SFU later.
-Uid = phone. start_row on every signal.
+Call signaling. Media = WebRTC on client.
+Store room in Redis (fallback: memory). Poll for signals.
 """
 
+from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
@@ -16,18 +17,26 @@ from app.core.deps import get_current_user
 from app.core.limiter import limiter
 from app.db import get_db
 from app.models.user import User
-from app.services.identity import public_identity, start_row
+from app.services.identity import public_identity
 from app.services.phone import normalize_e164
+from app.services.redis_client import (
+    redis_delete,
+    redis_get_json,
+    redis_lpush,
+    redis_lrange,
+    redis_publish,
+    redis_set_json,
+)
 
 router = APIRouter(prefix="/calls", tags=["calls"])
 
-# In-memory signaling store (swap for Redis on scale)
-_CALLS: dict[str, dict[str, Any]] = {}
+_CALLS_MEM: dict[str, dict[str, Any]] = {}
+TTL = 180  # seconds
 
 
 class CallStart(BaseModel):
-    to_uid: str = Field(..., description="Callee phone Uid E.164")
-    mode: str = "video"  # audio | video
+    to_uid: str = Field(..., description="Callee phone E.164")
+    mode: str = "voice"  # voice | video
 
 
 class SignalBody(BaseModel):
@@ -42,6 +51,27 @@ def _room_id(uid_a: str, uid_b: str) -> str:
     return f"{a}:{b}"
 
 
+def _key(call_id: str) -> str:
+    return f"call:{call_id}"
+
+
+def _pending_key(phone: str) -> str:
+    return f"call:pending:{phone}"
+
+
+def _save(rec: dict) -> None:
+    cid = rec["call_id"]
+    if not redis_set_json(_key(cid), rec, ttl=TTL):
+        _CALLS_MEM[cid] = rec
+
+
+def _load(call_id: str) -> dict | None:
+    rec = redis_get_json(_key(call_id))
+    if rec:
+        return rec
+    return _CALLS_MEM.get(call_id)
+
+
 @router.post("/start")
 @limiter.limit("30/minute")
 async def start_call(
@@ -53,7 +83,7 @@ async def start_call(
     try:
         to_uid = normalize_e164(body.to_uid)
         from_uid = normalize_e164(user.phone)
-    except ValueError as e:
+    except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
     if to_uid == from_uid:
@@ -67,22 +97,39 @@ async def start_call(
     if not callee:
         raise HTTPException(status_code=404, detail="Callee not found")
 
+    mode = (body.mode or "voice").lower()
+    if mode in ("audio",):
+        mode = "voice"
+    if mode not in ("voice", "video"):
+        mode = "voice"
+
     from_id = public_identity(user.name, from_uid)
     to_id = public_identity(callee.name, to_uid)
     call_id = str(uuid.uuid4())
-    room = _room_id(from_uid, to_uid)
-
     rec = {
         "call_id": call_id,
-        "room_id": room,
-        "mode": body.mode,
+        "room_id": _room_id(from_uid, to_uid),
+        "mode": mode,
         "status": "ringing",
         "from": from_id,
         "to": to_id,
         "signals": [],
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
-    _CALLS[call_id] = rec
+    _save(rec)
+
+    # Notify callee inbox (poll)
+    ring = {
+        "call_id": call_id,
+        "mode": mode,
+        "from": from_id,
+        "to": to_id,
+        "status": "ringing",
+        "at": rec["created_at"],
+    }
+    redis_lpush(_pending_key(to_uid), ring, maxlen=20)
+    redis_publish(f"call:signal:{call_id}", {"kind": "ring", **ring})
+
     return rec
 
 
@@ -93,44 +140,116 @@ async def signal(
     body: SignalBody,
     user: User = Depends(get_current_user),
 ):
-    rec = _CALLS.get(body.call_id)
+    rec = _load(body.call_id)
     if not rec:
         raise HTTPException(status_code=404, detail="Call not found")
 
-    uid = normalize_e164(user.phone)
+    try:
+        uid = normalize_e164(user.phone)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid phone")
+
     parties = {rec["from"]["uid"], rec["to"]["uid"]}
     if uid not in parties:
         raise HTTPException(status_code=403, detail="Not a call party")
+
+    kind = (body.kind or "").lower().strip()
+    if kind not in ("offer", "answer", "ice", "hangup"):
+        raise HTTPException(status_code=400, detail="Invalid kind")
 
     ident = public_identity(user.name, uid)
     entry = {
         "at": datetime.now(timezone.utc).isoformat(),
         "from_uid": uid,
-        "identity_tag": ident["identity_tag"],
-        "start_row": ident["start_row"],
-        "kind": body.kind,
+        "identity_tag": ident.get("identity_tag"),
+        "start_row": ident.get("start_row"),
+        "kind": kind,
         "sdp": body.sdp,
         "ice": body.ice,
     }
-    rec["signals"].append(entry)
-    if body.kind == "hangup":
+    signals = list(rec.get("signals") or [])
+    signals.append(entry)
+    # keep last 80
+    rec["signals"] = signals[-80:]
+    if kind == "hangup":
         rec["status"] = "ended"
-    elif body.kind == "answer":
+    elif kind == "answer":
         rec["status"] = "active"
-    return {"ok": True, "call_id": body.call_id, "status": rec["status"], "entry": entry}
+    elif kind == "offer" and rec.get("status") == "ringing":
+        rec["status"] = "ringing"
+
+    _save(rec)
+    redis_publish(f"call:signal:{body.call_id}", entry)
+
+    if kind == "hangup":
+        redis_delete(_key(body.call_id))
+
+    return {
+        "ok": True,
+        "call_id": body.call_id,
+        "status": rec["status"],
+        "entry": entry,
+    }
+
+
+@router.get("/pending")
+@limiter.limit("60/minute")
+async def pending_calls(
+    request: Request,
+    user: User = Depends(get_current_user),
+):
+    """Callee polls for incoming rings."""
+    try:
+        uid = normalize_e164(user.phone)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid phone")
+    items = redis_lrange(_pending_key(uid), 0, 9)
+    # Also scan memory fallback for rings to this uid
+    for rec in list(_CALLS_MEM.values()):
+        if (
+            rec.get("status") == "ringing"
+            and rec.get("to", {}).get("uid") == uid
+        ):
+            items.append(
+                {
+                    "call_id": rec["call_id"],
+                    "mode": rec.get("mode"),
+                    "from": rec.get("from"),
+                    "to": rec.get("to"),
+                    "status": "ringing",
+                }
+            )
+    return {"count": len(items), "items": items}
 
 
 @router.get("/{call_id}")
-@limiter.limit("60/minute")
+@limiter.limit("120/minute")
 async def get_call(
     request: Request,
     call_id: str,
+    after: int = 0,
     user: User = Depends(get_current_user),
 ):
-    rec = _CALLS.get(call_id)
+    rec = _load(call_id)
     if not rec:
         raise HTTPException(status_code=404, detail="Call not found")
-    uid = normalize_e164(user.phone)
+    try:
+        uid = normalize_e164(user.phone)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid phone")
     if uid not in {rec["from"]["uid"], rec["to"]["uid"]}:
         raise HTTPException(status_code=403, detail="Not a call party")
-    return rec
+
+    signals = rec.get("signals") or []
+    if after > 0:
+        signals = signals[after:]
+    return {
+        "call_id": rec["call_id"],
+        "mode": rec.get("mode"),
+        "status": rec.get("status"),
+        "from": rec.get("from"),
+        "to": rec.get("to"),
+        "signals": signals,
+        "signal_total": len(rec.get("signals") or []),
+        "created_at": rec.get("created_at"),
+    }
