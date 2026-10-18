@@ -211,9 +211,17 @@ SNM.dropMessagePayload = async function (payload) {
   var text = "";
   if (payload.body != null) text = String(payload.body).trim();
   if (!text && payload.text != null) text = String(payload.text).trim();
+  var msgType = (payload.msg_type || payload.type || "text").toLowerCase();
+  var media = payload.media_url || payload.image_url || payload.audio_url || null;
+  if (media) media = String(media).trim() || null;
+
+  if (!text && media) {
+    if (msgType === "image") text = "📷 Photo";
+    else if (msgType === "voice" || msgType === "audio") text = "🎤 Voice note";
+    else text = "Attachment";
+  }
   if (!text) throw new Error("Type a message first");
 
-  /* Recover: UI open + peer phone but id was cleared */
   if (!SNM._validThreadId(SNM._threadId) && SNM._threadPeer) {
     var title =
       ((document.getElementById("threadTitle") || {}).textContent || "").trim() ||
@@ -224,14 +232,16 @@ SNM.dropMessagePayload = async function (payload) {
     throw new Error("Open a chat first");
   }
 
-  var body = {
-    body: text,
-    msg_type: payload.msg_type || "text",
-    media_url: payload.media_url || null
-  };
   return SNM.api(
     "/messages/threads/" + encodeURIComponent(String(SNM._threadId)),
-    { method: "POST", body: body }
+    {
+      method: "POST",
+      body: {
+        body: text,
+        msg_type: msgType,
+        media_url: media
+      }
+    }
   );
 };
 
@@ -743,3 +753,5 @@ SNM.onMessagesEnter = function () {
     }
   };
 })();
+
+/* MSG_MEDIA_HANDLERS_EOF — run after bindMessages */
