@@ -248,3 +248,36 @@ document.addEventListener("click", function (e) {
     }
   });
 })();
+
+
+/* BYFLINT_DAILY_EOF */
+SNM.BYFLINT_DAILY = 175;
+SNM.getByflints = function () {
+  try {
+    return parseInt(localStorage.getItem("snm_byflints") || "0", 10) || 0;
+  } catch (e) {
+    return 0;
+  }
+};
+SNM.setByflints = function (n) {
+  try {
+    localStorage.setItem("snm_byflints", String(n));
+  } catch (e) {}
+};
+SNM.claimDailyByflints = function () {
+  var key = "snm_byflint_claim_" + new Date().toISOString().slice(0, 10);
+  try {
+    if (localStorage.getItem(key)) {
+      if (typeof SNM.toast === "function") SNM.toast("Already claimed today");
+      else alert("Already claimed today");
+      return SNM.getByflints();
+    }
+    localStorage.setItem(key, "1");
+  } catch (e) {}
+  var n = SNM.getByflints() + (SNM.BYFLINT_DAILY || 175);
+  SNM.setByflints(n);
+  if (typeof SNM.toast === "function") SNM.toast("+" + SNM.BYFLINT_DAILY + " Byflints");
+  else alert("+" + SNM.BYFLINT_DAILY + " Byflints — balance " + n);
+  return n;
+};
+

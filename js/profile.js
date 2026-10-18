@@ -680,3 +680,142 @@ SNM.paintProfileReactions = function (phone) {
   };
 })();
 
+
+/* OPEN_USER_PROFILE_FULL_EOF */
+SNM.closeUserProfile = function () {
+  var sheet = document.getElementById("userProfileSheet");
+  if (!sheet) return;
+  sheet.classList.remove("open");
+  sheet.setAttribute("aria-hidden", "true");
+  sheet.style.display = "none";
+};
+
+SNM.openUserProfile = async function (phone) {
+  phone = String(phone || "").trim();
+  if (!phone) {
+    alert("No user phone");
+    return;
+  }
+  SNM._profileTargetPhone = phone;
+  var sheet = document.getElementById("userProfileSheet");
+  var body = document.getElementById("userProfileBody");
+  var list = document.getElementById("userProfileListings");
+  if (sheet) {
+    sheet.classList.add("open");
+    sheet.setAttribute("aria-hidden", "false");
+    sheet.style.display = "flex";
+  }
+  if (body) body.innerHTML = "<p class='muted'>Loading profile…</p>";
+  if (list) list.innerHTML = "";
+
+  var user = { phone: phone, name: "User", live: false };
+  try {
+    var looked = await SNM.api(
+      "/messages/lookup?phone=" + encodeURIComponent(phone)
+    );
+    if (looked) user = Object.assign(user, looked);
+  } catch (e) {}
+
+  /* optional presence */
+  try {
+    var pr = await SNM.api(
+      "/presence/by-phone?phone=" + encodeURIComponent(user.phone || phone)
+    );
+    if (pr && pr.live != null) user.live = !!pr.live;
+  } catch (e2) {}
+
+  var live = !!user.live;
+  var liveHtml =
+    '<span class="badge-live' +
+    (live ? "" : " hb-off") +
+    '">' +
+    (live ? "● Live now" : "○ Offline") +
+    "</span>";
+
+  if (body) {
+    body.innerHTML =
+      '<div class="profile-hero">' +
+      '<div class="profile-avatar-lg profile-avatar-placeholder"><i class="fa-solid fa-user"></i></div>' +
+      "<div>" +
+      "<p><strong>" +
+      SNM.esc(user.name || "User") +
+      "</strong> " +
+      liveHtml +
+      "</p>" +
+      "<p class='muted'>" +
+      SNM.esc(user.role || "") +
+      "</p>" +
+      "<p>" +
+      SNM.esc(user.phone || phone) +
+      "</p>" +
+      "<p class='muted small'>" +
+      SNM.esc(
+        [user.primary_location, user.community, user.city]
+          .filter(Boolean)
+          .join(" · ")
+      ) +
+      "</p>" +
+      "</div></div>";
+  }
+
+  var msgBtn = document.getElementById("btnProfileMessage");
+  if (msgBtn) {
+    msgBtn.onclick = function () {
+      SNM.closeUserProfile();
+      if (typeof SNM.messageSeller === "function") {
+        SNM.messageSeller(user.phone || phone, user.name);
+      }
+    };
+  }
+
+  if (list) {
+    list.innerHTML = "<p class='muted'>Loading listings…</p>";
+    try {
+      var me = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+      var data = await SNM.api(
+        "/search/products" +
+          SNM.qs({
+            q: "",
+            max_km: SNM.MAX_KM || 80,
+            limit: 40,
+            lat: me.lat,
+            lng: me.lng,
+            community: me.community || "",
+            city: me.city || "",
+            region: me.region || "",
+            country: me.country || "Nigeria"
+          })
+      );
+      var rows = data.results || data.items || [];
+      var dig = String(phone).replace(/\D/g, "");
+      rows = rows.filter(function (r) {
+        var o = r.owner || r.seller || r.merchant || {};
+        var ph = String(o.phone || r.phone || r.owner_phone || "").replace(/\D/g, "");
+        return ph && (ph === dig || ph.slice(-10) === dig.slice(-10));
+      });
+      if (!rows.length) {
+        list.innerHTML = "<p class='muted'>No listings from this seller nearby.</p>";
+      } else {
+        list.innerHTML = rows
+          .map(function (r) {
+            return typeof SNM.cardHtml === "function" ? SNM.cardHtml(r) : "";
+          })
+          .join("");
+        if (typeof SNM.bindCardActions === "function") SNM.bindCardActions(list);
+      }
+    } catch (e3) {
+      list.innerHTML = "<p class='muted'>Listings unavailable.</p>";
+    }
+  }
+};
+
+(function () {
+  var btn = document.getElementById("btnCloseUserProfile");
+  if (btn && !btn._snmWired) {
+    btn._snmWired = true;
+    btn.onclick = function () {
+      SNM.closeUserProfile();
+    };
+  }
+})();
+

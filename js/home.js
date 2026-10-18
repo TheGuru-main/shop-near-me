@@ -2689,3 +2689,40 @@ SNM.applyQuickTilePhotos = function () {
   }
 })();
 
+
+/* MULTI_MERCHANT_MSG_EOF */
+SNM.messageAllCartSellers = async function () {
+  var cart = typeof SNM.getCart === "function" ? SNM.getCart() : [];
+  var phones = [];
+  cart.forEach(function (it) {
+    var p = (it.seller_phone || it.phone || "").trim();
+    if (p && phones.indexOf(p) < 0) phones.push(p);
+  });
+  if (!phones.length) {
+    alert("No seller phones in cart");
+    return;
+  }
+  var text =
+    "Hello — I have items from your shop in my Shop Near Me cart. Please confirm availability.";
+  for (var i = 0; i < phones.length; i++) {
+    try {
+      await SNM.api("/messages/threads", {
+        method: "POST",
+        body: {
+          to_phone: phones[i],
+          body: text,
+          context_type: "direct"
+        }
+      });
+    } catch (e) {
+      console.warn("msg merchant", phones[i], e);
+    }
+  }
+  if (typeof SNM.toast === "function") {
+    SNM.toast("Messaged " + phones.length + " seller(s)");
+  } else {
+    alert("Messaged " + phones.length + " seller(s)");
+  }
+  if (typeof SNM.showScreen === "function") SNM.showScreen("messages");
+};
+

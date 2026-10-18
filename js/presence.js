@@ -253,3 +253,55 @@ SNM.initPresenceForRole = function () {
   };
 })();
 
+
+/* CARD_LIVE_BATCH_EOF */
+SNM.refreshFeedLiveChips = async function () {
+  var cards = document.querySelectorAll(
+    ".listing-card[data-phone], article.card[data-phone]"
+  );
+  if (!cards.length) return;
+
+  var u = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+  var my = String(u.phone || "").replace(/\D/g, "");
+  var phones = [];
+  var seen = {};
+  cards.forEach(function (card) {
+    var ph = String(card.getAttribute("data-phone") || "").trim();
+    if (!ph || seen[ph]) return;
+    seen[ph] = 1;
+    phones.push(ph);
+  });
+
+  var liveMap = {};
+  if (phones.length && typeof SNM.api === "function") {
+    try {
+      var data = await SNM.api(
+        "/presence/batch" + SNM.qs({ phones: phones.join(",") })
+      );
+      liveMap = (data && data.live) || {};
+    } catch (e) {
+      /* fallback: own cards only */
+    }
+  }
+
+  cards.forEach(function (card) {
+    var ph = String(card.getAttribute("data-phone") || "").trim();
+    var dig = ph.replace(/\D/g, "");
+    var live = false;
+    if (liveMap[ph] != null) live = !!liveMap[ph];
+    else {
+      Object.keys(liveMap).forEach(function (k) {
+        if (String(k).replace(/\D/g, "").slice(-10) === dig.slice(-10)) {
+          live = !!liveMap[k];
+        }
+      });
+    }
+    if (my && dig && (dig === my || dig.slice(-10) === my.slice(-10))) {
+      live = !!SNM._liveOn;
+    }
+    if (typeof SNM.paintLiveChipOnCard === "function") {
+      SNM.paintLiveChipOnCard(card, live);
+    }
+  });
+};
+

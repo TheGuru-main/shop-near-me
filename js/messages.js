@@ -558,15 +558,104 @@ SNM.bindMessages = function () {
   if (imgBtn && !imgBtn._snmWired) {
     imgBtn._snmWired = true;
     imgBtn.onclick = function () {
-      alert("Send text for now. Image attach next.");
+      var inp = document.getElementById("msg-image");
+      if (!inp) {
+        inp = document.createElement("input");
+        inp.type = "file";
+        inp.accept = "image/*";
+        inp.id = "msg-image";
+        inp.className = "hidden";
+        document.body.appendChild(inp);
+        inp.onchange = async function () {
+          var file = inp.files && inp.files[0];
+          if (!file) return;
+          try {
+            var dataUrl =
+              typeof SNM.compressImageFile === "function"
+                ? await SNM.compressImageFile(file, 480, 0.55)
+                : await new Promise(function (res, rej) {
+                    var r = new FileReader();
+                    r.onload = function () { res(r.result); };
+                    r.onerror = rej;
+                    r.readAsDataURL(file);
+                  });
+            if (dataUrl.length > 120000) {
+              alert("Image too large. Try a smaller photo.");
+              return;
+            }
+            await SNM.dropMessagePayload({
+              body: "📷 Photo",
+              msg_type: "image",
+              media_url: dataUrl
+            });
+            await SNM.reloadOpenThread();
+          } catch (e) {
+            alert(SNM._msgErr(e) || "Image send failed");
+          }
+          inp.value = "";
+        };
+      }
+      inp.click();
     };
   }
 
   var voiceBtn = document.getElementById("btnMsgVoice");
   if (voiceBtn && !voiceBtn._snmWired) {
     voiceBtn._snmWired = true;
-    voiceBtn.onclick = function () {
-      alert("Send text for now.");
+    voiceBtn.onclick = async function () {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("Voice not supported on this device");
+        return;
+      }
+      if (SNM._voiceRec && SNM._voiceRec.state === "recording") {
+        SNM._voiceRec.stop();
+        voiceBtn.classList.remove("recording");
+        return;
+      }
+      try {
+        var stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        SNM._voiceChunks = [];
+        var rec = new MediaRecorder(stream);
+        SNM._voiceRec = rec;
+        rec.ondataavailable = function (ev) {
+          if (ev.data && ev.data.size) SNM._voiceChunks.push(ev.data);
+        };
+        rec.onstop = async function () {
+          stream.getTracks().forEach(function (tr) { tr.stop(); });
+          try {
+            var blob = new Blob(SNM._voiceChunks, { type: "audio/webm" });
+            var dataUrl = await new Promise(function (resolve, reject) {
+              var fr = new FileReader();
+              fr.onload = function () { resolve(fr.result); };
+              fr.onerror = reject;
+              fr.readAsDataURL(blob);
+            });
+            if (dataUrl.length > 200000) {
+              alert("Voice note too long. Keep under \~15s.");
+              return;
+            }
+            await SNM.dropMessagePayload({
+              body: "🎤 Voice note",
+              msg_type: "voice",
+              media_url: dataUrl
+            });
+            await SNM.reloadOpenThread();
+          } catch (e) {
+            alert(SNM._msgErr(e) || "Voice send failed");
+          }
+        };
+        rec.start();
+        voiceBtn.classList.add("recording");
+        if (typeof SNM.toast === "function") SNM.toast("Recording… tap again to send");
+        setTimeout(function () {
+          if (SNM._voiceRec && SNM._voiceRec.state === "recording") {
+            SNM._voiceRec.stop();
+            voiceBtn.classList.remove("recording");
+          }
+        }, 15000);
+      } catch (e) {
+        alert("Mic permission needed for voice notes");
+      }
     };
   }
 

@@ -136,3 +136,64 @@ async def presence_me(
         score=heartbeat_score(user.hb_at) if user.role != "buyer" else 0.0,
         live=effective_live(user.live, user.hb_at),
     )
+
+
+@router.get("/by-phone")
+@limiter.limit("60/minute")
+async def presence_by_phone(
+    request: Request,
+    phone: str,
+    db: Session = Depends(get_db),
+):
+    """Public live flag for a seller card (by Shop Near Me phone UID)."""
+    from app.services.phone import normalize_e164
+    try:
+        p = normalize_e164(phone)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid phone")
+    u = (
+        db.query(User)
+        .filter(User.phone == p, User.deleted_at.is_(None))
+        .first()
+    )
+    if not u:
+        return {"phone": phone, "live": False, "registered": False}
+    _expire_if_stale(u, db)
+    return {
+        "phone": u.phone,
+        "live": effective_live(u.live, u.hb_at),
+        "role": u.role,
+        "name": u.name,
+        "registered": True,
+    }
+
+
+@router.get("/batch")
+@limiter.limit("30/minute")
+async def presence_batch(
+    request: Request,
+    phones: str = "",
+    db: Session = Depends(get_db),
+):
+    """Comma-separated phones → { phone: live } for feed cards."""
+    from app.services.phone import normalize_e164
+    raw = [x.strip() for x in (phones or "").split(",") if x.strip()]
+    out = {}
+    for ph in raw[:40]:
+        try:
+            p = normalize_e164(ph)
+        except Exception:
+            out[ph] = False
+            continue
+        u = (
+            db.query(User)
+            .filter(User.phone == p, User.deleted_at.is_(None))
+            .first()
+        )
+        if not u:
+            out[ph] = False
+            continue
+        _expire_if_stale(u, db)
+        out[u.phone] = bool(effective_live(u.live, u.hb_at))
+    return {"live": out}
+
