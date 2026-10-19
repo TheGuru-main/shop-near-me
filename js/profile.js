@@ -1095,3 +1095,119 @@ SNM.closeProfile = function () {
   };
 })();
 
+
+/* PROFILE_LISTINGS_BY_OWNER_EOF */
+SNM._digitsPhone = function (p) {
+  return String(p || "").replace(/\D/g, "");
+};
+
+SNM.loadUserProfileListings = async function (phone) {
+  var list = document.getElementById("userProfileListings");
+  if (!list) return;
+  phone = String(phone || SNM._profileTargetPhone || "").trim();
+  if (!phone) {
+    list.innerHTML = "<p class='muted'>No phone for listings.</p>";
+    return;
+  }
+  list.innerHTML = "<p class='muted'>Loading this seller's listings…</p>";
+
+  var results = [];
+  var ownerMeta = null;
+
+  /* 1) dedicated by-owner API */
+  try {
+    var data = await SNM.api(
+      "/search/by-owner" + SNM.qs({ phone: phone, limit: 50 })
+    );
+    results = data.results || data.items || [];
+    ownerMeta = data.owner || null;
+  } catch (e1) {
+    /* 2) fallback search with owner_phone */
+    try {
+      var data2 = await SNM.api(
+        "/search/products" +
+          SNM.qs({ q: "", owner_phone: phone, max_km: 20000, limit: 50 })
+      );
+      results = data2.results || data2.items || [];
+    } catch (e2) {
+      results = [];
+    }
+  }
+
+  /* 3) merge from in-memory feed cache */
+  if (SNM._listingsById) {
+    var dig = SNM._digitsPhone(phone);
+    Object.keys(SNM._listingsById).forEach(function (k) {
+      var r = SNM._listingsById[k];
+      if (!r) return;
+      var o = r.owner || r.seller || r.merchant || {};
+      var ph = o.phone || r.phone || r.owner_phone || "";
+      if (SNM._digitsPhone(ph).slice(-10) === dig.slice(-10)) {
+        if (!results.some(function (x) { return String(x.id) === String(r.id); })) {
+          results.push(r);
+        }
+      }
+    });
+  }
+
+  if (!results.length) {
+    var role = (ownerMeta && ownerMeta.role) || "";
+    if (/driver|logistic|emergency/i.test(role)) {
+      list.innerHTML =
+        "<p class='muted'>No catalogue items. This " +
+        SNM.esc(role) +
+        " is reachable via Message / Call from their profile.</p>";
+    } else {
+      list.innerHTML =
+        "<p class='muted'>No listings from this seller yet.</p>";
+    }
+    return;
+  }
+
+  if (typeof SNM.cardHtml === "function") {
+    list.innerHTML =
+      '<div class="card-rail">' +
+      results
+        .map(function (r) {
+          return SNM.cardHtml(typeof SNM.normalizeListing === "function" ? SNM.normalizeListing(r) : r);
+        })
+        .join("") +
+      "</div>";
+    if (typeof SNM.bindCardActions === "function") SNM.bindCardActions(list);
+  } else {
+    list.innerHTML = results
+      .map(function (r) {
+        return (
+          '<article class="card"><strong>' +
+          SNM.esc(r.name || r.title || "Item") +
+          "</strong>" +
+          (r.price != null
+            ? "<p>" + SNM.esc(String(r.currency || "NGN")) + " " + SNM.esc(String(r.price)) + "</p>"
+            : "") +
+          "</article>"
+        );
+      })
+      .join("");
+  }
+};
+
+/* Hook every openUserProfile */
+(function () {
+  var prev = SNM.openUserProfile;
+  if (typeof prev !== "function") return;
+  SNM.openUserProfile = async function (phone) {
+    var ret = await prev.apply(this, arguments);
+    try {
+      await SNM.loadUserProfileListings(phone);
+    } catch (e) {
+      var list = document.getElementById("userProfileListings");
+      if (list)
+        list.innerHTML =
+          "<p class='muted'>Listings unavailable. " +
+          SNM.esc((e && e.message) || "") +
+          "</p>";
+    }
+    return ret;
+  };
+})();
+

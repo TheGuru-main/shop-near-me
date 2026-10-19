@@ -131,6 +131,7 @@ async def search_products(
     lang: str = Query("en"),
     perishable: bool | None = None,
     category: str | None = None,
+    owner_phone: str | None = Query(None, description="Seller phone UID E.164"),
     limit: int = Query(40, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
@@ -182,6 +183,17 @@ async def search_products(
         rows = rows.filter(Product.perishable.is_(True))
     if category:
         rows = rows.filter(Product.category.ilike(f"%{category}%"))
+    if owner_phone:
+        from app.services.phone import normalize_e164
+        try:
+            op = normalize_e164(owner_phone)
+        except Exception:
+            op = str(owner_phone).strip()
+        digits = "".join(c for c in op if c.isdigit())
+        rows = rows.filter(
+            (User.phone == op)
+            | (User.phone.endswith(digits[-10:] if len(digits) >= 10 else digits))
+        )
 
     pairs = rows.limit(500).all()
     scored: list[dict] = []
@@ -545,3 +557,88 @@ async def search_merchants(
 
     cache_set(cache_key, body, train=True)
     return body
+
+
+@router.get("/by-owner")
+@limiter.limit("60/minute")
+async def products_by_owner(
+    request: Request,
+    phone: str = Query(..., min_length=8),
+    limit: int = Query(50, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    """List catalogue items for one seller/provider by phone UID."""
+    from app.services.phone import normalize_e164
+
+    try:
+        op = normalize_e164(phone)
+    except Exception:
+        op = str(phone).strip()
+    digits = "".join(c for c in op if c.isdigit())
+    owner = (
+        db.query(User)
+        .filter(User.deleted_at.is_(None))
+        .filter(
+            (User.phone == op)
+            | (User.phone.endswith(digits[-10:] if len(digits) >= 10 else digits))
+        )
+        .first()
+    )
+    if not owner:
+        return {"count": 0, "results": [], "owner": None, "note": "user not found"}
+
+    rows = (
+        db.query(Product)
+        .filter(
+            Product.owner_id == owner.id,
+            Product.deleted_at.is_(None),
+        )
+        .order_by(Product.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+    results = []
+    for product in rows:
+        results.append(
+            {
+                "id": str(product.id),
+                "name": product.name,
+                "title": product.name,
+                "price": product.price,
+                "currency": product.currency or "NGN",
+                "quantity": product.quantity,
+                "available": product.available,
+                "perishable": product.perishable,
+                "category": product.category,
+                "business_type": product.business_type,
+                "description": product.description,
+                "image_url": product.image_url,
+                "created_at": product.created_at.isoformat() if product.created_at else None,
+                "phone": owner.phone,
+                "owner_phone": owner.phone,
+                "owner": {
+                    "id": str(owner.id),
+                    "name": owner.name,
+                    "phone": owner.phone,
+                    "role": owner.role,
+                    "primary_location": owner.primary_location,
+                    "community": owner.community,
+                    "city": owner.city,
+                    "lat": owner.lat,
+                    "lng": owner.lng,
+                    "live": getattr(owner, "live", False),
+                },
+                "lat": owner.lat,
+                "lng": owner.lng,
+            }
+        )
+    return {
+        "count": len(results),
+        "results": results,
+        "owner": {
+            "name": owner.name,
+            "phone": owner.phone,
+            "role": owner.role,
+            "live": getattr(owner, "live", False),
+        },
+    }

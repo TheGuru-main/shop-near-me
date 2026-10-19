@@ -275,14 +275,10 @@ SNM.startCall = async function (mode, peerPhone, peerLabel) {
     } else if (status === 401 || status === 403) {
       msg = "Session expired — log in again, then retry call";
     } else if (/failed to fetch|network|load failed|offline/i.test(msg)) {
-      msg = "Network error — check connection and retry";
+      msg = "Call server unreachable (network/CORS/sleeping host). Stay in app — retry in a few seconds.";
     }
     SNM._callNotify(msg, true);
-    if (mode === "voice" && peerPhone.charAt(0) === "+") {
-      var useTel = confirm(msg + "\n\nDial with phone app instead?");
-      if (useTel) {
-        try { window.location.href = "tel:" + peerPhone; } catch (e2) {}
-      }
+    
     }
   }
 };
