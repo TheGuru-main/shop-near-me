@@ -16,10 +16,16 @@ SNM._callNotify = function (msg, isErr) {
   msg = String(msg || "");
   SNM._setCallStatus(msg);
   if (typeof SNM.toast === "function") {
-    try { SNM.toast(msg); return; } catch (e) {}
+    try {
+      SNM.toast(msg);
+      return;
+    } catch (e) {}
   }
-  if (isErr) {
-    try { alert(msg); } catch (e2) {}
+  /* avoid alert spam — status line is enough unless hard error */
+  if (isErr && /session expired|not registered|unreachable/i.test(msg)) {
+    try {
+      alert(msg);
+    } catch (e2) {}
   }
 };
 
@@ -205,9 +211,19 @@ SNM._pollCall = function () {
 
 SNM.startCall = async function (mode, peerPhone, peerLabel) {
   mode = mode === "video" ? "video" : "voice";
-  peerPhone = SNM._callPeerPhone(peerPhone || SNM._threadPeer || "");
+  peerPhone =
+    peerPhone ||
+    (typeof SNM.resolveCallPeerPhone === "function"
+      ? SNM.resolveCallPeerPhone()
+      : "") ||
+    SNM._threadPeer ||
+    "";
+  peerPhone =
+    typeof SNM._callPeerPhone === "function"
+      ? SNM._callPeerPhone(peerPhone)
+      : String(peerPhone || "").trim();
   if (!peerPhone) {
-    alert("Open a chat first");
+    SNM._setCallStatus("No peer UID — open a chat first");
     return;
   }
   SNM._callMode = mode;
@@ -302,19 +318,17 @@ SNM.joinCall = async function (callId, mode) {
 
 SNM.openCallSheet = function (mode, peerLabel) {
   var peer =
+    (typeof SNM.resolveCallPeerPhone === "function" &&
+      SNM.resolveCallPeerPhone()) ||
     SNM._threadPeer ||
-    SNM._threadPeerId ||
-    (document.getElementById("dm-phone") || {}).value ||
     "";
-  peer = typeof SNM._callPeerPhone === "function" ? SNM._callPeerPhone(peer) : peer;
   if (!peer) {
-    SNM._setCallStatus("No peer phone (UID) for call");
-    alert("Open a chat with a user first");
+    SNM._setCallStatus("No peer UID");
     return;
   }
-  /* UID → UID: same phone identity as messaging */
   SNM.startCall(mode === "video" ? "video" : "voice", peer, peerLabel || peer);
 };
+
 
 
 SNM.pollIncomingCalls = async function () {
@@ -352,13 +366,21 @@ SNM.pollIncomingCalls = async function () {
     if (v && !v._snmWired) {
       v._snmWired = true;
       v.onclick = function () {
-        SNM.startCall("voice");
+        var peer =
+          typeof SNM.resolveCallPeerPhone === "function"
+            ? SNM.resolveCallPeerPhone()
+            : SNM._threadPeer || "";
+        SNM.startCall("voice", peer);
       };
     }
     if (vid && !vid._snmWired) {
       vid._snmWired = true;
       vid.onclick = function () {
-        SNM.startCall("video");
+        var peer =
+          typeof SNM.resolveCallPeerPhone === "function"
+            ? SNM.resolveCallPeerPhone()
+            : SNM._threadPeer || "";
+        SNM.startCall("video", peer);
       };
     }
     if (end && !end._snmWired) {
