@@ -131,6 +131,11 @@ SNM._showThreadUi = function (title) {
 };
 
 SNM.closeThread = function () {
+  var listPhase = document.getElementById("msgListPhase");
+  if (listPhase) listPhase.style.display = "";
+  var msgScreen = document.getElementById("messages");
+  if (msgScreen) msgScreen.classList.remove("thread-open");
+
   SNM._threadId = null;
   SNM._threadPeer = null;
   SNM._threadPeerId = null;
@@ -347,8 +352,10 @@ SNM.loadInbox = async function (opts) {
         document.querySelectorAll("#inboxList .card, #threadList .card").forEach(function (c) {
           c.classList.remove("active");
         });
-        if (card) card.classList.add("active");
+        el.classList.add("active");
         SNM._threadPeer = phone || SNM._threadPeer;
+        if (typeof SNM._showThreadPhase === "function") SNM._showThreadPhase();
+        if (typeof SNM._showThreadUi === "function") SNM._showThreadUi(label);
         SNM.openThread(tid, label, { phone: phone });
       };
     });
