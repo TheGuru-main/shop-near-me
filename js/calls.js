@@ -1,5 +1,17 @@
 window.SNM = window.SNM || {};
 
+SNM._callPeerPhone = function (raw) {
+  raw = String(raw || "").trim().replace(/\s/g, "");
+  if (!raw) return "";
+  if (raw.charAt(0) === "+") return "+" + raw.slice(1).replace(/\D/g, "");
+  var d = raw.replace(/\D/g, "");
+  if (d.indexOf("234") === 0) return "+" + d;
+  if (d.length === 11 && d.charAt(0) === "0") return "+234" + d.slice(1);
+  if (d.length >= 10) return "+" + d;
+  return raw;
+};
+
+
 SNM._callNotify = function (msg, isErr) {
   msg = String(msg || "");
   SNM._setCallStatus(msg);
@@ -193,7 +205,7 @@ SNM._pollCall = function () {
 
 SNM.startCall = async function (mode, peerPhone, peerLabel) {
   mode = mode === "video" ? "video" : "voice";
-  peerPhone = String(peerPhone || SNM._threadPeer || "").trim();
+  peerPhone = SNM._callPeerPhone(peerPhone || SNM._threadPeer || "");
   if (!peerPhone) {
     alert("Open a chat first");
     return;
@@ -255,10 +267,13 @@ SNM.startCall = async function (mode, peerPhone, peerLabel) {
   } catch (e) {
     var msg = (e && e.message) || "Call failed";
     var status = e && e.status;
+    if (/Field required|loc|query/i.test(msg)) {
+      msg = "Call request failed (bad payload). Update app and retry.";
+    }
     if (status === 404 || /not found|callee/i.test(msg)) {
       msg = "User offline or not registered on Shop Near Me";
     } else if (status === 401 || status === 403) {
-      msg = "Session expired — log in again";
+      msg = "Session expired — log in again, then retry call";
     } else if (/failed to fetch|network|load failed|offline/i.test(msg)) {
       msg = "Network error — check connection and retry";
     }

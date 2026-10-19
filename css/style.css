@@ -2535,3 +2535,53 @@ body.has-nav .screen.active > .home-body {
   border-radius: 10px;
 }
 
+
+/* ========== PROFILE_SCREENS_SOLID ========== */
+#my-profile.screen.active,
+#user-profile.screen.active {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  overflow: hidden !important;
+  background: #f8fafc !important;
+}
+#my-profile .container,
+#user-profile .container,
+#user-profile .user-profile-body {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+.profile-avatar-frame {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  margin: 0.5rem 0 0.85rem;
+}
+.profile-avatar-lg {
+  width: 96px !important;
+  height: 96px !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  background: #e2e8f0 !important;
+  display: block !important;
+  border: 2px solid rgba(20,83,45,0.2);
+}
+.profile-avatar-ph {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 2rem;
+  pointer-events: none;
+}
+.profile-avatar-frame.has-img .profile-avatar-ph { display: none; }
+/* hide legacy bottom profile sheet if still in DOM */
+#profileSheet.sheet { display: none !important; }
+

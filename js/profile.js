@@ -1037,3 +1037,61 @@ document.addEventListener(
   true
 );
 
+
+/* PROFILE_SCREENS_OPEN_EOF */
+SNM.openProfile = function () {
+  if (typeof SNM.renderProfile === "function") SNM.renderProfile();
+  /* never use bottom sheet */
+  var sheet = document.getElementById("profileSheet");
+  if (sheet) {
+    sheet.classList.remove("open");
+    sheet.style.display = "none";
+    sheet.setAttribute("aria-hidden", "true");
+  }
+  if (typeof SNM.showScreen === "function") {
+    SNM.showScreen("my-profile");
+  }
+};
+
+SNM.closeProfile = function () {
+  var sheet = document.getElementById("profileSheet");
+  if (sheet) {
+    sheet.classList.remove("open");
+    sheet.style.display = "none";
+    sheet.setAttribute("aria-hidden", "true");
+  }
+  if (typeof SNM.showScreen === "function") SNM.showScreen("home");
+};
+
+/* Enhance openUserProfile avatar */
+(function () {
+  var prev = SNM.openUserProfile;
+  if (typeof prev !== "function") return;
+  SNM.openUserProfile = async function (phone) {
+    var ret = await prev.apply(this, arguments);
+    var av = document.getElementById("userProfileAvatar");
+    var frame = av && av.closest(".profile-avatar-frame");
+    var ph = document.getElementById("userProfileAvatarPh");
+    var u = null;
+    try {
+      u = await SNM.api("/messages/lookup?phone=" + encodeURIComponent(String(phone || "").trim()));
+    } catch (e) {}
+    var url = (u && (u.avatar_url || u.image_url || u.photo)) || "";
+    if (av && url) {
+      av.src = url;
+      av.style.display = "block";
+      if (frame) frame.classList.add("has-img");
+      if (ph) ph.style.display = "none";
+    } else if (av) {
+      av.removeAttribute("src");
+      av.style.display = "block";
+      if (frame) frame.classList.remove("has-img");
+      if (ph) ph.style.display = "flex";
+    }
+    if (typeof SNM.showScreen === "function" && document.getElementById("user-profile")) {
+      SNM.showScreen("user-profile");
+    }
+    return ret;
+  };
+})();
+
