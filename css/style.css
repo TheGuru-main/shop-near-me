@@ -2363,3 +2363,65 @@ body.has-nav .screen.active > .home-body {
 .row.gap { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 #escrowOtpBlock.hidden { display: none !important; }
 
+
+/* ========== PROFILE_CARD_FULLSCREEN_FIX ========== */
+/* Override generic .sheet bottom drawer for seller profile */
+#userProfileSheet.sheet,
+#userProfileSheet.sheet.open,
+#userProfileSheet.sheet[aria-hidden="false"],
+#userProfileSheet.open,
+#userProfileSheet {
+  position: fixed !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  width: 100% !important;
+  max-width: var(--app-max, 480px) !important;
+  height: 100% !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  min-height: 100dvh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: #f8fafc !important;
+  z-index: 9000 !important;
+  display: none !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+#userProfileSheet.open,
+#userProfileSheet.sheet.open,
+#userProfileSheet[aria-hidden="false"] {
+  display: flex !important;
+}
+#userProfileSheet .sheet-handle {
+  display: none !important;
+}
+#userProfileSheet .user-profile-head {
+  flex: 0 0 52px !important;
+  height: 52px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.45rem !important;
+  padding: 0 0.75rem !important;
+  padding-top: env(safe-area-inset-top, 0px) !important;
+  background: #ffffff !important;
+  border-bottom: 1px solid rgba(20, 83, 45, 0.14) !important;
+  width: 100% !important;
+}
+#userProfileSheet .user-profile-scroll,
+#userProfileSheet .sheet-body {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  padding: 0.85rem 0.9rem !important;
+  padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px)) !important;
+  width: 100% !important;
+  display: block !important;
+}
+

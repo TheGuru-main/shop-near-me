@@ -824,3 +824,77 @@ SNM.openUserProfile = async function (phone) {
   }
 })();
 
+
+/* PROFILE_FULLSCREEN_FORCE_EOF */
+SNM._paintUserProfileFull = function (open) {
+  var sheet = document.getElementById("userProfileSheet");
+  if (!sheet) return;
+  if (open) {
+    sheet.classList.add("open", "user-profile-full");
+    sheet.setAttribute("aria-hidden", "false");
+    sheet.style.cssText = [
+      "position:fixed",
+      "top:0",
+      "left:50%",
+      "right:auto",
+      "bottom:0",
+      "transform:translateX(-50%)",
+      "width:100%",
+      "max-width:480px",
+      "height:100dvh",
+      "max-height:100dvh",
+      "min-height:100dvh",
+      "margin:0",
+      "padding:0",
+      "border-radius:0",
+      "box-shadow:none",
+      "background:#f8fafc",
+      "z-index:9000",
+      "display:flex",
+      "flex-direction:column",
+      "overflow:hidden"
+    ].join(";");
+  } else {
+    sheet.classList.remove("open", "user-profile-full");
+    sheet.setAttribute("aria-hidden", "true");
+    sheet.style.cssText = "display:none";
+  }
+};
+
+(function () {
+  var prevOpen = SNM.openUserProfile;
+  SNM.openUserProfile = async function (phone) {
+    SNM._paintUserProfileFull(true);
+    if (typeof prevOpen === "function") {
+      try {
+        return await prevOpen.apply(this, arguments);
+      } finally {
+        SNM._paintUserProfileFull(true);
+      }
+    }
+  };
+  var prevClose = SNM.closeUserProfile;
+  SNM.closeUserProfile = function () {
+    if (typeof prevClose === "function") {
+      try {
+        prevClose.apply(this, arguments);
+      } catch (e) {}
+    }
+    SNM._paintUserProfileFull(false);
+  };
+})();
+
+document.addEventListener(
+  "click",
+  function (e) {
+    var back = e.target.closest(
+      "#btnCloseUserProfile, #btnCloseUserProfile2, #userProfileSheet [data-close]"
+    );
+    if (!back) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (typeof SNM.closeUserProfile === "function") SNM.closeUserProfile();
+  },
+  true
+);
+
