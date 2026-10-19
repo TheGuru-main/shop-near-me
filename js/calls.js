@@ -301,8 +301,21 @@ SNM.joinCall = async function (callId, mode) {
 };
 
 SNM.openCallSheet = function (mode, peerLabel) {
-  SNM.startCall(mode, SNM._threadPeer, peerLabel);
+  var peer =
+    SNM._threadPeer ||
+    SNM._threadPeerId ||
+    (document.getElementById("dm-phone") || {}).value ||
+    "";
+  peer = typeof SNM._callPeerPhone === "function" ? SNM._callPeerPhone(peer) : peer;
+  if (!peer) {
+    SNM._setCallStatus("No peer phone (UID) for call");
+    alert("Open a chat with a user first");
+    return;
+  }
+  /* UID → UID: same phone identity as messaging */
+  SNM.startCall(mode === "video" ? "video" : "voice", peer, peerLabel || peer);
 };
+
 
 SNM.pollIncomingCalls = async function () {
   if (typeof SNM.api !== "function" || !SNM.getToken || !SNM.getToken()) return;

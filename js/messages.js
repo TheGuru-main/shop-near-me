@@ -262,31 +262,7 @@ SNM.reloadOpenThread = async function () {
   );
 };
 
-SNM.openCallSheet = function (mode, peerLabel) {
-  var sheet = document.getElementById("call-sheet");
-  var peer = document.getElementById("callPeer");
-  var status = document.getElementById("callStatus");
-  if (peer) peer.textContent = peerLabel || SNM._threadPeer || "Peer";
-  if (status) {
-    status.textContent =
-      (mode === "video" ? "Video" : "Voice") +
-      " — signaling not fully live yet";
-  }
-  if (sheet) {
-    sheet.classList.add("open");
-    sheet.setAttribute("aria-hidden", "false");
-    sheet.style.display = "block";
-  }
-};
-
-SNM.closeCallSheet = function () {
-  var sheet = document.getElementById("call-sheet");
-  if (sheet) {
-    sheet.classList.remove("open");
-    sheet.setAttribute("aria-hidden", "true");
-    sheet.style.display = "none";
-  }
-};
+/* call UI lives in calls.js — UID→UID startCall */
 
 SNM.loadInbox = async function (opts) {
   opts = opts || {};
