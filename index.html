@@ -728,16 +728,32 @@
 
           <!-- Image inspect / caption (hidden until pick) -->
           <div id="msgImageComposer" class="msg-media-composer hidden">
-            <p class="muted small">Review photo</p>
-            <div class="msg-img-preview-wrap">
-              <img id="msgImagePreview" alt="Preview" />
+            <p class="muted small">Inspect & crop before send (max 5MB)</p>
+            <div class="msg-img-preview-wrap msg-crop-wrap">
+              <canvas id="msgCropCanvas" width="320" height="320"></canvas>
+              <img id="msgImagePreview" alt="Preview" class="hidden" />
             </div>
+            <label class="muted small">Crop zoom
+              <input id="msgCropZoom" type="range" min="100" max="220" value="100" />
+            </label>
             <label>Caption (optional)
               <input id="msgImageCaption" type="text" maxlength="200" placeholder="Add a short write-up…" />
             </label>
             <div class="row gap">
               <button type="button" class="btn secondary" id="btnMsgImageCancel">Delete</button>
               <button type="button" class="btn" id="btnMsgImageSend">Send photo</button>
+            </div>
+          </div>
+
+          <div id="msgVideoComposer" class="msg-media-composer hidden">
+            <p class="muted small">Video preview (max 5MB)</p>
+            <video id="msgVideoPreview" controls playsinline style="max-width:100%;border-radius:12px;max-height:220px"></video>
+            <label>Caption (optional)
+              <input id="msgVideoCaption" type="text" maxlength="200" placeholder="Add a short write-up…" />
+            </label>
+            <div class="row gap">
+              <button type="button" class="btn secondary" id="btnMsgVideoCancel">Delete</button>
+              <button type="button" class="btn" id="btnMsgVideoSend">Send video</button>
             </div>
           </div>
 
@@ -758,6 +774,10 @@
               <i class="fa-solid fa-image"></i>
             </button>
             <input type="file" id="msg-image" accept="image/*" class="hidden" />
+            <button type="button" id="btnMsgVideo" class="btn icon" aria-label="Video">
+              <i class="fa-solid fa-film"></i>
+            </button>
+            <input type="file" id="msg-video" accept="video/*" class="hidden" />
             <button type="button" id="btnMsgVoice" class="btn icon" aria-label="Voice note">
               <i class="fa-solid fa-microphone"></i>
             </button>
@@ -1153,15 +1173,16 @@
       <button type="button" class="btn secondary block" id="btnCloseProfile">Close</button>
     </div>
 
-        <div id="userProfileSheet" class="sheet user-profile-full" aria-hidden="true">
-      <div class="user-profile-head">
-        <button type="button" class="icon-btn" id="btnCloseUserProfile" aria-label="Back">
+    <!-- ========== USER PROFILE (full route) ========== -->
+    <section id="user-profile" class="screen" data-screen="user-profile">
+      <header class="top-bar">
+        <button type="button" class="icon-btn" id="btnUserProfileBack" aria-label="Back">
           <i class="fa-solid fa-arrow-left"></i>
         </button>
         <span class="screen-title">Profile</span>
         <span class="spacer"></span>
-      </div>
-      <div class="user-profile-scroll sheet-body">
+      </header>
+      <div class="container stack user-profile-body">
         <img id="userProfileAvatar" class="profile-avatar-lg" alt="" style="display:none" />
         <div id="userProfileBody"></div>
         <p id="userProfileBio" class="muted"></p>
@@ -1175,10 +1196,9 @@
         <h3 class="section-h">Listings</h3>
         <div id="userProfileListings" class="feed-list"></div>
       </div>
-    </div>
+    </section>
 
-
-    <div id="listingDetail" class="sheet" aria-hidden="true" style="display:none">
+<div id="listingDetail" class="sheet" aria-hidden="true" style="display:none">
       <div class="sheet-handle"></div>
       <button type="button" class="icon-btn detail-close-x" id="btnCloseDetail" aria-label="Close">×</button>
       <div id="listingDetailBody" class="sheet-body"></div>

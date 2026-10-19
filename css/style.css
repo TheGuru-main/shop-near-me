@@ -2425,3 +2425,113 @@ body.has-nav .screen.active > .home-body {
   display: block !important;
 }
 
+
+/* ========== PROFILE_ROUTE_AND_BUBBLES ========== */
+#user-profile.screen.active {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  overflow: hidden !important;
+  background: #f8fafc !important;
+}
+#user-profile .user-profile-body,
+#user-profile .container {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+#user-profile .profile-avatar-lg {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #e2e8f0;
+  display: block;
+  margin: 0.35rem 0 0.75rem;
+}
+
+/* Kill any leftover sheet use of userProfileSheet */
+#userProfileSheet { display: none !important; }
+
+/* Chat bubbles */
+.msg-bubbles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.55rem 0.5rem;
+}
+.msg-bubble {
+  max-width: 82%;
+  padding: 0.5rem 0.7rem;
+  border-radius: 14px;
+  font-size: 0.95rem;
+  line-height: 1.35;
+  word-break: break-word;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.msg-bubble.me {
+  align-self: flex-end;
+  background: linear-gradient(145deg, #166534, #14532d);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.msg-bubble.them {
+  align-self: flex-start;
+  background: #fff;
+  color: #1f2937;
+  border: 1px solid rgba(20,83,45,0.12);
+  border-bottom-left-radius: 4px;
+}
+.msg-bubble .msg-who {
+  font-size: 0.72rem;
+  opacity: 0.8;
+  margin-bottom: 0.2rem;
+  font-weight: 600;
+}
+.msg-bubble .msg-media {
+  display: block;
+  max-width: 100%;
+  max-height: 240px;
+  border-radius: 10px;
+  margin-top: 0.25rem;
+  object-fit: cover;
+  background: #0f172a22;
+}
+.msg-bubble .msg-video {
+  display: block;
+  max-width: 100%;
+  max-height: 240px;
+  border-radius: 10px;
+  margin-top: 0.25rem;
+  background: #000;
+}
+.msg-bubble .msg-audio {
+  width: 100%;
+  min-width: 180px;
+  margin-top: 0.3rem;
+}
+.msg-bubble .msg-caption {
+  margin-top: 0.3rem;
+  font-size: 0.9rem;
+}
+.msg-bubble.me .msg-audio { filter: none; }
+
+.msg-crop-wrap {
+  position: relative;
+  width: 100%;
+  max-height: 280px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#msgCropCanvas {
+  max-width: 100%;
+  max-height: 260px;
+  border-radius: 10px;
+}
+

@@ -898,3 +898,142 @@ document.addEventListener(
   true
 );
 
+
+/* PROFILE_AS_SCREEN_ROUTE_EOF */
+SNM.closeUserProfile = function () {
+  var sheet = document.getElementById("userProfileSheet");
+  if (sheet) {
+    sheet.classList.remove("open");
+    sheet.setAttribute("aria-hidden", "true");
+    sheet.style.display = "none";
+  }
+  if (typeof SNM.showScreen === "function") {
+    SNM.showScreen("home");
+  }
+};
+
+SNM.openUserProfile = async function (phone) {
+  phone = String(phone || "").trim();
+  if (!phone) {
+    alert("No user phone");
+    return;
+  }
+  SNM._profileTargetPhone = phone;
+
+  /* Prefer real screen route — never bottom sheet */
+  if (document.getElementById("user-profile") && typeof SNM.showScreen === "function") {
+    SNM.showScreen("user-profile");
+  } else {
+    var sheet = document.getElementById("userProfileSheet");
+    if (sheet) {
+      sheet.classList.add("open");
+      sheet.style.cssText =
+        "position:fixed;inset:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;height:100dvh;z-index:9000;display:flex;flex-direction:column;background:#f8fafc;border-radius:0;margin:0;padding:0";
+      sheet.setAttribute("aria-hidden", "false");
+    }
+  }
+
+  var body = document.getElementById("userProfileBody");
+  var list = document.getElementById("userProfileListings");
+  var bioEl = document.getElementById("userProfileBio");
+  var av = document.getElementById("userProfileAvatar");
+  if (body) body.innerHTML = "<p class='muted'>Loading profile…</p>";
+  if (list) list.innerHTML = "";
+  if (bioEl) bioEl.textContent = "";
+  if (av) {
+    av.style.display = "none";
+    av.removeAttribute("src");
+  }
+
+  var user = { phone: phone, name: "User" };
+  try {
+    var looked = await SNM.api(
+      "/messages/lookup?phone=" + encodeURIComponent(phone)
+    );
+    if (looked) user = looked;
+  } catch (e) {}
+
+  if (body) {
+    body.innerHTML =
+      "<p><strong>" +
+      SNM.esc(user.name || "User") +
+      "</strong></p>" +
+      "<p class='muted'>" +
+      SNM.esc(user.role || "") +
+      "</p>" +
+      "<p>" +
+      SNM.esc(user.phone || phone) +
+      "</p>" +
+      "<p class='muted small'>" +
+      SNM.esc(
+        [user.primary_location, user.community, user.city]
+          .filter(Boolean)
+          .join(" · ")
+      ) +
+      "</p>";
+  }
+  if (bioEl && user.bio) bioEl.textContent = user.bio;
+
+  var msgBtn = document.getElementById("btnProfileMessage");
+  if (msgBtn) {
+    msgBtn.onclick = function () {
+      if (typeof SNM.showScreen === "function") SNM.showScreen("messages");
+      setTimeout(function () {
+        if (typeof SNM.startDmFromInput === "function")
+          SNM.startDmFromInput(phone);
+        else if (typeof SNM.messageSeller === "function")
+          SNM.messageSeller(phone);
+      }, 80);
+    };
+  }
+
+  if (list) {
+    list.innerHTML = "<p class='muted'>Loading listings…</p>";
+    try {
+      var me = (typeof SNM.getUser === "function" && SNM.getUser()) || {};
+      var data = await SNM.api(
+        "/search/products" +
+          SNM.qs({
+            q: "",
+            max_km: 500,
+            limit: 40,
+            lat: me.lat,
+            lng: me.lng
+          })
+      );
+      var rows = data.results || data.items || [];
+      var mine = rows.filter(function (r) {
+        var o = r.owner || r.seller || r.author || {};
+        var ph = r.phone || o.phone || r.owner_phone || "";
+        return String(ph) === String(phone);
+      });
+      if (!mine.length) {
+        list.innerHTML = "<p class='muted'>No public listings for this user.</p>";
+      } else if (typeof SNM.cardHtml === "function") {
+        list.innerHTML = mine
+          .map(function (r) {
+            return SNM.cardHtml(r);
+          })
+          .join("");
+        if (typeof SNM.bindCardActions === "function") SNM.bindCardActions(list);
+      } else {
+        list.innerHTML = "<p class='muted'>" + mine.length + " listing(s).</p>";
+      }
+    } catch (e2) {
+      list.innerHTML = "<p class='muted'>Listings unavailable.</p>";
+    }
+  }
+};
+
+document.addEventListener(
+  "click",
+  function (e) {
+    var b = e.target.closest("#btnUserProfileBack, #btnCloseUserProfile, #btnCloseUserProfile2");
+    if (!b) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (typeof SNM.closeUserProfile === "function") SNM.closeUserProfile();
+  },
+  true
+);
+

@@ -164,47 +164,53 @@ SNM.closeThread = function () {
 SNM.renderMessageBubble = function (m, me) {
   me = me || {};
   var mine =
-    (m.from_phone && me.phone && String(m.from_phone) === String(me.phone)) ||
-    (m.from_user_id && me.id && String(m.from_user_id) === String(me.id)) ||
+    (m.sender_id && me.id && String(m.sender_id) === String(me.id)) ||
+    (m.from_phone && me.phone && m.from_phone === me.phone) ||
     !!m.mine;
-
   var type = (m.msg_type || m.type || "text").toLowerCase();
+  var media = m.media_url || m.image_url || m.audio_url || m.video_url || "";
   var body = m.body || m.text || "";
-  var media = m.media_url || m.image_url || m.audio_url || "";
-  var who = mine ? me.name || "You" : "";
-
+  var who = mine ? "" : m.from_name || m.sender_name || "";
   var inner = "";
   if (type === "image" && media) {
     inner =
       '<img class="msg-media" src="' +
       SNM.escapeHtml(media) +
-      '" alt="image" />' +
-      (body && body !== "[image]"
+      '" alt="Photo" loading="lazy" />' +
+      (body && body !== "📷 Photo"
         ? '<div class="msg-caption">' + SNM.escapeHtml(body) + "</div>"
         : "");
   } else if ((type === "voice" || type === "audio") && media) {
     inner =
-      '<audio class="msg-audio" controls src="' +
+      '<div class="msg-caption">🎤 Voice note</div>' +
+      '<audio class="msg-audio" controls preload="metadata" src="' +
       SNM.escapeHtml(media) +
-      '"></audio>';
+      '"></audio>' +
+      (body && body !== "🎤 Voice note"
+        ? '<div class="msg-caption">' + SNM.escapeHtml(body) + "</div>"
+        : "");
+  } else if (type === "video" && media) {
+    inner =
+      '<video class="msg-video" controls playsinline preload="metadata" src="' +
+      SNM.escapeHtml(media) +
+      '"></video>' +
+      (body && body !== "🎬 Video"
+        ? '<div class="msg-caption">' + SNM.escapeHtml(body) + "</div>"
+        : "");
   } else {
     inner = SNM.escapeHtml(body || "");
   }
-
   return (
     '<div class="msg-bubble ' +
     (mine ? "me" : "them") +
-    '" data-msg-id="' +
-    SNM.escapeHtml(String(m.id || "")) +
     '">' +
-    (who
-      ? '<div class="msg-who">' + SNM.escapeHtml(String(who)) + "</div>"
-      : "") +
+    (who ? '<div class="msg-who">' + SNM.escapeHtml(String(who)) + "</div>" : "") +
     '<div class="msg-payload">' +
     inner +
     "</div></div>"
   );
 };
+
 
 SNM.dropMessagePayload = async function (payload) {
   payload = payload || {};
@@ -218,6 +224,7 @@ SNM.dropMessagePayload = async function (payload) {
   if (!text && media) {
     if (msgType === "image") text = "📷 Photo";
     else if (msgType === "voice" || msgType === "audio") text = "🎤 Voice note";
+    else if (msgType === "video") text = "🎬 Video";
     else text = "Attachment";
   }
   if (!text) throw new Error("Type a message first");
@@ -1099,5 +1106,245 @@ SNM._wireMsgMediaComposers = function () {
     if (typeof prevBind === "function") prevBind.apply(this, arguments);
     SNM._wireMsgMediaComposers();
   };
+})();
+
+
+/* MSG_MEDIA_CROP_VIDEO_EOF */
+SNM.MSG_MAX_BYTES = 5 * 1024 * 1024; /* 5MB */
+
+SNM._fileToDataUrl = function (file) {
+  return new Promise(function (resolve, reject) {
+    var r = new FileReader();
+    r.onload = function () {
+      resolve(r.result);
+    };
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+};
+
+SNM._dataUrlBytes = function (dataUrl) {
+  var i = String(dataUrl || "").indexOf(",");
+  var b64 = i >= 0 ? dataUrl.slice(i + 1) : dataUrl;
+  return Math.floor((b64.length * 3) / 4);
+};
+
+SNM._cropState = { img: null, zoom: 1 };
+
+SNM._drawCrop = function () {
+  var canvas = document.getElementById("msgCropCanvas");
+  var img = SNM._cropState.img;
+  if (!canvas || !img) return;
+  var ctx = canvas.getContext("2d");
+  var size = 320;
+  canvas.width = size;
+  canvas.height = size;
+  var zoom = SNM._cropState.zoom || 1;
+  var scale = Math.max(size / img.width, size / img.height) * zoom;
+  var w = img.width * scale;
+  var h = img.height * scale;
+  var x = (size - w) / 2;
+  var y = (size - h) / 2;
+  ctx.fillStyle = "#0f172a";
+  ctx.fillRect(0, 0, size, size);
+  ctx.drawImage(img, x, y, w, h);
+};
+
+SNM._getCroppedDataUrl = function () {
+  var canvas = document.getElementById("msgCropCanvas");
+  if (!canvas) return SNM._pendingImageDataUrl;
+  var out = canvas.toDataURL("image/jpeg", 0.72);
+  var n = 0;
+  while (SNM._dataUrlBytes(out) > SNM.MSG_MAX_BYTES && n < 4) {
+    out = canvas.toDataURL("image/jpeg", 0.55 - n * 0.1);
+    n++;
+  }
+  return out;
+};
+
+SNM._loadImageForCrop = function (dataUrl) {
+  return new Promise(function (resolve, reject) {
+    var img = new Image();
+    img.onload = function () {
+      SNM._cropState.img = img;
+      SNM._cropState.zoom = 1;
+      var z = document.getElementById("msgCropZoom");
+      if (z) z.value = "100";
+      SNM._drawCrop();
+      resolve();
+    };
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+};
+
+SNM._wireCropZoom = function () {
+  var z = document.getElementById("msgCropZoom");
+  if (z && !z._snmCrop) {
+    z._snmCrop = true;
+    z.oninput = function () {
+      SNM._cropState.zoom = (parseInt(z.value, 10) || 100) / 100;
+      SNM._drawCrop();
+    };
+  }
+};
+
+SNM._wireVideoAndCropSend = function () {
+  SNM._wireCropZoom();
+
+  var imgSend = document.getElementById("btnMsgImageSend");
+  if (imgSend && !imgSend._snmCropSend) {
+    imgSend._snmCropSend = true;
+    imgSend.onclick = async function () {
+      try {
+        var dataUrl = SNM._getCroppedDataUrl();
+        if (!dataUrl) {
+          alert("Pick a photo first");
+          return;
+        }
+        if (SNM._dataUrlBytes(dataUrl) > SNM.MSG_MAX_BYTES) {
+          alert("Image exceeds 5MB after crop. Zoom out or pick a smaller photo.");
+          return;
+        }
+        var cap = ((document.getElementById("msgImageCaption") || {}).value || "").trim();
+        await SNM.dropMessagePayload({
+          body: cap || "📷 Photo",
+          msg_type: "image",
+          media_url: dataUrl
+        });
+        if (typeof SNM._resetImageUi === "function") SNM._resetImageUi();
+        var box = document.getElementById("msgImageComposer");
+        if (box) box.classList.add("hidden");
+        await SNM.reloadOpenThread();
+      } catch (e) {
+        alert((typeof SNM._msgErr === "function" && SNM._msgErr(e)) || e.message || "Send failed");
+      }
+    };
+  }
+
+  /* Hook file pick → crop stage */
+  var fileInp = document.getElementById("msg-image");
+  if (fileInp && !fileInp._snmCropPick) {
+    fileInp._snmCropPick = true;
+    fileInp.addEventListener("change", async function () {
+      var file = fileInp.files && fileInp.files[0];
+      if (!file) return;
+      if (file.size > SNM.MSG_MAX_BYTES) {
+        alert("Image must be under 5MB");
+        fileInp.value = "";
+        return;
+      }
+      try {
+        var dataUrl =
+          typeof SNM.compressImageFile === "function"
+            ? await SNM.compressImageFile(file, 1280, 0.85)
+            : await SNM._fileToDataUrl(file);
+        SNM._pendingImageDataUrl = dataUrl;
+        await SNM._loadImageForCrop(dataUrl);
+        var box = document.getElementById("msgImageComposer");
+        if (box) box.classList.remove("hidden");
+        var vbox = document.getElementById("msgVideoComposer");
+        if (vbox) vbox.classList.add("hidden");
+      } catch (e) {
+        alert("Could not open image");
+      }
+      fileInp.value = "";
+    });
+  }
+
+  var vBtn = document.getElementById("btnMsgVideo");
+  var vInp = document.getElementById("msg-video");
+  if (vBtn && vInp && !vBtn._snmVid) {
+    vBtn._snmVid = true;
+    vBtn.onclick = function () {
+      if (typeof SNM._resetImageUi === "function") SNM._resetImageUi();
+      var ibox = document.getElementById("msgImageComposer");
+      if (ibox) ibox.classList.add("hidden");
+      vInp.click();
+    };
+    vInp.onchange = async function () {
+      var file = vInp.files && vInp.files[0];
+      if (!file) return;
+      if (file.size > SNM.MSG_MAX_BYTES) {
+        alert("Video must be under 5MB");
+        vInp.value = "";
+        return;
+      }
+      try {
+        var dataUrl = await SNM._fileToDataUrl(file);
+        if (SNM._dataUrlBytes(dataUrl) > SNM.MSG_MAX_BYTES) {
+          alert("Video exceeds 5MB");
+          return;
+        }
+        SNM._pendingVideoDataUrl = dataUrl;
+        var prev = document.getElementById("msgVideoPreview");
+        if (prev) {
+          prev.src = dataUrl;
+        }
+        var box = document.getElementById("msgVideoComposer");
+        if (box) box.classList.remove("hidden");
+      } catch (e) {
+        alert("Could not open video");
+      }
+      vInp.value = "";
+    };
+  }
+
+  var vSend = document.getElementById("btnMsgVideoSend");
+  if (vSend && !vSend._snmVidSend) {
+    vSend._snmVidSend = true;
+    vSend.onclick = async function () {
+      if (!SNM._pendingVideoDataUrl) {
+        alert("Pick a video first");
+        return;
+      }
+      var cap = ((document.getElementById("msgVideoCaption") || {}).value || "").trim();
+      try {
+        await SNM.dropMessagePayload({
+          body: cap || "🎬 Video",
+          msg_type: "video",
+          media_url: SNM._pendingVideoDataUrl
+        });
+        SNM._pendingVideoDataUrl = null;
+        var box = document.getElementById("msgVideoComposer");
+        if (box) box.classList.add("hidden");
+        var prev = document.getElementById("msgVideoPreview");
+        if (prev) prev.removeAttribute("src");
+        await SNM.reloadOpenThread();
+      } catch (e) {
+        alert((typeof SNM._msgErr === "function" && SNM._msgErr(e)) || e.message || "Send failed");
+      }
+    };
+  }
+  var vCancel = document.getElementById("btnMsgVideoCancel");
+  if (vCancel && !vCancel._snm) {
+    vCancel._snm = true;
+    vCancel.onclick = function () {
+      SNM._pendingVideoDataUrl = null;
+      var box = document.getElementById("msgVideoComposer");
+      if (box) box.classList.add("hidden");
+      var prev = document.getElementById("msgVideoPreview");
+      if (prev) prev.removeAttribute("src");
+    };
+  }
+};
+
+(function () {
+  var prev = SNM.bindMessages;
+  SNM.bindMessages = function () {
+    if (typeof prev === "function") prev.apply(this, arguments);
+    SNM._wireVideoAndCropSend();
+  };
+  if (document.readyState !== "loading") {
+    try {
+      SNM._wireVideoAndCropSend();
+    } catch (e) {}
+  } else {
+    document.addEventListener("DOMContentLoaded", function () {
+      try {
+        SNM._wireVideoAndCropSend();
+      } catch (e2) {}
+    });
+  }
 })();
 

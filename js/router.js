@@ -2,6 +2,7 @@ window.SNM = window.SNM || {};
 
 /* Screens that need a token. Pre-auth screens are NOT listed. */
 SNM.AUTHED = {
+  "user-profile": 1,
   home: 1,
   search: 1,
   saved: 1,
