@@ -316,11 +316,18 @@ SNM.pollIncomingCalls = async function () {
     var fromName =
       (ring.from && (ring.from.name || ring.from.uid)) || "Incoming";
     var mode = ring.mode || "voice";
-    if (confirm(fromName + " is calling (" + mode + "). Accept?")) {
-      var peer = document.getElementById("callPeer");
-      if (peer) peer.textContent = fromName;
-      await SNM.joinCall(ring.call_id, mode);
+    SNM._incomingCallId = ring.call_id;
+    SNM._incomingCallMode = mode;
+    var sheet = document.getElementById("call-sheet");
+    var peer = document.getElementById("callPeer");
+    if (peer) peer.textContent = fromName;
+    if (sheet) {
+      sheet.classList.add("open");
+      sheet.setAttribute("aria-hidden", "false");
+      sheet.style.display = "block";
     }
+    SNM._setCallStatus("Incoming " + mode + " call — tap Accept");
+
   } catch (e) {}
 };
 
@@ -345,6 +352,18 @@ SNM.pollIncomingCalls = async function () {
       end._snmWired = true;
       end.onclick = function () {
         SNM.hangupCall();
+      };
+    }
+    var acc = document.getElementById("btnCallAccept");
+    if (acc && !acc._snmWired) {
+      acc._snmWired = true;
+      acc.onclick = function () {
+        if (SNM._incomingCallId) {
+          SNM.joinCall(SNM._incomingCallId, SNM._incomingCallMode || "voice");
+          SNM._incomingCallId = null;
+        } else {
+          SNM._setCallStatus("No incoming call");
+        }
       };
     }
     if (!window._snmCallPendingTimer) {

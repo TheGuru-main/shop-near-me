@@ -796,11 +796,15 @@
       <div class="call-body">
         <p id="callPeer" class="call-peer">—</p>
         <p id="callStatus" class="call-status muted">Idle</p>
+        <div class="call-media-row">
+          <video id="callLocalVideo" autoplay playsinline muted></video>
+          <video id="callRemoteVideo" autoplay playsinline></video>
+        </div>
         <div class="call-actions">
           <button type="button" class="btn" id="btnCallAccept">Accept</button>
           <button type="button" class="btn danger" id="btnCallEnd">End</button>
         </div>
-        <p class="muted small">Voice / video uses in-app signaling. Media may soft-fail until WebRTC is fully live.</p>
+        
       </div>
     </div>
 

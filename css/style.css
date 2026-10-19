@@ -2585,3 +2585,18 @@ body.has-nav .screen.active > .home-body {
 /* hide legacy bottom profile sheet if still in DOM */
 #profileSheet.sheet { display: none !important; }
 
+
+
+.call-media-row {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0.5rem 0;
+  justify-content: center;
+}
+.call-media-row video {
+  width: 46%;
+  max-height: 160px;
+  border-radius: 10px;
+  background: #0f172a;
+  object-fit: cover;
+}
