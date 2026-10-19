@@ -700,48 +700,13 @@ SNM.bindMessages = function () {
     };
   }
 
+  /* Call buttons: handled by calls.js document capture delegate */
   var callV = document.getElementById("btnCallVoice");
-  if (callV && !callV._snmWired) {
-    callV._snmWired = true;
-    callV.onclick = function () {
-      var peer =
-        typeof SNM.resolveCallPeerPhone === "function"
-          ? SNM.resolveCallPeerPhone()
-          : SNM._threadPeer || "";
-      if (!peer) {
-        if (typeof SNM.toast === "function") SNM.toast("Open a chat with someone first");
-        else alert("Open a chat with someone first");
-        return;
-      }
-      if (typeof SNM.startCall === "function") SNM.startCall("voice", peer);
-      else if (typeof SNM.openCallSheet === "function") SNM.openCallSheet("voice", peer);
-    };
-  }
   var callVid = document.getElementById("btnCallVideo");
-  if (callVid && !callVid._snmWired) {
-    callVid._snmWired = true;
-    callVid.onclick = function () {
-      var peer =
-        typeof SNM.resolveCallPeerPhone === "function"
-          ? SNM.resolveCallPeerPhone()
-          : SNM._threadPeer || "";
-      if (!peer) {
-        if (typeof SNM.toast === "function") SNM.toast("Open a chat with someone first");
-        else alert("Open a chat with someone first");
-        return;
-      }
-      if (typeof SNM.startCall === "function") SNM.startCall("video", peer);
-      else if (typeof SNM.openCallSheet === "function") SNM.openCallSheet("video", peer);
-    };
-  }
   var callEnd = document.getElementById("btnCallEnd");
-  if (callEnd && !callEnd._snmWired) {
-    callEnd._snmWired = true;
-    callEnd.onclick = function () {
-      if (typeof SNM.hangupCall === "function") SNM.hangupCall();
-      else if (typeof SNM.closeCallSheet === "function") SNM.closeCallSheet();
-    };
-  }
+  if (callV) callV._snmWired = false; /* allow delegate */
+  if (callVid) callVid._snmWired = false;
+  if (callEnd) callEnd._snmWired = false;
 
   var dmBtn = document.getElementById("btnDmStart");
   if (dmBtn && !dmBtn._snmDmWired) {

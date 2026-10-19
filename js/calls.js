@@ -223,9 +223,27 @@ SNM.startCall = async function (mode, peerPhone, peerLabel) {
       ? SNM._callPeerPhone(peerPhone)
       : String(peerPhone || "").trim();
   if (!peerPhone) {
+    var sheet0 = document.getElementById("call-sheet");
+    if (sheet0) {
+      sheet0.classList.add("open");
+      sheet0.style.display = "block";
+      sheet0.setAttribute("aria-hidden", "false");
+    }
     SNM._setCallStatus("No peer UID — open a chat first");
     return;
   }
+  /* immediate UI so button never feels dead */
+  (function () {
+    var sheet = document.getElementById("call-sheet");
+    var peerEl = document.getElementById("callPeer");
+    if (peerEl) peerEl.textContent = peerLabel || peerPhone;
+    if (sheet) {
+      sheet.classList.add("open");
+      sheet.style.display = "block";
+      sheet.setAttribute("aria-hidden", "false");
+    }
+    SNM._setCallStatus("Starting " + mode + "…");
+  })();
   SNM._callMode = mode;
   SNM._isCaller = true;
   SNM._signalCursor = 0;
@@ -358,58 +376,90 @@ SNM.pollIncomingCalls = async function () {
   } catch (e) {}
 };
 
+
+/* CALL_DELEGATE_WIRE_EOF — always-on, capture phase, ignores stale _snmWired */
+SNM._openCallSheetDom = function (label, status) {
+  var sheet = document.getElementById("call-sheet");
+  var peerEl = document.getElementById("callPeer");
+  if (peerEl) peerEl.textContent = label || "—";
+  if (sheet) {
+    sheet.classList.add("open");
+    sheet.style.display = "block";
+    sheet.setAttribute("aria-hidden", "false");
+  }
+  if (typeof SNM._setCallStatus === "function") SNM._setCallStatus(status || "Starting…");
+};
+
+SNM._peerForCall = function () {
+  var peer = "";
+  if (typeof SNM.resolveCallPeerPhone === "function") {
+    try {
+      peer = SNM.resolveCallPeerPhone() || "";
+    } catch (e) {}
+  }
+  if (!peer) peer = SNM._threadPeer || "";
+  if (!peer) {
+    var tv = document.getElementById("threadView");
+    if (tv && tv.dataset && tv.dataset.peerPhone) peer = tv.dataset.peerPhone;
+  }
+  if (!peer) {
+    var active = document.querySelector(
+      "#inboxList .card.active[data-phone], #threadList .card.active[data-phone]"
+    );
+    if (active) peer = active.getAttribute("data-phone") || "";
+  }
+  if (typeof SNM._callPeerPhone === "function") peer = SNM._callPeerPhone(peer);
+  else if (typeof SNM._normPhone === "function") peer = SNM._normPhone(peer);
+  return String(peer || "").trim();
+};
+
 (function () {
-  function wire() {
-    var v = document.getElementById("btnCallVoice");
-    var vid = document.getElementById("btnCallVideo");
-    var end = document.getElementById("btnCallEnd");
-    if (v && !v._snmWired) {
-      v._snmWired = true;
-      v.onclick = function () {
-        var peer =
-          typeof SNM.resolveCallPeerPhone === "function"
-            ? SNM.resolveCallPeerPhone()
-            : SNM._threadPeer || "";
-        SNM.startCall("voice", peer);
-      };
-    }
-    if (vid && !vid._snmWired) {
-      vid._snmWired = true;
-      vid.onclick = function () {
-        var peer =
-          typeof SNM.resolveCallPeerPhone === "function"
-            ? SNM.resolveCallPeerPhone()
-            : SNM._threadPeer || "";
-        SNM.startCall("video", peer);
-      };
-    }
-    if (end && !end._snmWired) {
-      end._snmWired = true;
-      end.onclick = function () {
-        SNM.hangupCall();
-      };
-    }
-    var acc = document.getElementById("btnCallAccept");
-    if (acc && !acc._snmWired) {
-      acc._snmWired = true;
-      acc.onclick = function () {
-        if (SNM._incomingCallId) {
+  if (window._snmCallDelegateWired) return;
+  window._snmCallDelegateWired = true;
+
+  document.addEventListener(
+    "click",
+    function (e) {
+      var voice = e.target.closest("#btnCallVoice");
+      var video = e.target.closest("#btnCallVideo");
+      var end = e.target.closest("#btnCallEnd");
+      var acc = e.target.closest("#btnCallAccept");
+      if (!voice && !video && !end && !acc) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (end) {
+        if (typeof SNM.hangupCall === "function") SNM.hangupCall();
+        return;
+      }
+      if (acc) {
+        if (SNM._incomingCallId && typeof SNM.joinCall === "function") {
           SNM.joinCall(SNM._incomingCallId, SNM._incomingCallMode || "voice");
           SNM._incomingCallId = null;
         } else {
-          SNM._setCallStatus("No incoming call");
+          SNM._openCallSheetDom("—", "No incoming call");
         }
-      };
-    }
-    if (!window._snmCallPendingTimer) {
-      window._snmCallPendingTimer = setInterval(function () {
-        SNM.pollIncomingCalls();
-      }, 4000);
-    }
-  }
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", wire);
-  } else {
-    wire();
+        return;
+      }
+
+      var mode = video ? "video" : "voice";
+      var peer = SNM._peerForCall();
+      SNM._openCallSheetDom(peer || "—", peer ? "Starting " + mode + "…" : "No peer UID");
+      if (!peer) return;
+      if (typeof SNM.startCall === "function") {
+        SNM.startCall(mode, peer, peer);
+      } else {
+        SNM._setCallStatus("Call module missing");
+      }
+    },
+    true /* capture — wins over dead onclick / overlays */
+  );
+
+  if (!window._snmCallPendingTimer) {
+    window._snmCallPendingTimer = setInterval(function () {
+      if (typeof SNM.pollIncomingCalls === "function") SNM.pollIncomingCalls();
+    }, 4000);
   }
 })();
+

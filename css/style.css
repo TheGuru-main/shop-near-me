@@ -2600,3 +2600,24 @@ body.has-nav .screen.active > .home-body {
   background: #0f172a;
   object-fit: cover;
 }
+
+
+/* CALL_BTNS_CLICKABLE */
+#threadView .thread-head {
+  position: relative;
+  z-index: 20;
+  pointer-events: auto !important;
+}
+#threadView .thread-head .icon-btn,
+#btnCallVoice,
+#btnCallVideo {
+  pointer-events: auto !important;
+  position: relative;
+  z-index: 21;
+  min-width: 40px;
+  min-height: 40px;
+}
+#call-sheet {
+  z-index: 9500 !important;
+}
+
