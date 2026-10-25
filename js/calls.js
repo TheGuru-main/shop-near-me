@@ -140,7 +140,7 @@ SNM._ensurePc = function () {
     var remote = document.getElementById("callRemoteVideo");
     if (remote && ev.streams && ev.streams[0]) {
       remote.srcObject = ev.streams[0];
-      remote.play && remote.play().catch(function () {});
+      if (remote.play) remote.play().catch(function () {});
     }
   };
 
@@ -166,7 +166,7 @@ SNM._attachLocal = async function (mode) {
   if (local) {
     local.srcObject = stream;
     local.muted = true;
-    local.play && local.play().catch(function () {});
+    if (local.play) local.play().catch(function () {});
   }
   var pc = SNM._ensurePc();
   stream.getTracks().forEach(function (tr) {
@@ -205,11 +205,8 @@ SNM._handleSignal = async function (entry) {
       await SNM._flushIce();
       SNM._callNotify("In call");
     } else if (entry.kind === "ice" && entry.ice) {
-      if (!SNM._remoteReady) {
-        SNM._iceQueue.push(entry.ice);
-      } else {
-        await pc.addIceCandidate(entry.ice);
-      }
+      if (!SNM._remoteReady) SNM._iceQueue.push(entry.ice);
+      else await pc.addIceCandidate(entry.ice);
     } else if (entry.kind === "hangup") {
       SNM._callNotify("Peer hung up");
       SNM._stopCallMedia();
@@ -352,7 +349,8 @@ SNM.openCallSheet = function (mode) {
 };
 
 SNM.pollIncomingCalls = async function () {
-  if (!SNM.api || !SNM.getToken || !SNM~._callId) return;
+  if (!SNM.api || !SNM.getToken || !SNM.getToken()) return;
+  if (SNM._callId) return;
   try {
     var data = await SNM.api("/calls/pending");
     var items = (data && data.items) || [];
@@ -363,7 +361,10 @@ SNM.pollIncomingCalls = async function () {
     SNM._incomingCallMode = ring.mode || "voice";
     var name =
       (ring.from && (ring.from.name || ring.from.uid)) || "Incoming";
-    SNM._openCallSheetDom(name, "Incoming " + SNM._incomingCallMode + " — Accept");
+    SNM._openCallSheetDom(
+      name,
+      "Incoming " + SNM._incomingCallMode + " — Accept"
+    );
   } catch (e) {}
 };
 
@@ -380,15 +381,20 @@ SNM.pollIncomingCalls = async function () {
       if (!voice && !video && !end && !acc) return;
       e.preventDefault();
       e.stopPropagation();
-      if (end) return SNM.hangupCall();
+      if (end) {
+        SNM.hangupCall();
+        return;
+      }
       if (acc) {
         if (SNM._incomingCallId) {
           var id = SNM._incomingCallId;
           var mode = SNM._incomingCallMode || "voice";
           SNM._incomingCallId = null;
-          return SNM.joinCall(id, mode);
+          SNM.joinCall(id, mode);
+        } else {
+          SNM._openCallSheetDom("—", "No incoming call");
         }
-        return SNM._openCallSheetDom("—", "No incoming call");
+        return;
       }
       SNM.startCall(video ? "video" : "voice", SNM._peerForCall());
     },
