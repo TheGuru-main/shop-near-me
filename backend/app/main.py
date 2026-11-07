@@ -21,6 +21,7 @@ from app.api import live as live_routes
 from app.api import manifests as manifests_routes
 from app.api import news as news_routes
 from app.api import presence as presence_routes
+from app.api import follow as follow_routes
 from app.api import admin_board as admin_board_routes
 from app.api import products as products_routes
 from app.api import tokenizer as tokenizer_routes
@@ -84,6 +85,7 @@ app.include_router(manifests_routes.router, prefix=prefix)
 app.include_router(admin_contact_routes.router, prefix=prefix)
 app.include_router(admin_board_routes.router, prefix=prefix)
 app.include_router(presence_routes.router, prefix=prefix)
+app.include_router(follow_routes.router, prefix=prefix)
 app.include_router(media.router, prefix=settings.api_prefix)
 
 
