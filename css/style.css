@@ -2621,3 +2621,39 @@ body.has-nav .screen.active > .home-body {
   z-index: 9500 !important;
 }
 
+/* Phase A — product context in message composer */
+.msg-product-context {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.55rem;
+  margin: 0 0 0.35rem;
+  background: #ecfdf5;
+  border: 1px solid rgba(20, 83, 45, 0.18);
+  border-radius: 12px;
+}
+.msg-product-context.hidden { display: none !important; }
+.msg-product-thumb-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #e5e7eb;
+  flex: 0 0 48px;
+}
+.msg-product-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.msg-product-meta { flex: 1; min-width: 0; }
+.msg-product-title {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--primary, #14532d);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+

@@ -1,5 +1,104 @@
 window.SNM = window.SNM || {};
 
+/* === Phase A: product context (single block) === */
+SNM._productContext = SNM._productContext || null;
+
+SNM.clearProductContext = function () {
+  SNM._productContext = null;
+  var bar = document.getElementById("msgProductContext");
+  if (bar) bar.classList.add("hidden");
+  var thumb = document.getElementById("msgProductThumb");
+  if (thumb) {
+    thumb.removeAttribute("src");
+    thumb.style.display = "none";
+  }
+  var titleEl = document.getElementById("msgProductTitle");
+  var priceEl = document.getElementById("msgProductPrice");
+  if (titleEl) titleEl.textContent = "";
+  if (priceEl) priceEl.textContent = "";
+};
+
+SNM.setProductContext = function (listing) {
+  listing = listing || {};
+  var id = listing.id || listing.product_id || listing.post_id || "";
+  var title = listing.title || listing.name || "Listing";
+  var price = listing.price;
+  var currency = listing.currency || "NGN";
+  var image =
+    listing.image_url ||
+    listing.media_url ||
+    (listing.images && listing.images[0]) ||
+    "";
+  var phone =
+    listing.phone ||
+    listing.owner_phone ||
+    listing.author_phone ||
+    "";
+  if (!id && !title) {
+    SNM.clearProductContext();
+    return;
+  }
+  SNM._productContext = {
+    product_id: id ? String(id) : null,
+    title: title,
+    price: price,
+    currency: currency,
+    image_url: image,
+    phone: phone,
+    sellerName:
+      listing.sellerName || listing.seller_name || listing.name || ""
+  };
+  SNM.renderProductContextBar();
+};
+
+SNM.renderProductContextBar = function () {
+  var bar = document.getElementById("msgProductContext");
+  if (!bar) return;
+  var ctx = SNM._productContext;
+  if (!ctx) {
+    bar.classList.add("hidden");
+    return;
+  }
+  bar.classList.remove("hidden");
+  var titleEl = document.getElementById("msgProductTitle");
+  var priceEl = document.getElementById("msgProductPrice");
+  var thumb = document.getElementById("msgProductThumb");
+  if (titleEl) titleEl.textContent = ctx.title || "Listing";
+  if (priceEl) {
+    priceEl.textContent =
+      ctx.price != null && ctx.price !== ""
+        ? (ctx.currency || "NGN") + " " + String(ctx.price)
+        : "";
+  }
+  if (thumb) {
+    if (ctx.image_url) {
+      thumb.src = ctx.image_url;
+      thumb.style.display = "block";
+    } else {
+      thumb.removeAttribute("src");
+      thumb.style.display = "none";
+    }
+  }
+};
+
+SNM.productContextLine = function () {
+  var ctx = SNM._productContext;
+  if (!ctx) return "";
+  var line = "Re: " + (ctx.title || "listing");
+  if (ctx.price != null && ctx.price !== "") {
+    line += " · " + (ctx.currency || "NGN") + " " + String(ctx.price);
+  }
+  return line;
+};
+
+SNM._isUuid = SNM._isUuid || function (id) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    String(id || "").trim()
+  );
+};
+/* === end Phase A helpers === */
+
+
 SNM._threadId = null;
 SNM._threadPeer = null;
 SNM._threadPeerId = null;
@@ -131,6 +230,7 @@ SNM._showThreadUi = function (title) {
 };
 
 SNM.closeThread = function () {
+  if (typeof SNM.clearProductContext === "function") SNM.clearProductContext();
   var listPhase = document.getElementById("msgListPhase");
   if (listPhase) listPhase.style.display = "";
   var msgScreen = document.getElementById("messages");
@@ -221,7 +321,12 @@ SNM.dropMessagePayload = async function (payload) {
   payload = payload || {};
   var text = "";
   if (payload.body != null) text = String(payload.body).trim();
-  if (!text && payload.text != null) text = String(payload.text).trim();
+  
+
+  var _ctxLine = typeof SNM.productContextLine === "function" ? SNM.productContextLine() : "";
+  if (_ctxLine && text && text.indexOf("Re:") !== 0) text = _ctxLine + "\n" + text;
+  else if (_ctxLine && !text) text = _ctxLine;
+if (!text && payload.text != null) text = String(payload.text).trim();
   var msgType = (payload.msg_type || payload.type || "text").toLowerCase();
   var media = payload.media_url || payload.image_url || payload.audio_url || null;
   if (media) media = String(media).trim() || null;
@@ -447,12 +552,23 @@ SNM._ensureThreadWithPhone = async function (phone, title) {
   SNM._threadPeer = phone;
   SNM._showThreadUi(title || phone);
 
+  var tbody = {
+    to_phone: phone,
+    context_type:
+      SNM._productContext && SNM._productContext.product_id
+        ? "product"
+        : "direct"
+  };
+  if (
+    SNM._productContext &&
+    SNM._productContext.product_id &&
+    SNM._isUuid(SNM._productContext.product_id)
+  ) {
+    tbody.product_id = SNM._productContext.product_id;
+  }
   var created = await SNM.api("/messages/threads", {
     method: "POST",
-    body: {
-      to_phone: phone,
-      context_type: "direct"
-    }
+    body: tbody
   });
 
   var tid =
@@ -487,8 +603,15 @@ SNM.openChatWithSeller = async function (meta) {
     meta.seller_name ||
     meta.owner_name ||
     meta.author_name ||
+    meta.sellerName ||
     phone ||
     "Seller";
+
+  if (meta.product || meta.listing || meta.id || meta.title || meta.image_url) {
+    SNM.setProductContext(meta.product || meta.listing || meta);
+  } else {
+    SNM.clearProductContext();
+  }
 
   if (typeof SNM.showScreen === "function") SNM.showScreen("messages");
 
@@ -498,12 +621,14 @@ SNM.openChatWithSeller = async function (meta) {
       return;
     }
     await SNM.startDmByPhone(phone, name);
+    SNM.renderProductContextBar();
   } catch (err) {
     var msg = SNM._msgErr(err);
     if (typeof SNM.toast === "function") SNM.toast(msg);
     else alert(msg);
   }
 };
+
 
 SNM.startDmFromInput = async function (raw) {
   raw = (raw || "").trim();
@@ -721,6 +846,8 @@ SNM.bindMessages = function () {
 };
 
 SNM.onMessagesEnter = function () {
+  if (typeof SNM._wireProductContextUi === \"function\") SNM._wireProductContextUi();
+
   /* Keep open chat; only load inbox when not in a thread */
   if (SNM._validThreadId(SNM._threadId)) return;
   SNM.loadInbox({ closeThread: true });
@@ -1469,3 +1596,15 @@ SNM._finishVoiceBlob = async function () {
   );
 })();
 
+
+
+SNM._wireProductContextUi = function () {
+  if (SNM._productCtxUiWired) return;
+  SNM._productCtxUiWired = true;
+  var clr = document.getElementById("btnClearProductContext");
+  if (clr) {
+    clr.onclick = function () {
+      SNM.clearProductContext();
+    };
+  }
+};

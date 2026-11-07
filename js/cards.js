@@ -427,7 +427,7 @@ SNM.openListingDetail = function (item) {
   var msgBtn = document.getElementById("btnDetailMessage");
   if (msgBtn) {
     msgBtn.onclick = function () {
-      SNM.messageSeller(x.phone, x.sellerName);
+      SNM.messageSeller(x);
     };
   }
 
@@ -488,39 +488,41 @@ SNM.openListingDetail = function (item) {
 
 /** phone string, or (phone, name) */
 SNM.messageSeller = async function (phoneOrMeta, nameHint) {
-  var phone = "";
-  var name = nameHint || "";
+  var meta = {};
   if (phoneOrMeta && typeof phoneOrMeta === "object") {
-    phone =
-      phoneOrMeta.phone ||
-      phoneOrMeta.owner_phone ||
-      phoneOrMeta.author_phone ||
-      "";
-    name =
-      phoneOrMeta.name ||
-      phoneOrMeta.seller_name ||
-      phoneOrMeta.owner_name ||
-      name;
+    meta = phoneOrMeta;
   } else {
-    phone = phoneOrMeta || "";
+    meta = {
+      phone: phoneOrMeta || "",
+      name: nameHint || "",
+      sellerName: nameHint || ""
+    };
   }
-  phone = String(phone || "").trim();
+  var phone = String(
+    meta.phone || meta.owner_phone || meta.author_phone || ""
+  ).trim();
   if (!phone) {
     alert("No seller phone on this listing.");
     return;
   }
+  meta.phone = phone;
+  meta.name =
+    meta.name || meta.sellerName || meta.seller_name || nameHint || "";
+
   if (typeof SNM.openChatWithSeller === "function") {
-    await SNM.openChatWithSeller({ phone: phone, name: name });
+    await SNM.openChatWithSeller(meta);
     return;
   }
   if (typeof SNM.startDmByPhone === "function") {
-    await SNM.startDmByPhone(phone, name);
+    if (typeof SNM.setProductContext === "function" && (meta.id || meta.title)) {
+      SNM.setProductContext(meta);
+    }
+    await SNM.startDmByPhone(phone, meta.name);
     return;
   }
-  var input = document.getElementById("dm-phone");
-  if (input) input.value = phone;
   if (typeof SNM.showScreen === "function") SNM.showScreen("messages");
 };
+
 
 SNM.bindCardActions = function (root) {
   if (typeof SNM.bindCardDetailTap === "function") SNM.bindCardDetailTap(root || document);
@@ -574,7 +576,7 @@ SNM.bindCardActions = function (root) {
         else if (s === "system" && navigator.share)
           navigator.share({ text: text });
         else if (s === "contact") {
-          SNM.messageSeller(sheet.dataset.phone);
+          SNM.messageSeller({ phone: sheet.dataset.phone, title: sheet.dataset.title || "" });
         }
         sheet.classList.remove("open");
       };
@@ -595,7 +597,7 @@ SNM.bindCardActions = function (root) {
       return;
     }
     if (act === "message") {
-      SNM.messageSeller(listing.phone, listing.seller_name);
+      SNM.messageSeller(listing);
       return;
     }
     if (act === "view" || act === "detail") {
@@ -740,7 +742,7 @@ SNM.bindCardActions = function (root) {
         return;
       }
       if (act === "message") {
-        if (typeof SNM.messageSeller === "function") SNM.messageSeller(phone || listing.phone);
+        if (typeof SNM.messageSeller === "function") SNM.messageSeller(listing || { phone: phone });
         return;
       }
       if (act === "cart") {
@@ -822,7 +824,7 @@ SNM.bindCardActions = function (root) {
         }
         if (act === "message") {
           if (typeof SNM.messageSeller === "function")
-            SNM.messageSeller(phone || listing.phone);
+            SNM.messageSeller(listing || { phone: phone });
           return;
         }
         if (act === "cart") {
