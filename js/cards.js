@@ -59,6 +59,63 @@ SNM.cartButtonHtml = function (x) {
 
 window.SNM = window.SNM || {};
 
+/* === Phase B: follow (single block) === */
+SNM.toggleFollow = async function (phone, btn) {
+  phone = String(phone || "").trim();
+  if (!phone) {
+    alert("No seller phone");
+    return;
+  }
+  if (!SNM.getToken || !SNM.getToken()) {
+    alert("Login required");
+    return;
+  }
+  var following = !!(btn && btn.getAttribute("data-following") === "1");
+  if (btn) btn.disabled = true;
+  try {
+    if (following) {
+      await SNM.api("/follow", {
+        method: "DELETE",
+        body: { to_phone: phone }
+      });
+      if (btn) {
+        btn.setAttribute("data-following", "0");
+        btn.textContent = "Follow";
+      }
+    } else {
+      await SNM.api("/follow", {
+        method: "POST",
+        body: { to_phone: phone }
+      });
+      if (btn) {
+        btn.setAttribute("data-following", "1");
+        btn.textContent = "Following";
+      }
+    }
+  } catch (e) {
+    alert((e && e.message) || "Follow failed");
+  }
+  if (btn) btn.disabled = false;
+};
+
+SNM.refreshFollowButton = async function (phone, btn) {
+  if (!phone || !btn || !SNM.api || !SNM.getToken || !SNM.getToken()) return;
+  try {
+    var data = await SNM.api(
+      "/follow/status" + SNM.qs({ phone: phone })
+    );
+    if (data && data.following) {
+      btn.setAttribute("data-following", "1");
+      btn.textContent = "Following";
+    } else {
+      btn.setAttribute("data-following", "0");
+      btn.textContent = "Follow";
+    }
+  } catch (e) {}
+};
+/* === end Phase B follow === */
+
+
 SNM.esc =
   SNM.esc ||
   SNM.escapeHtml ||
@@ -321,6 +378,7 @@ SNM.cardHtml = function (item) {
     '<button type="button" data-act="comment">Comment</button>' +
     '<button type="button" data-act="share">Share</button>' +
     '<button type="button" data-act="message">Message seller</button>' +
+    '<button type="button" data-act="follow" data-following="0">Follow</button>' +
     '<button type="button" class="btn secondary small" data-act="speak" aria-label="Listen">Listen</button>' +
     (typeof SNM.cartButtonHtml === "function" ? SNM.cartButtonHtml(x) : "") + '' +
     (typeof SNM.isMerchantListing === "function" && SNM.isMerchantListing(x)
@@ -594,6 +652,17 @@ SNM.bindCardActions = function (root) {
     }
     if (act === "profile") {
       if (typeof SNM.openUserProfile === "function") SNM.openUserProfile(phone);
+      return;
+    }
+    if (act === "follow") {
+      var fPhone =
+        phone ||
+        (listing && listing.phone) ||
+        card.getAttribute("data-phone") ||
+        "";
+      if (typeof SNM.toggleFollow === "function") {
+        SNM.toggleFollow(fPhone, btn);
+      }
       return;
     }
     if (act === "message") {
