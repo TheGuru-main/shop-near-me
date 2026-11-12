@@ -59,6 +59,61 @@ SNM.cartButtonHtml = function (x) {
 
 window.SNM = window.SNM || {};
 
+/* === Bookmark (users except buyers; items optional) === */
+SNM.canBookmarkRole = function (role) {
+  role = String(role || "").toLowerCase();
+  if (!role || role === "buyer") return false;
+  return /merchant|service|driver|logistic|seller|retail|emergency/.test(role);
+};
+
+SNM.toggleBookmark = async function (meta, btn) {
+  meta = meta || {};
+  var phone = String(meta.phone || "").trim();
+  var kind = meta.kind || "user";
+  var productId = meta.product_id || meta.id || null;
+  if (kind === "user" && !phone) {
+    alert("No seller phone");
+    return;
+  }
+  var on = !!(btn && btn.getAttribute("data-bookmarked") === "1");
+  if (btn) btn.disabled = true;
+  try {
+    var body = { kind: kind, to_phone: phone };
+    if (productId) body.product_id = productId;
+    if (on) {
+      await SNM.api("/bookmarks", { method: "DELETE", body: body });
+      if (btn) {
+        btn.setAttribute("data-bookmarked", "0");
+        btn.textContent = "Bookmark";
+      }
+    } else {
+      await SNM.api("/bookmarks", { method: "POST", body: body });
+      if (btn) {
+        btn.setAttribute("data-bookmarked", "1");
+        btn.textContent = "Bookmarked";
+      }
+    }
+  } catch (e) {
+    /* offline / API not live yet: local fallback */
+    try {
+      var key = "snm_bookmarks";
+      var list = JSON.parse(localStorage.getItem(key) || "[]");
+      var id = (kind === "product" ? "p:" + productId : "u:" + phone);
+      if (on) list = list.filter(function (x) { return x.id !== id; });
+      else list.push({ id: id, kind: kind, phone: phone, product_id: productId, title: meta.title || "", at: Date.now() });
+      localStorage.setItem(key, JSON.stringify(list));
+      if (btn) {
+        btn.setAttribute("data-bookmarked", on ? "0" : "1");
+        btn.textContent = on ? "Bookmark" : "Bookmarked";
+      }
+    } catch (e2) {
+      alert((e && e.message) || "Bookmark failed");
+    }
+  }
+  if (btn) btn.disabled = false;
+};
+
+
 /* === Phase B: follow (single block) === */
 SNM.toggleFollow = async function (phone, btn) {
   phone = String(phone || "").trim();
@@ -379,6 +434,9 @@ SNM.cardHtml = function (item) {
     '<button type="button" data-act="share">Share</button>' +
     '<button type="button" data-act="message">Message seller</button>' +
     '<button type="button" data-act="follow" data-following="0">Follow</button>' +
+    (SNM.canBookmarkRole(x.role || x.kind)
+      ? '<button type="button" data-act="bookmark" data-bookmarked="0">Bookmark</button>'
+      : '') +
     '<button type="button" class="btn secondary small" data-act="speak" aria-label="Listen">Listen</button>' +
     (typeof SNM.cartButtonHtml === "function" ? SNM.cartButtonHtml(x) : "") + '' +
     (typeof SNM.isMerchantListing === "function" && SNM.isMerchantListing(x)
@@ -652,6 +710,23 @@ SNM.bindCardActions = function (root) {
     }
     if (act === "profile") {
       if (typeof SNM.openUserProfile === "function") SNM.openUserProfile(phone);
+      return;
+    }
+    if (act === "bookmark") {
+      var bPhone = phone || (listing && listing.phone) || "";
+      var role = (listing && (listing.role || listing.kind)) || "";
+      if (!SNM.canBookmarkRole(role) && listing) role = listing.roleLabel || "merchant";
+      if (typeof SNM.toggleBookmark === "function") {
+        SNM.toggleBookmark(
+          {
+            phone: bPhone,
+            kind: "user",
+            title: listing && listing.title,
+            role: role
+          },
+          btn
+        );
+      }
       return;
     }
     if (act === "follow") {
