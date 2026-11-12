@@ -2668,3 +2668,58 @@ body.has-nav .screen.active > .home-body {
   background: var(--primary, #14532d);
   color: #fff;
 }
+
+/* Status strip — messages list phase only */
+.status-strip {
+  margin-bottom: 0.65rem;
+  padding: 0.65rem 0.75rem;
+}
+.status-strip-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.45rem;
+}
+.status-rail {
+  display: flex;
+  gap: 0.55rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.25rem;
+}
+.status-pill {
+  flex: 0 0 auto;
+  width: 72px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  text-align: center;
+  cursor: pointer;
+  color: var(--text, #1f2937);
+}
+.status-thumb,
+.status-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  margin: 0 auto 0.25rem;
+  border: 2px solid var(--accent, #16a34a);
+  background: #e5e7eb;
+}
+.status-avatar {
+  line-height: 56px;
+  font-weight: 700;
+  color: var(--primary, #14532d);
+}
+.status-name {
+  font-size: 0.7rem;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#statusComposer.hidden {
+  display: none !important;
+}

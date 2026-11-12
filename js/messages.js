@@ -658,6 +658,7 @@ SNM.startDmFromInput = async function (raw) {
 };
 
 SNM.startDmByPhone = async function (phone, titleHint) {
+  if (typeof SNM.rememberContacted === "function") SNM.rememberContacted(phone);
   phone = SNM._normPhone(phone);
   if (!phone) {
     alert("Phone required");
@@ -865,6 +866,7 @@ SNM.bindMessages = function () {
 
 SNM.onMessagesEnter = function () {
   if (typeof SNM._wireProductContextUi === "function") SNM._wireProductContextUi();
+  if (typeof SNM.onStatusEnter === "function") SNM.onStatusEnter();
 
   /* Keep open chat; only load inbox when not in a thread */
   if (SNM._validThreadId(SNM._threadId)) return;
