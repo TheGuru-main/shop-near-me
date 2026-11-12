@@ -86,6 +86,19 @@ app.include_router(admin_contact_routes.router, prefix=prefix)
 app.include_router(admin_board_routes.router, prefix=prefix)
 app.include_router(presence_routes.router, prefix=prefix)
 app.include_router(follow_routes.router, prefix=prefix)
+
+try:
+    from app.api import bookmarks as bookmarks_routes
+    app.include_router(bookmarks_routes.router, prefix=prefix)
+except Exception as exc:
+    print("bookmarks router skipped:", exc)
+
+try:
+    from app.api import status as status_routes
+    app.include_router(status_routes.router, prefix=prefix)
+except Exception as exc:
+    print("status router skipped:", exc)
+
 app.include_router(media.router, prefix=settings.api_prefix)
 
 
