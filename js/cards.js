@@ -69,16 +69,20 @@ SNM.canBookmarkRole = function (role) {
 SNM.toggleBookmark = async function (meta, btn) {
   meta = meta || {};
   var phone = String(meta.phone || "").trim();
-  var kind = meta.kind || "user";
-  var productId = meta.product_id || meta.id || null;
+  var kind = (meta.kind || "user").toLowerCase();
+  var productId = meta.product_id || null;
   if (kind === "user" && !phone) {
     alert("No seller phone");
+    return;
+  }
+  if (kind === "product" && !productId) {
+    alert("No product id");
     return;
   }
   var on = !!(btn && btn.getAttribute("data-bookmarked") === "1");
   if (btn) btn.disabled = true;
   try {
-    var body = { kind: kind, to_phone: phone };
+    var body = { kind: kind, to_phone: phone || null, title: meta.title || null };
     if (productId) body.product_id = productId;
     if (on) {
       await SNM.api("/bookmarks", { method: "DELETE", body: body });
@@ -94,21 +98,7 @@ SNM.toggleBookmark = async function (meta, btn) {
       }
     }
   } catch (e) {
-    /* offline / API not live yet: local fallback */
-    try {
-      var key = "snm_bookmarks";
-      var list = JSON.parse(localStorage.getItem(key) || "[]");
-      var id = (kind === "product" ? "p:" + productId : "u:" + phone);
-      if (on) list = list.filter(function (x) { return x.id !== id; });
-      else list.push({ id: id, kind: kind, phone: phone, product_id: productId, title: meta.title || "", at: Date.now() });
-      localStorage.setItem(key, JSON.stringify(list));
-      if (btn) {
-        btn.setAttribute("data-bookmarked", on ? "0" : "1");
-        btn.textContent = on ? "Bookmark" : "Bookmarked";
-      }
-    } catch (e2) {
-      alert((e && e.message) || "Bookmark failed");
-    }
+    alert((e && e.message) || "Bookmark failed");
   }
   if (btn) btn.disabled = false;
 };
