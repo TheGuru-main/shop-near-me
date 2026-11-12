@@ -194,12 +194,25 @@ SNM._rowPeerPhone = function (t) {
 SNM._showThreadUi = function (title) {
   if (typeof SNM.showScreen === "function") SNM.showScreen("messages");
 
+  /* Switch list → thread (CSS uses #messages.thread-open) */
+  if (typeof SNM._showThreadPhase === "function") {
+    SNM._showThreadPhase();
+  } else {
+    var msgScreen = document.getElementById("messages");
+    if (msgScreen) msgScreen.classList.add("thread-open");
+    var listPhase = document.getElementById("msgListPhase");
+    if (listPhase) {
+      listPhase.classList.add("hidden");
+      listPhase.style.display = "none";
+    }
+  }
+
   var tv = document.getElementById("threadView");
   var inbox = document.getElementById("inboxList");
   var list = document.getElementById("threadList");
   if (tv) {
     tv.classList.remove("hidden");
-    tv.style.display = "";
+    tv.style.display = "flex";
   }
   if (inbox) {
     inbox.classList.add("hidden");
@@ -210,12 +223,17 @@ SNM._showThreadUi = function (title) {
     list.style.display = "none";
   }
   var tt = document.getElementById("threadTitle");
-  if (tt) tt.textContent = SNM._cleanTitle(title, "Chat");
+  if (tt) {
+    tt.textContent =
+      typeof SNM._cleanTitle === "function"
+        ? SNM._cleanTitle(title, "Chat")
+        : title || "Chat";
+  }
 
   var box =
     document.getElementById("msgList") ||
     document.getElementById("threadMessages");
-  if (box && !box.innerHTML) {
+  if (box && !String(box.innerHTML || "").trim()) {
     box.innerHTML = "<p class='soft'>Loading chat…</p>";
   }
 
@@ -846,7 +864,7 @@ SNM.bindMessages = function () {
 };
 
 SNM.onMessagesEnter = function () {
-  if (typeof SNM._wireProductContextUi === \"function\") SNM._wireProductContextUi();
+  if (typeof SNM._wireProductContextUi === "function") SNM._wireProductContextUi();
 
   /* Keep open chat; only load inbox when not in a thread */
   if (SNM._validThreadId(SNM._threadId)) return;
@@ -1608,3 +1626,28 @@ SNM._wireProductContextUi = function () {
     };
   }
 };
+
+/* MSG_OPEN_CHAT_REWIRE_EOF */
+(function () {
+  function wireDm() {
+    var dmBtn = document.getElementById("btnDmStart");
+    if (!dmBtn) return;
+    dmBtn.onclick = function () {
+      var raw = ((document.getElementById("dm-phone") || {}).value || "").trim();
+      if (typeof SNM.startDmFromInput === "function") SNM.startDmFromInput(raw);
+      else if (typeof SNM.startDmByPhone === "function") SNM.startDmByPhone(raw);
+      else alert("Chat not ready — reload app");
+    };
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", wireDm);
+  } else {
+    wireDm();
+  }
+  var prev = SNM.bindMessages;
+  SNM.bindMessages = function () {
+    if (typeof prev === "function") prev.apply(this, arguments);
+    wireDm();
+  };
+})();
+
