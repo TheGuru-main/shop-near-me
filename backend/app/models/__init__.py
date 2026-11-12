@@ -36,3 +36,5 @@ try:
 except Exception:
     EscrowOrder = None  # type: ignore
 
+from app.models.bookmark import Bookmark  # noqa
+from app.models.status import Status  # noqa
