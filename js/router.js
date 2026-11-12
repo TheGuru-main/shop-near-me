@@ -111,6 +111,9 @@ SNM.showScreen = function (id) {
   if (id === "home" && typeof SNM.enterHome === "function") {
     SNM.enterHome(false);
   }
+  if (id === "saved") {
+    if (typeof SNM.onSavedEnter === "function") SNM.onSavedEnter();
+  }
   if (id === "messages") {
     if (typeof SNM.bindMessages === "function") SNM.bindMessages();
     if (typeof SNM.onMessagesEnter === "function") SNM.onMessagesEnter();
@@ -215,7 +218,7 @@ SNM.renderTabbar = function (active) {
     tabs = [
       { id: "home", icon: "fa-house", label: "Home" },
       { id: "search", icon: "fa-magnifying-glass", label: "Search" },
-      { id: "saved", icon: "fa-bookmark", label: "Saved" },
+      { id: "saved", icon: "fa-bookmark", label: "Bookmark" },
       { id: "messages", icon: "fa-comments", label: "Msgs" },
       { id: "news", icon: "fa-newspaper", label: "News" }
     ];

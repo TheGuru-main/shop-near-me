@@ -429,18 +429,23 @@
       <nav class="bottom-nav" id="bottomNav" aria-label="Main"></nav>
     </section>
 
-    <!-- ========== O0 SAVED (BUYER) ========== -->
+        <!-- ========== O0 SAVED (BUYER bottom-nav Bookmark) ========== -->
     <section id="saved" class="screen" data-screen="saved">
       <header class="top-bar">
         <button type="button" class="icon-btn" data-back="home" aria-label="Back">
           <i class="fa-solid fa-arrow-left"></i>
         </button>
-        <span class="screen-title">Saved</span>
+        <span class="screen-title">Bookmarks</span>
         <span class="spacer"></span>
       </header>
       <div class="container stack">
-        <p class="muted">Bookmarked merchants and items.</p>
+        <div class="chip-row saved-tabs" id="savedTabs" role="tablist">
+          <button type="button" class="chip active" data-saved-tab="catalogue" role="tab">Catalogue</button>
+          <button type="button" class="chip" data-saved-tab="merchants" role="tab">Merchants</button>
+        </div>
+        <p class="muted small" id="savedHint">Bookmarked items for quick reorder.</p>
         <div id="savedList" class="feed-list"></div>
+        <div id="savedMerchants" class="feed-list hidden"></div>
       </div>
       <nav class="bottom-nav" id="bottomNavSaved"></nav>
     </section>
@@ -1157,6 +1162,7 @@
   <script src="js/presence.js"></script>
   <script src="js/shop.js"></script>
   <script src="js/menu_driver_fix.js"></script>
+  <script src="js/saved.js"></script>
   <script src="js/messages.js"></script>
   <script src="js/calls.js"></script>
   <script src="js/fairly_used.js"></script>

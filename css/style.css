@@ -2657,3 +2657,14 @@ body.has-nav .screen.active > .home-body {
   text-overflow: ellipsis;
 }
 
+
+/* Saved / Bookmark tabs (buyer bottom-nav screen) */
+.saved-tabs {
+  margin-bottom: 0.5rem;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+.saved-tabs .chip.active {
+  background: var(--primary, #14532d);
+  color: #fff;
+}
